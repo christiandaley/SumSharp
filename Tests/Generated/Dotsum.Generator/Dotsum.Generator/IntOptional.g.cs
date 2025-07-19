@@ -47,7 +47,7 @@ public partial class IntOptional : IEquatable<IntOptional>
         }
     }
 
-    public TRet Match<TRet>(Func<int, TRet> f0, Func<TRet> f1)
+    public TRet_ Match<TRet_>(Func<int, TRet_> f0, Func<TRet_> f1)
     {
         return Index switch
         {
@@ -57,6 +57,28 @@ public partial class IntOptional : IEquatable<IntOptional>
             1 => f1(),
 
         };
+    }
+
+    public bool IsSome => Index == 0;
+
+    public bool IsNone => Index == 1;
+
+    public void IfSome(Action<int> f)
+
+    {
+        if (Index == 0)
+        {
+            f((int)_value);
+        }
+    }
+
+    public void IfNone(Action f)
+
+    {
+        if (Index == 1)
+        {
+            f();
+        }
     }
 }
 }

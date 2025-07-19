@@ -20,6 +20,9 @@ public class OptionalTests
         Assert.Equal(1, optional.Index);
 
         Assert.Equal(optional, Optional<int>.None);
+
+        Assert.True(optional.IsNone);
+        Assert.False(optional.IsSome);
     }
 
     [Fact]
@@ -34,6 +37,9 @@ public class OptionalTests
 
         // reference equality
         Assert.True(Optional<int>.Some(5) == optional);
+
+        Assert.False(optional.IsNone);
+        Assert.True(optional.IsSome);
     }
 
     [Fact]
@@ -60,5 +66,31 @@ public class OptionalTests
             () => -1);
 
         Assert.Equal(6, value);
+    }
+
+    [Fact]
+    public void If()
+    {
+        bool passed = false;
+
+        Optional<int>.Some(5).IfSome(value => passed = value == 5);
+
+        Assert.True(passed);
+
+        Optional<int>.None.IfSome(value => passed = false);
+
+        Assert.True(passed);
+
+        passed = false;
+
+        Optional<int>.None.IfNone(() => passed = true);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void IfAsync()
+    {
+        
     }
 }

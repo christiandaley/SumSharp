@@ -20,6 +20,9 @@ public class ResultTests
         Assert.Equal(0, result.Index);
 
         Assert.Equal(result, Result<double, string>.Ok(4.5));
+
+        Assert.True(result.IsOk);
+        Assert.False(result.IsError);
     }
 
     [Fact]
@@ -34,6 +37,9 @@ public class ResultTests
 
         // reference equality
         Assert.True(Result<double, string>.Error("error") == result);
+
+        Assert.False(result.IsOk);
+        Assert.True(result.IsError);
     }
 
     [Fact]

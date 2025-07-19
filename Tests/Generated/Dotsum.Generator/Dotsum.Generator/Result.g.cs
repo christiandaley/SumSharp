@@ -47,7 +47,7 @@ public partial class Result<T, U> : IEquatable<Result<T, U>>
         }
     }
 
-    public TRet Match<TRet>(Func<T, TRet> f0, Func<U, TRet> f1)
+    public TRet_ Match<TRet_>(Func<T, TRet_> f0, Func<U, TRet_> f1)
     {
         return Index switch
         {
@@ -57,6 +57,28 @@ public partial class Result<T, U> : IEquatable<Result<T, U>>
             1 => f1((U)_value),
 
         };
+    }
+
+    public bool IsOk => Index == 0;
+
+    public bool IsError => Index == 1;
+
+    public void IfOk(Action<T> f)
+
+    {
+        if (Index == 0)
+        {
+            f((T)_value);
+        }
+    }
+
+    public void IfError(Action<U> f)
+
+    {
+        if (Index == 1)
+        {
+            f((U)_value);
+        }
     }
 }
 }

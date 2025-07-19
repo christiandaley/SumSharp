@@ -118,6 +118,8 @@ public class Generator : IIncrementalGenerator
                 })
                 .ToArray();
 
+            // COMMON MEMBERS
+
             sb.AppendLine($@"
 {accessibility} partial {(isStruct ? "struct" : "class")} {name} : IEquatable<{name}>
 {{
@@ -148,6 +150,8 @@ public class Generator : IIncrementalGenerator
 
     public static bool operator!=({name} left, {name} right) => !left.Equals(right);");
 
+            // CASE CONSTRUCTORS
+
             foreach (var caseData in cases)
             {
                 if (caseData.Type == null)
@@ -161,6 +165,8 @@ public class Generator : IIncrementalGenerator
     public static {name} {caseData.Name}({caseData.Type} value) => new({caseData.Index}, value);");
                 }
             }
+
+            // SWITCH
 
             sb.Append($@"
     public void Switch(");
@@ -196,18 +202,20 @@ public class Generator : IIncrementalGenerator
         }
     }");
 
+            // MATCH
+
             sb.Append($@"
-    public TRet Match<TRet>(");
+    public TRet_ Match<TRet_>(");
 
             sb.Append(string.Join(", ", cases.Select(caseData =>
             {
                 if (caseData.Type == null)
                 {
-                    return $"Func<TRet> f{caseData.Index}";
+                    return $"Func<TRet_> f{caseData.Index}";
                 }
                 else
                 {
-                    return $"Func<{caseData.Type}, TRet> f{caseData.Index}";
+                    return $"Func<{caseData.Type}, TRet_> f{caseData.Index}";
                 }
             })));
 
@@ -229,6 +237,34 @@ public class Generator : IIncrementalGenerator
             sb.AppendLine(@"
         };
     }");
+            // Is*
+
+            foreach (var caseData in cases)
+            {
+                sb.AppendLine($@"
+    public bool Is{caseData.Name} => Index == {caseData.Index};");
+            }
+
+            // If*
+
+            foreach (var caseData in cases)
+            {
+                var argType = caseData.Type == null ? "Action" : $"Action<{caseData.Type}>";
+
+                var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+
+                sb.AppendLine($@"
+    public void If{caseData.Name}({argType} f)");
+                sb.AppendLine($@"
+    {{
+        if (Index == {caseData.Index})
+        {{
+            f({arg});
+        }}
+    }}");
+            }
+
+            // END DEFINITION
 
             sb.AppendLine("}");
 

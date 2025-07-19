@@ -2,7 +2,7 @@
 
 namespace Dotsum;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
 public class CaseAttribute : Attribute
 {
     public CaseAttribute(string name, Type type)
