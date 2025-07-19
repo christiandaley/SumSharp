@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  test:
+    name: Build & test on ${{ matrix.os }} / .NET ${{ matrix.dotnet }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # Build is broken on ubuntu-latest
+        os: [windows-latest, macos-latest]
+        dotnet: ["8.0.x", "9.0.x"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Build AOT tests
+        run: dotnet publish ./Tests.AOT/Tests.AOT.csproj --configuration Release -o ./Tests.AOT/publish
+
+      - name: Run AOT tests
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./Tests.AOT/publish/Tests.AOT.exe
+          else
+            chmod +x ./Tests.AOT/publish/Tests.AOT
+            ./Tests.AOT/publish/Tests.AOT
+          fi
+        shell: bash

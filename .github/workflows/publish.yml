@@ -1,0 +1,58 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    name: Build & Publish
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # GitVersion needs full history
+
+      - name: Setup GitVersion
+        uses: GitTools/actions/gitversion/setup@v0.11.0
+        with:
+          versionSpec: "5.x"
+
+      - name: Run GitVersion
+        id: gitversion
+        uses: GitTools/actions/gitversion/execute@v0.11.0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore SumSharp/SumSharp.csproj
+
+      - name: Build
+        run: dotnet build SumSharp/SumSharp.csproj --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.nuGetVersionV2 }} -p:InformationalVersion=${{ steps.gitversion.outputs.informationalVersion }} -p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }} -p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }}
+
+      - name: Pack with GitVersion
+        run: dotnet pack SumSharp/SumSharp.csproj --configuration Release --no-build --output ./nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+
+      - name: Push to NuGet
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ steps.gitversion.outputs.semVer }}
+          tag_name: v${{ steps.gitversion.outputs.semVer }}
+          body: |
+            ${{ steps.gitversion.outputs.semVer }} — automated release
+          files: ./nupkgs/*.nupkg
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
