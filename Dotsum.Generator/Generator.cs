@@ -95,7 +95,7 @@ public class Generator : IIncrementalGenerator
             var name = symbol.Name;
 
             sb.AppendLine($@"
-{accessibility} partial {(isStruct ? "struct" : "class")} {name}
+{accessibility} partial {(isStruct ? "struct" : "class")} {name} : IEquatable<{name}>
 {{
     private object _value;
 
@@ -105,7 +105,10 @@ public class Generator : IIncrementalGenerator
     {{
         Index = index;
         _value = value;
-    }}");
+    }}
+
+    public bool Equals({name} other) => other is not null && other.Index == Index && Equals(_value, other._value);
+");
 
             var cases = symbol!
                 .GetAttributes()
@@ -122,9 +125,10 @@ public class Generator : IIncrementalGenerator
     public static readonly {name} {caseName.Value} = new({index}, null);");
 
                         break;
-                    case [var caseName, var caseType] when caseType.Value is Type t:
+                    case [var caseName, var caseType]:
 
-
+                        sb.AppendLine($@"
+    public static {name} {caseName.Value}({caseType.Value} value) => new({index}, value);");
 
                         break;
                 }

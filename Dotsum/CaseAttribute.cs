@@ -10,6 +10,11 @@ public class CaseAttribute : Attribute
 
     }
 
+    public CaseAttribute(string name, string typeName)
+    {
+
+    }
+
     public CaseAttribute(string name)
     {
 
