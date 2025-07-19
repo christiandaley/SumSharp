@@ -57,6 +57,20 @@ public class OptionalTests
     }
 
     [Fact]
+    public async Task SwitchAsync()
+    {
+        var optional = Optional<int>.Some(5);
+
+        bool passed = false;
+
+        await optional.Switch(
+            _ => { passed = true; return Task.CompletedTask; },
+            () => Task.CompletedTask);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
     public void Match()
     {
         var optional = Optional<int>.Some(5);
@@ -89,8 +103,22 @@ public class OptionalTests
     }
 
     [Fact]
-    public void IfAsync()
+    public async Task IfAsync()
     {
-        
+        bool passed = false;
+
+        await Optional<int>.Some(5).IfSome(value => { passed = value == 5; return Task.CompletedTask; });
+
+        Assert.True(passed);
+
+        await Optional<int>.None.IfSome(value => { passed = false; return Task.CompletedTask; });
+
+        Assert.True(passed);
+
+        passed = false;
+
+        await Optional<int>.None.IfNone(() => { passed = true; return Task.CompletedTask; });
+
+        Assert.True(passed);
     }
 }

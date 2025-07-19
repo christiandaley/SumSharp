@@ -81,6 +81,8 @@ public class Generator : IIncrementalGenerator
 
             sb.AppendLine("#pragma warning disable CS8509");
 
+            sb.AppendLine("using System.Threading.Tasks;");
+
             if (!string.IsNullOrWhiteSpace(ns))
             {
                 sb.AppendLine($"namespace {ns} {{");
@@ -202,6 +204,42 @@ public class Generator : IIncrementalGenerator
         }
     }");
 
+            // SWITCH ASYNC
+
+            sb.Append($@"
+    public Task Switch(");
+
+            sb.Append(string.Join(", ", cases.Select(caseData =>
+            {
+                if (caseData.Type == null)
+                {
+                    return $"Func<Task> f{caseData.Index}";
+                }
+                else
+                {
+                    return $"Func<{caseData.Type}, Task> f{caseData.Index}";
+                }
+            })));
+
+            sb.Append(")");
+
+            sb.AppendLine(@"
+    {
+        return Index switch
+        {");
+
+            foreach (var caseData in cases)
+            {
+                var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+
+                sb.AppendLine($@"
+            {caseData.Index} => f{caseData.Index}({arg}),");
+            }
+
+            sb.AppendLine(@"
+        };
+    }");
+
             // MATCH
 
             sb.Append($@"
@@ -253,7 +291,7 @@ public class Generator : IIncrementalGenerator
 
                 var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
 
-                sb.AppendLine($@"
+                sb.Append($@"
     public void If{caseData.Name}({argType} f)");
                 sb.AppendLine($@"
     {{
@@ -262,6 +300,18 @@ public class Generator : IIncrementalGenerator
             f({arg});
         }}
     }}");
+            }
+
+            // If* ASYNC
+
+            foreach (var caseData in cases)
+            {
+                var argType = caseData.Type == null ? "Func<Task>" : $"Func<{caseData.Type}, Task>";
+
+                var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+
+                sb.AppendLine($@"
+    public ValueTask If{caseData.Name}({argType} f) => Index == { caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
             }
 
             // END DEFINITION
