@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 
@@ -13,6 +14,8 @@ namespace Dotsum;
 [Generator]
 public class Generator : IIncrementalGenerator
 {
+    record CaseData(int Index, string Name, string? Type);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var dotsumClasses = 
@@ -92,7 +95,11 @@ public class Generator : IIncrementalGenerator
                 Accessibility.Private => "private",
             };
 
-            var name = symbol.Name;
+            var typeArguments = symbol.TypeArguments.Length > 0 ? $"<{string.Join(", ", symbol.TypeArguments)}>" : "";
+
+            var nameWithoutTypeArguments = symbol.Name;
+
+            var name = $"{nameWithoutTypeArguments}{typeArguments}";
 
             sb.AppendLine($@"
 {accessibility} partial {(isStruct ? "struct" : "class")} {name} : IEquatable<{name}>
@@ -101,38 +108,123 @@ public class Generator : IIncrementalGenerator
 
     public int Index {{ get; private set; }}
 
-    private {name}(int index, object value)
+    private {nameWithoutTypeArguments}(int index, object value)
     {{
         Index = index;
         _value = value;
     }}
 
     public bool Equals({name} other) => other is not null && other.Index == Index && Equals(_value, other._value);
-");
+
+    public override bool Equals(object obj)
+    {{
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+
+        return Equals(({name})obj);
+    }}
+
+    public override int GetHashCode() => HashCode.Combine(Index, _value);
+
+    public static bool operator==({name} left, {name} right) => left.Equals(right);
+
+    public static bool operator!=({name} left, {name} right) => !left.Equals(right);");
 
             var cases = symbol!
                 .GetAttributes()
                 .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, caseAttrSymbol))
-                .Select((attr, i) => (attr.ConstructorArguments, i));
-
-            foreach (var (arguments, index) in cases)
-            {
-                switch (arguments)
+                .Select((attr, i) =>
                 {
-                    case [var caseName]:
+                    return attr.ConstructorArguments switch
+                    {
+                        [var caseName] => new CaseData(i, caseName.Value!.ToString(), null),
+                        [var caseName, var caseType] => new CaseData(i, caseName.Value!.ToString(), caseType.Value.ToString())
+                    };
+                })
+                .ToArray();
 
-                        sb.AppendLine($@"
-    public static readonly {name} {caseName.Value} = new({index}, null);");
-
-                        break;
-                    case [var caseName, var caseType]:
-
-                        sb.AppendLine($@"
-    public static {name} {caseName.Value}({caseType.Value} value) => new({index}, value);");
-
-                        break;
+            foreach (var caseData in cases)
+            {
+                if (caseData.Type == null)
+                {
+                    sb.AppendLine($@"
+    public static readonly {name} {caseData.Name} = new({caseData.Index}, null);");
+                }
+                else
+                {
+                    sb.AppendLine($@"
+    public static {name} {caseData.Name}({caseData.Type} value) => new({caseData.Index}, value);");
                 }
             }
+
+            sb.Append($@"
+    public void Switch(");
+
+            sb.Append(string.Join(", ", cases.Select(caseData =>
+            {
+                if (caseData.Type == null)
+                {
+                    return $"Action f{caseData.Index}";
+                }
+                else
+                {
+                    return $"Action<{caseData.Type}> f{caseData.Index}";
+                }
+            })));
+
+            sb.Append(")");
+
+            sb.AppendLine(@"
+    {
+        switch (Index)
+        {");
+
+            foreach (var caseData in cases)
+            {
+                var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+
+                sb.AppendLine($@"
+        case {caseData.Index}: f{caseData.Index}({arg}); break;");
+            }
+
+            sb.AppendLine(@"
+        }
+    }");
+
+            sb.Append($@"
+    public TRet Match<TRet>(");
+
+            sb.Append(string.Join(", ", cases.Select(caseData =>
+            {
+                if (caseData.Type == null)
+                {
+                    return $"Func<TRet> f{caseData.Index}";
+                }
+                else
+                {
+                    return $"Func<{caseData.Type}, TRet> f{caseData.Index}";
+                }
+            })));
+
+            sb.Append(")");
+
+            sb.AppendLine(@"
+    {
+        return Index switch
+        {");
+
+            foreach (var caseData in cases)
+            {
+                var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+
+                sb.AppendLine($@"
+            {caseData.Index} => f{caseData.Index}({arg}),");
+            }
+
+            sb.AppendLine(@"
+        };
+    }");
 
             sb.AppendLine("}");
 

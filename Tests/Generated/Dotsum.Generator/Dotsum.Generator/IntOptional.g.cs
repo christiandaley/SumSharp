@@ -15,9 +15,47 @@ public partial class IntOptional : IEquatable<IntOptional>
 
     public bool Equals(IntOptional other) => other is not null && other.Index == Index && Equals(_value, other._value);
 
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+
+        return Equals((IntOptional)obj);
+    }
+
+    public override int GetHashCode() => HashCode.Combine(Index, _value);
+
+    public static bool operator==(IntOptional left, IntOptional right) => left.Equals(right);
+
+    public static bool operator!=(IntOptional left, IntOptional right) => !left.Equals(right);
 
     public static IntOptional Some(int value) => new(0, value);
 
     public static readonly IntOptional None = new(1, null);
+
+    public void Switch(Action<int> f0, Action f1)
+    {
+        switch (Index)
+        {
+
+        case 0: f0((int)_value); break;
+
+        case 1: f1(); break;
+
+        }
+    }
+
+    public TRet Match<TRet>(Func<int, TRet> f0, Func<TRet> f1)
+    {
+        return Index switch
+        {
+
+            0 => f0((int)_value),
+
+            1 => f1(),
+
+        };
+    }
 }
 }

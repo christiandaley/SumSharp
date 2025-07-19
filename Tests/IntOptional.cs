@@ -2,7 +2,7 @@ namespace Tests;
 
 using Dotsum;
 
-[Case("Some", typeof(int))]
+[Case("Some", "int")]
 [Case("None")]
 public partial class IntOptional
 {
@@ -33,6 +33,6 @@ public class IntOptionalTests
         Assert.Equal(IntOptional.Some(5), optional);
 
         // reference equality
-        Assert.False(IntOptional.Some(5) == optional);
+        Assert.True(IntOptional.Some(5) == optional);
     }
 }
