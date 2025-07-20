@@ -17,7 +17,9 @@ internal class SymbolHandler
 
     public string Accessibility { get; }
 
-    public bool IsGenericType { get; }
+    public bool IsGenericType => TypeArguments.Length > 0;
+
+    public string[] TypeArguments { get; }
 
     public string NameWithoutTypeArguments { get; }
 
@@ -52,7 +54,7 @@ internal class SymbolHandler
 
         Accessibility = GetAccessibility(symbol);
 
-        IsGenericType = symbol.TypeArguments.Length > 0;
+        TypeArguments = [.. symbol.TypeArguments.Select(arg => arg.ToString())];
 
         NameWithoutTypeArguments = symbol.Name;
 
@@ -184,10 +186,19 @@ internal class SymbolHandler
 
         if (EnableStandardJsonSerialization && !IsGenericType)
         {
-            EmitStandardJsonConverter("public");
+            EmitStandardJsonConverter();
         }
 
         EmitEndClassDeclaration();
+
+        if (IsGenericType && EnableStandardJsonSerialization)
+        {
+            EmitStaticClass();
+
+            EmitStandardJsonConverterFactory();
+
+            EmitEndStaticClass();
+        }
 
         EmitEndContainingTypes();
 
@@ -431,10 +442,10 @@ internal class SymbolHandler
         }
     }
 
-    private void EmitStandardJsonConverter(string accessibility)
+    private void EmitStandardJsonConverter()
     {
         Builder.Append($@"
-    {accessibility} partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
+    {(IsGenericType ? "private" : "public")} partial class {(IsGenericType ? $"JsonConverter<{string.Join(", ", TypeArguments)}>" : "StandardJsonConverter")} : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
         public override {Name} Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
@@ -529,6 +540,43 @@ internal class SymbolHandler
     private void EmitEndClassDeclaration()
     {
         Builder.AppendLine("}");
+    }
+
+    private void EmitStaticClass()
+    {
+        Builder.AppendLine($@"
+
+{Accessibility} static class {NameWithoutTypeArguments}
+{{
+");
+    }
+
+    private void EmitStandardJsonConverterFactory()
+    {
+        Builder.AppendLine($@"
+    public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
+    {{
+        public override bool CanConvert(Type typeToConvert)
+        {{
+            return typeToConvert.IsGenericType &&
+                   typeToConvert.GetGenericTypeDefinition() == typeof({NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>);
+        }}
+
+        public override System.Text.Json.Serialization.JsonConverter CreateConverter(Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        {{
+            return (System.Text.Json.Serialization.JsonConverter)System.Activator.CreateInstance(typeof(JsonConverter<{new string(',', TypeArguments.Length - 1)}>).MakeGenericType(typeToConvert.GetGenericArguments()));
+        }}");
+
+        EmitStandardJsonConverter();
+
+        Builder.Append(@"
+    }");
+    }
+
+    private void EmitEndStaticClass()
+    {
+        Builder.AppendLine(@"
+}");
     }
 
     private void EmitEndContainingTypes()

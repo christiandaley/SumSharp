@@ -19,6 +19,15 @@ public partial class StandardJsonSerialization
         }
     }
 
+    [Case("Case0", "T")]
+    [Case("Case1", "U[]")]
+    [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
+    [EnableJsonSerialization]
+    partial class GenericType<T, U, V>
+    {
+
+    }
+
     [Fact]
     public void NonGenericTypeCase0()
     {
@@ -89,6 +98,23 @@ public partial class StandardJsonSerialization
         }")));
 
         var deserializedValue = JsonSerializer.Deserialize<NonGenericType>(json);
+
+        Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void GenericTypeCase0()
+    {
+        var value = GenericType<string, double, int>.Case0("abc");
+
+        var json = JsonSerializer.Serialize(value);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""0"": ""abc""
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize<GenericType<string, double, int>>(json);
 
         Assert.Equal(value, deserializedValue);
     }
