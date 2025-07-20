@@ -95,5 +95,9 @@ public partial class Result<T, U> : IEquatable<Result<T, U>>
     public ValueTask IfOk(Func<T, Task> f) => Index == 0 ? new ValueTask(f((T)_value)) : ValueTask.CompletedTask;
 
     public ValueTask IfError(Func<U, Task> f) => Index == 1 ? new ValueTask(f((U)_value)) : ValueTask.CompletedTask;
+
+    public static implicit operator Result<T, U>(T value) => Ok(value);
+
+    public static implicit operator Result<T, U>(U value) => Error(value);
 }
 }

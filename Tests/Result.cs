@@ -67,4 +67,22 @@ public class ResultTests
 
         Assert.Equal(3.0, value);
     }
+
+    [Fact]
+    public void ImplicitConversion()
+    {
+        static Result<int, string> GetResult(bool ok)
+        {
+            if (ok)
+            {
+                return 3;
+            }
+            else
+            {
+                return "fail";
+            }
+        }
+
+        Assert.Equal(0, GetResult(true).Index);
+    }
 }

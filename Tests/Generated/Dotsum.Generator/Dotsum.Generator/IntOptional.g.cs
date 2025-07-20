@@ -5,11 +5,11 @@ namespace Tests {
 
 public partial class IntOptional : IEquatable<IntOptional>
 {
-    private object _value;
+    private int _value;
 
     public int Index { get; private set; }
 
-    private IntOptional(int index, object value)
+    private IntOptional(int index, int value)
     {
         Index = index;
         _value = value;
@@ -34,7 +34,7 @@ public partial class IntOptional : IEquatable<IntOptional>
 
     public static IntOptional Some(int value) => new(0, value);
 
-    public static readonly IntOptional None = new(1, null);
+    public static readonly IntOptional None = new(1, default);
 
     public void Switch(Action<int> f0, Action f1)
     {
@@ -95,5 +95,7 @@ public partial class IntOptional : IEquatable<IntOptional>
     public ValueTask IfSome(Func<int, Task> f) => Index == 0 ? new ValueTask(f((int)_value)) : ValueTask.CompletedTask;
 
     public ValueTask IfNone(Func<Task> f) => Index == 1 ? new ValueTask(f()) : ValueTask.CompletedTask;
+
+    public static implicit operator IntOptional(int value) => Some(value);
 }
 }

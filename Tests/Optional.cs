@@ -6,7 +6,7 @@ using Dotsum;
 [Case("None")]
 public partial class Optional<T>
 {
-
+    
 }
 
 public class OptionalTests
@@ -120,5 +120,13 @@ public class OptionalTests
         await Optional<int>.None.IfNone(() => { passed = true; return Task.CompletedTask; });
 
         Assert.True(passed);
+    }
+
+    [Fact]
+    public void ImplicitConversion()
+    {
+        Optional<int> o = 5;
+
+        Assert.Equal(5, o.Match(value => value, () => -1));
     }
 }

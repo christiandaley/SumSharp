@@ -2,7 +2,7 @@ namespace Tests;
 
 using Dotsum;
 
-[Case("Some", "int")]
+[Case("Some", typeof(int))]
 [Case("None")]
 public partial class IntOptional
 {

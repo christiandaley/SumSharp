@@ -120,16 +120,33 @@ public class Generator : IIncrementalGenerator
                 })
                 .ToArray();
 
+            var uniqueCases =
+                cases
+                .Where(caseData => caseData.Type is not null)
+                .GroupBy(caseData => caseData.Type)
+                .Where(group => group.Count() == 1)
+                .SelectMany(group => group)
+                .ToArray();
+
+            var distinctTypes =
+                cases
+                .Select(caseData => caseData.Type)
+                .Where(type => type != null)
+                .Distinct()
+                .ToArray();
+
+            var valueType = distinctTypes.Length == 1 ? distinctTypes[0]! : "object";
+
             // COMMON MEMBERS
 
             sb.AppendLine($@"
 {accessibility} partial {(isStruct ? "struct" : "class")} {name} : IEquatable<{name}>
 {{
-    private object _value;
+    private {valueType} _value;
 
     public int Index {{ get; private set; }}
 
-    private {nameWithoutTypeArguments}(int index, object value)
+    private {nameWithoutTypeArguments}(int index, {valueType} value)
     {{
         Index = index;
         _value = value;
@@ -159,7 +176,7 @@ public class Generator : IIncrementalGenerator
                 if (caseData.Type == null)
                 {
                     sb.AppendLine($@"
-    public static readonly {name} {caseData.Name} = new({caseData.Index}, null);");
+    public static readonly {name} {caseData.Name} = new({caseData.Index}, default);");
                 }
                 else
                 {
@@ -312,6 +329,14 @@ public class Generator : IIncrementalGenerator
 
                 sb.AppendLine($@"
     public ValueTask If{caseData.Name}({argType} f) => Index == { caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
+            }
+
+            // IMPLICIT CONVERSIONS
+
+            foreach (var caseData in uniqueCases)
+            {
+                sb.AppendLine($@"
+    public static implicit operator {name}({caseData.Type} value) => {caseData.Name}(value);");
             }
 
             // END DEFINITION
