@@ -509,7 +509,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            Builder.AppendLine($@"
+            Builder.Append($@"
             case {caseData.Index}:");
 
             if (caseData.Type == null)
@@ -546,7 +546,7 @@ internal class SymbolHandler
     {
         Builder.AppendLine($@"
 
-{Accessibility} static class {NameWithoutTypeArguments}
+{Accessibility} static partial class {NameWithoutTypeArguments}
 {{
 ");
     }
