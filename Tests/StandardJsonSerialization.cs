@@ -118,4 +118,73 @@ public partial class StandardJsonSerialization
 
         Assert.Equal(value, deserializedValue);
     }
+
+    [Fact]
+    public void GenericTypeCase1()
+    {
+        var value = GenericType<string, double, int>.Case1([2.1, 3.2]);
+
+        var json = JsonSerializer.Serialize(value);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""1"": [2.1, 3.2]
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize<GenericType<string, double, int>>(json)!;
+
+        Assert.True(deserializedValue.IsCase1);
+
+        deserializedValue.IfCase1(vals =>
+        {
+            Assert.Equal([2.1, 3.2], vals);
+        });
+    }
+
+    [Fact]
+    public void GenericTypeCase2()
+    {
+        var value = GenericType<string, double, int>.Case2(
+            GenericType<int, Dictionary<string, string>, double>.Case2(
+                GenericType<double, Dictionary<int, int>, Dictionary<string, string>>.Case1([
+                    new()
+                    {
+                        [0] = 1,
+                        [2] = 3,
+                    },
+                    new()
+                    {
+                        [4] = 5,
+                    }
+                    ])
+                )
+            );
+
+        var json = JsonSerializer.Serialize(value);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""2"": {
+                ""2"": {
+                    ""1"": [{
+                        ""0"": 1,
+                        ""2"": 3
+                    }, {
+                        ""4"": 5
+                    }]
+                }
+            }
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize<GenericType<string, double, int>>(json)!;
+
+        Assert.True(deserializedValue.IsCase2);
+
+
+
+        /*deserializedValue.IfCase2(vals =>
+        {
+            Assert.Equal([2.1, 3.2], vals);
+        });*/
+    }
 }

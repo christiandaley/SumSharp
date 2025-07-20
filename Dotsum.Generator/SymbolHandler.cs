@@ -178,6 +178,8 @@ internal class SymbolHandler
 
         EmitIs();
 
+        EmitAs();
+
         EmitIf();
 
         EmitIfAsync();
@@ -397,6 +399,20 @@ internal class SymbolHandler
         {
             Builder.AppendLine($@"
     public bool Is{caseData.Name} => Index == {caseData.Index};");
+        }
+    }
+
+    public void EmitAs()
+    {
+        foreach (var caseData in Cases)
+        {
+            if (caseData.Type == null)
+            {
+                continue;
+            }
+
+            Builder.AppendLine($@"
+    public {caseData.Type} As{caseData.Name} => Index == {caseData.Index} ? ({caseData.Type})_value : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
         }
     }
 
