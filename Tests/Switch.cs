@@ -23,11 +23,45 @@ public partial class Switch
     }
 
     [Fact]
+    public async Task Case0Async()
+    {
+        bool passed = false;
+
+        await IntOrNone.Case0(3).Switch(
+            _ => 
+            { 
+                passed = true;
+
+                return Task.CompletedTask;
+            }, 
+            () => Task.CompletedTask);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
     public void Case1()
     {
         bool passed = false;
 
         IntOrNone.Case1.Switch(_ => { }, () => { passed = true; });
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public async Task Case1Async()
+    {
+        bool passed = false;
+
+        await IntOrNone.Case1.Switch(
+            _ => Task.CompletedTask,
+            () =>
+            {
+                passed = true;
+
+                return Task.CompletedTask;
+            });
 
         Assert.True(passed);
     }
