@@ -39,21 +39,6 @@ public class Generator : IIncrementalGenerator
                 _ => false,
             };
         }
-
-        /*static INamedTypeSymbol? GetSemanticTargetForGeneration(GeneratorAttributeSyntaxContext context)
-        {
-            var symbol = context.TargetSymbol;
-
-            if (symbol is not INamedTypeSymbol namedTypeSymbol)
-            {
-                return null;
-            }
-
-            var attributeData = namedTypeSymbol.GetAttributes().FirstOrDefault(ad =>
-                string.Equals(ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), "global::Dotsum.CaseAttribute"));
-
-            return attributeData is null ? null : namedTypeSymbol;
-        }*/
     }
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> targets, SourceProductionContext context)
@@ -66,13 +51,20 @@ public class Generator : IIncrementalGenerator
 
         foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
         {
+            if (symbol == null)
+            {
+                continue;
+            }
+
             builder.Clear();
 
-            var symbolHandler = new SymbolHandler(builder, (INamedTypeSymbol)symbol!, caseAttrSymbol, enableJsonSymbol);
+            var symbolHandler = new SymbolHandler(builder, (INamedTypeSymbol)symbol, caseAttrSymbol, enableJsonSymbol);
 
             symbolHandler.Emit();
 
-            context.AddSource($"{symbolHandler.Namespace}_{string.Join("_", symbolHandler.ContainingTypes.Select(symbol => symbol.Name))}_{symbolHandler.NameWithoutTypeArguments}.g.cs", SourceText.From(builder.ToString(), Encoding.UTF8));
+            var fileName = $"{symbolHandler.Namespace}_{string.Join("_", symbolHandler.ContainingTypes.Select(symbol => symbol.Name))}_{symbolHandler.NameWithoutTypeArguments}.g.cs";
+
+            context.AddSource($"{fileName}.g.cs", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
     }
 }

@@ -19,17 +19,6 @@ public partial class StandardJsonSerialization
         }
     }
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(NestedRecord1))]
-    [Case("Case2")]
-    partial class NonGenericTypeSourceGen
-    {
-        public record NestedRecord1(int Arg1, double Arg2, NestedRecord1.NestedRecord2 Arg3)
-        {
-            public record NestedRecord2(string Arg1);
-        }
-    }
-
     [Fact]
     public void NonGenericTypeCase0()
     {

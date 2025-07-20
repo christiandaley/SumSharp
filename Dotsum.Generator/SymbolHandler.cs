@@ -436,7 +436,7 @@ internal class SymbolHandler
         Builder.Append($@"
     {accessibility} partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
-        public override {Name}? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        public override {Name} Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
             if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
             {{

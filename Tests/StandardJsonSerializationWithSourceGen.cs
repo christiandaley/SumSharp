@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 [JsonSerializable(typeof(StandardJsonSerializationWithSourceGen.NonGenericType))]
 [JsonSerializable(typeof(StandardJsonSerializationWithSourceGen.NonGenericType.NestedRecord1))]
-public partial class StandardJsonSerializationWithSourceGenJsonContext : JsonSerializerContext
+internal partial class StandardJsonSerializationWithSourceGenJsonContext : JsonSerializerContext
 {
 
 }
@@ -19,7 +19,7 @@ public partial class StandardJsonSerializationWithSourceGen
     [Case("Case2")]
     [EnableJsonSerialization(UsingSourceGeneration: true)]
     [JsonConverter(typeof(StandardJsonConverter))]
-    public partial class NonGenericType
+    internal partial class NonGenericType
     {
         public record NestedRecord1(int Arg1, double Arg2, NestedRecord1.NestedRecord2 Arg3)
         {
