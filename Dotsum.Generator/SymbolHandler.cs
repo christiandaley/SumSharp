@@ -31,7 +31,9 @@ internal class SymbolHandler
 
     public INamedTypeSymbol[] ContainingTypes;
 
-    bool EnableStandardJsonSerialization { get; }
+    public bool EnableStandardJsonSerialization { get; }
+
+    public bool UsingSourceGeneration { get; }
 
     public SymbolHandler(
         StringBuilder builder,
@@ -94,6 +96,18 @@ internal class SymbolHandler
 
         EnableStandardJsonSerialization = enableJsonSerializationData != null;
 
+        if (enableJsonSerializationData != null)
+        {
+            EnableStandardJsonSerialization = true;
+
+            UsingSourceGeneration = enableJsonSerializationData.ConstructorArguments[0].Value as bool? ?? false;
+        }
+
+        UsingSourceGeneration =
+            EnableStandardJsonSerialization ?
+            (bool)enableJsonSerializationData!.ConstructorArguments[0].Value! :
+            false;
+
         var containingTypes = new List<INamedTypeSymbol>();
 
         symbol = symbol.ContainingType;
@@ -145,7 +159,7 @@ internal class SymbolHandler
 
         EmitContainingTypes();
 
-        if (EnableStandardJsonSerialization)
+        if (EnableStandardJsonSerialization && !UsingSourceGeneration)
         {
             EmitJsonConverterAttribute();
         }
@@ -170,7 +184,7 @@ internal class SymbolHandler
 
         if (EnableStandardJsonSerialization && !IsGenericType)
         {
-            EmitStandardJsonConverter();
+            EmitStandardJsonConverter("public");
         }
 
         EmitEndClassDeclaration();
@@ -417,10 +431,10 @@ internal class SymbolHandler
         }
     }
 
-    private void EmitStandardJsonConverter()
+    private void EmitStandardJsonConverter(string accessibility)
     {
         Builder.Append($@"
-    public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
+    {accessibility} partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
         public override {Name}? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{

@@ -56,6 +56,7 @@ public partial class If
         Assert.True(passed);
     }
 
+    [Fact]
     public async Task Case1Async()
     {
         var passed = false;
