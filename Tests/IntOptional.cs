@@ -4,6 +4,7 @@ using Dotsum;
 
 [Case("Some", typeof(int))]
 [Case("None")]
+[EnableJsonSerialization]
 public partial class IntOptional
 {
 

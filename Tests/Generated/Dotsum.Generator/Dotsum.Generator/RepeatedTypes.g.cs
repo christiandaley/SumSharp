@@ -5,12 +5,14 @@ namespace Tests {
 
 public partial class RepeatedTypes : IEquatable<RepeatedTypes>
 {
-    private object _value;
+    public int Index { get; }
 
-    public int Index { get; private set; }
+    internal readonly object _value;
 
     private RepeatedTypes(int index, object value)
     {
+        System.Diagnostics.Debug.Assert(index >= 0 && index < 5);
+
         Index = index;
         _value = value;
     }

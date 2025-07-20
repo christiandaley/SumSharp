@@ -5,12 +5,14 @@ namespace Tests {
 
 public partial struct StructOptional<T> : IEquatable<StructOptional<T>>
 {
-    private T _value;
+    public int Index { get; }
 
-    public int Index { get; private set; }
+    internal readonly T _value;
 
     private StructOptional(int index, T value)
     {
+        System.Diagnostics.Debug.Assert(index >= 0 && index < 2);
+
         Index = index;
         _value = value;
     }

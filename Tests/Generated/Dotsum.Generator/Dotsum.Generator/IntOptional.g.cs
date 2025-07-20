@@ -3,14 +3,17 @@
 using System.Threading.Tasks;
 namespace Tests {
 
+[System.Text.Json.Serialization.JsonConverter(typeof(IntOptional.StandardJsonConverter))]
 public partial class IntOptional : IEquatable<IntOptional>
 {
-    private int _value;
+    public int Index { get; }
 
-    public int Index { get; private set; }
+    internal readonly int _value;
 
     private IntOptional(int index, int value)
     {
+        System.Diagnostics.Debug.Assert(index >= 0 && index < 2);
+
         Index = index;
         _value = value;
     }
@@ -97,5 +100,69 @@ public partial class IntOptional : IEquatable<IntOptional>
     public ValueTask IfNone(Func<Task> f) => Index == 1 ? new ValueTask(f()) : ValueTask.CompletedTask;
 
     public static implicit operator IntOptional(int value) => Some(value);
+
+    public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<IntOptional>
+    {
+        public override IntOptional? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        {
+            if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+            {
+                return default;
+            }
+
+            if (reader.TokenType != System.Text.Json.JsonTokenType.StartObject)
+            {
+                throw new System.Text.Json.JsonException($"Expected StartObject token but found: {reader.TokenType}");
+            }
+
+            reader.Read();
+
+            if (reader.TokenType != System.Text.Json.JsonTokenType.PropertyName)
+            {
+                throw new System.Text.Json.JsonException($"Expected PropertyName token but found: {reader.TokenType}");
+            }
+
+            var index = int.Parse(reader.GetString());
+
+            reader.Read();
+
+            var ret = index switch
+            {
+                0 => IntOptional.Some(System.Text.Json.JsonSerializer.Deserialize<int>(ref reader, options)),
+                1 => IntOptional.None,
+            };
+
+            reader.Read();
+
+            if (reader.TokenType != System.Text.Json.JsonTokenType.EndObject)
+            {
+                throw new System.Text.Json.JsonException($"Expected EndObject token but found: {reader.TokenType}");
+            }
+
+            return ret;
+        }
+
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, IntOptional value, System.Text.Json.JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+
+            switch (value.Index)
+            {
+            case 0:
+
+                writer.WritePropertyName("0");
+                System.Text.Json.JsonSerializer.Serialize(writer, value._value, options);
+
+                break;
+            case 1:
+
+                writer.WriteNull("1");
+
+                break;
+            }
+
+            writer.WriteEndObject();
+        }
+    }
 }
 }

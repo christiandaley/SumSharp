@@ -5,9 +5,7 @@ using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Xml.Linq;
 
 namespace Dotsum;
 
@@ -60,6 +58,8 @@ public class Generator : IIncrementalGenerator
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> targets, SourceProductionContext context)
     {
         var caseAttrSymbol = compilation.GetTypeByMetadataName("Dotsum.CaseAttribute")!;
+
+        var enableJsonSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableJsonSerializationAttribute")!;
 
         var sb = new StringBuilder();
 
@@ -137,17 +137,31 @@ public class Generator : IIncrementalGenerator
 
             var valueType = distinctTypes.Length == 1 ? distinctTypes[0]! : "object";
 
+            var enableJsonSerialization =
+                symbol!
+                .GetAttributes()
+                .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableJsonSymbol))
+                .SingleOrDefault();
+
+            if (enableJsonSerialization != null)
+            {
+                sb.Append($@"
+[System.Text.Json.Serialization.JsonConverter(typeof({nameWithoutTypeArguments}.StandardJsonConverter))]");
+            }
+
             // COMMON MEMBERS
 
             sb.AppendLine($@"
 {accessibility} partial {(isStruct ? "struct" : "class")} {name} : IEquatable<{name}>
 {{
-    private {valueType} _value;
+    public int Index {{ get; }}
 
-    public int Index {{ get; private set; }}
+    internal readonly {valueType} _value;
 
     private {nameWithoutTypeArguments}(int index, {valueType} value)
     {{
+        System.Diagnostics.Debug.Assert(index >= 0 && index < {cases.Length});
+
         Index = index;
         _value = value;
     }}
@@ -337,6 +351,104 @@ public class Generator : IIncrementalGenerator
             {
                 sb.AppendLine($@"
     public static implicit operator {name}({caseData.Type} value) => {caseData.Name}(value);");
+            }
+            
+            // Non generic standard JSON serialization
+
+            if (enableJsonSerialization != null && !isGenericType)
+            {
+                sb.Append($@"
+    public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{name}>
+    {{
+        public override {name}? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        {{
+            if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+            {{
+                return default;
+            }}
+
+            if (reader.TokenType != System.Text.Json.JsonTokenType.StartObject)
+            {{
+                throw new System.Text.Json.JsonException($""Expected StartObject token but found: {{reader.TokenType}}"");
+            }}
+
+            reader.Read();
+
+            if (reader.TokenType != System.Text.Json.JsonTokenType.PropertyName)
+            {{
+                throw new System.Text.Json.JsonException($""Expected PropertyName token but found: {{reader.TokenType}}"");
+            }}
+
+            var index = int.Parse(reader.GetString());
+
+            reader.Read();
+
+            var ret = index switch
+            {{");
+
+                foreach (var caseData in cases)
+                {
+                    if (caseData.Type == null)
+                    {
+                        sb.Append($@"
+                {caseData.Index} => {name}.{caseData.Name},");
+                    }
+                    else
+                    {
+                        sb.Append($@"
+                {caseData.Index} => {name}.{caseData.Name}(System.Text.Json.JsonSerializer.Deserialize<{caseData.Type}>(ref reader, options)),");
+                    }
+                }
+
+                sb.Append($@"
+            }};
+
+            reader.Read();
+
+            if (reader.TokenType != System.Text.Json.JsonTokenType.EndObject)
+            {{
+                throw new System.Text.Json.JsonException($""Expected EndObject token but found: {{reader.TokenType}}"");
+            }}
+
+            return ret;
+        }}
+
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, {name} value, System.Text.Json.JsonSerializerOptions options)
+        {{
+            writer.WriteStartObject();
+
+            switch (value.Index)
+            {{");
+
+                foreach (var caseData in cases)
+                {
+                    sb.AppendLine($@"
+            case {caseData.Index}:");
+
+                    if (caseData.Type == null)
+                    {
+                        sb.AppendLine($@"
+                writer.WriteNull(""{caseData.Index}"");");
+                    }
+                    else
+                    {
+                        sb.Append($@"
+                writer.WritePropertyName(""{caseData.Index}"");");
+
+                        sb.AppendLine($@"
+                System.Text.Json.JsonSerializer.Serialize(writer, value._value, options);");
+                    }
+
+                    sb.Append($@"
+                break;");
+                }
+
+                sb.AppendLine(@"
+            }
+
+            writer.WriteEndObject();
+        }
+    }");
             }
 
             // END DEFINITION
