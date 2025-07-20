@@ -133,12 +133,7 @@ public partial class StandardJsonSerialization
 
         var deserializedValue = JsonSerializer.Deserialize<GenericType<string, double, int>>(json)!;
 
-        Assert.True(deserializedValue.IsCase1);
-
-        deserializedValue.IfCase1(vals =>
-        {
-            Assert.Equal([2.1, 3.2], vals);
-        });
+        Assert.Equal([2.1, 3.2], deserializedValue.AsCase1);
     }
 
     [Fact]
@@ -180,11 +175,16 @@ public partial class StandardJsonSerialization
 
         Assert.True(deserializedValue.IsCase2);
 
-
-
-        /*deserializedValue.IfCase2(vals =>
+        Assert.Collection(deserializedValue.AsCase2.AsCase2.AsCase1, dict1 =>
         {
-            Assert.Equal([2.1, 3.2], vals);
-        });*/
+            Assert.Equal(2, dict1.Count);
+            Assert.Equal(1, dict1[0]);
+            Assert.Equal(3, dict1[2]);
+        }, 
+        dict2 =>
+        {
+            Assert.Single(dict2);
+            Assert.Equal(5, dict2[4]);
+        });
     }
 }
