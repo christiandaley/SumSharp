@@ -308,7 +308,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
 
             Builder.AppendLine($@"
         case {caseData.Index}: f{caseData.Index}({arg}); break;");
@@ -345,7 +345,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
 
             Builder.AppendLine($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
@@ -382,7 +382,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
 
             Builder.AppendLine($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
@@ -412,7 +412,10 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
-    public {caseData.Type} As{caseData.Name} => Index == {caseData.Index} ? ({caseData.Type})_value : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+    public {caseData.Type} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unchecked : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+
+            Builder.AppendLine($@"
+    internal {caseData.Type} As{caseData.Name}Unchecked => ({caseData.Type})_value;");
         }
     }
 
@@ -422,7 +425,7 @@ internal class SymbolHandler
         {
             var argType = caseData.Type == null ? "Action" : $"Action<{caseData.Type}>";
 
-            var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
 
             Builder.Append($@"
     public void If{caseData.Name}({argType} f)");
@@ -442,7 +445,7 @@ internal class SymbolHandler
         {
             var argType = caseData.Type == null ? "Func<Task>" : $"Func<{caseData.Type}, Task>";
 
-            var arg = caseData.Type == null ? "" : $"({caseData.Type})_value";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
 
             Builder.AppendLine($@"
     public ValueTask If{caseData.Name}({argType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
@@ -539,7 +542,7 @@ internal class SymbolHandler
                 writer.WritePropertyName(""{caseData.Index}"");");
 
                 Builder.AppendLine($@"
-                System.Text.Json.JsonSerializer.Serialize(writer, value._value, options);");
+                System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unchecked, options);");
             }
 
             Builder.Append($@"
