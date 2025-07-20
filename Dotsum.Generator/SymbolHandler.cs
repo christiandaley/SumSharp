@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -9,8 +10,6 @@ internal class SymbolHandler
     public record CaseData(int Index, string Name, string? Type);
 
     public StringBuilder Builder { get; }
-
-    public INamedTypeSymbol Symbol { get; }
 
     public string? Namespace { get; }
 
@@ -30,6 +29,8 @@ internal class SymbolHandler
 
     public string ValueType { get; }
 
+    public INamedTypeSymbol[] ContainingTypes;
+
     bool EnableStandardJsonSerialization { get; }
 
     public SymbolHandler(
@@ -39,8 +40,6 @@ internal class SymbolHandler
         INamedTypeSymbol enableJsonSerializationAttrSymbol)
     {
         Builder = builder;
-
-        Symbol = symbol;
         
         Namespace =
             symbol.ContainingNamespace.IsGlobalNamespace
@@ -94,6 +93,19 @@ internal class SymbolHandler
             .SingleOrDefault();
 
         EnableStandardJsonSerialization = enableJsonSerializationData != null;
+
+        var containingTypes = new List<INamedTypeSymbol>();
+
+        symbol = symbol.ContainingType;
+
+        while (symbol != null)
+        {
+            containingTypes.Add(symbol);
+
+            symbol = symbol.ContainingType;
+        }
+
+        ContainingTypes = [.. containingTypes];
     }
 
     private bool GetIsStruct(INamedTypeSymbol symbol) => symbol.TypeKind == TypeKind.Struct;
@@ -178,15 +190,12 @@ internal class SymbolHandler
 
     private void EmitContainingTypes()
     {
-        var symbol = Symbol.ContainingType;
-
-        while (symbol != null)
+        foreach (var symbol in ContainingTypes)
         {
             Builder.AppendLine($@"
 {GetAccessibility(symbol)} partial {(GetIsStruct(symbol) ? "struct" : "class")} {GetFullName(symbol)}
 {{");
 
-            symbol = symbol.ContainingType;
         }
     }
 
@@ -510,13 +519,9 @@ internal class SymbolHandler
 
     private void EmitEndContainingTypes()
     {
-        var symbol = Symbol.ContainingType;
-
-        while (symbol != null)
+        foreach (var symbol in ContainingTypes)
         {
             Builder.AppendLine("}");
-
-            symbol = symbol.ContainingType;
         }
     }
 
