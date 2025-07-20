@@ -152,7 +152,7 @@ public class Generator : IIncrementalGenerator
         _value = value;
     }}
 
-    public bool Equals({name} other) => other is not null && other.Index == Index && Equals(_value, other._value);
+    public bool Equals({name} other) => {(isStruct ? "" : "other is not null && ")}other.Index == Index && Equals(_value, other._value);
 
     public override bool Equals(object obj)
     {{
