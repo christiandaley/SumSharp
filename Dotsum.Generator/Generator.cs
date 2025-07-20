@@ -58,21 +58,29 @@ public class Generator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> targets, SourceProductionContext context)
     {
-        var caseAttrSymbol = compilation.GetTypeByMetadataName("Dotsum.CaseAttribute")!;
-
-        var enableJsonSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableJsonSerializationAttribute")!;
-
-        var builder = new StringBuilder();
-
-        foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
+        try
         {
-            builder.Clear();
 
-            var symbolHandler = new SymbolHandler(builder, (INamedTypeSymbol)symbol!, caseAttrSymbol, enableJsonSymbol);
+            var caseAttrSymbol = compilation.GetTypeByMetadataName("Dotsum.CaseAttribute")!;
 
-            symbolHandler.Emit();
+            var enableJsonSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableJsonSerializationAttribute")!;
 
-            context.AddSource($"{symbolHandler.NameWithoutTypeArguments}.g.cs", SourceText.From(builder.ToString(), Encoding.UTF8));
+            var builder = new StringBuilder();
+
+            foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
+            {
+                builder.Clear();
+
+                var symbolHandler = new SymbolHandler(builder, (INamedTypeSymbol)symbol!, caseAttrSymbol, enableJsonSymbol);
+
+                symbolHandler.Emit();
+
+                context.AddSource($"{symbolHandler.NameWithoutTypeArguments}.g.cs", SourceText.From(builder.ToString(), Encoding.UTF8));
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.StackTrace);
         }
     }
 }
