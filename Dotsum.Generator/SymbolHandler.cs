@@ -239,7 +239,7 @@ internal class SymbolHandler
 {{
     public int Index {{ get; }}
 
-    internal readonly {ValueType} _value;
+    private readonly {ValueType} _value;
 
     private {NameWithoutTypeArguments}(int index, {ValueType} value)
     {{
@@ -308,7 +308,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
         case {caseData.Index}: f{caseData.Index}({arg}); break;");
@@ -345,7 +345,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
@@ -382,7 +382,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
@@ -412,10 +412,18 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
-    public {caseData.Type} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unchecked : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+    public {caseData.Type} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
             Builder.AppendLine($@"
-    internal {caseData.Type} As{caseData.Name}Unchecked => ({caseData.Type})_value;");
+    private {caseData.Type} As{caseData.Name}Unsafe
+    {{
+        get
+        {{
+            System.Diagnostics.Debug.Assert(Index == {caseData.Index});
+
+            return ({caseData.Type})_value;
+        }}
+    }}");
         }
     }
 
@@ -425,7 +433,7 @@ internal class SymbolHandler
         {
             var argType = caseData.Type == null ? "Action" : $"Action<{caseData.Type}>";
 
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
     public void If{caseData.Name}({argType} f)");
@@ -445,7 +453,7 @@ internal class SymbolHandler
         {
             var argType = caseData.Type == null ? "Func<Task>" : $"Func<{caseData.Type}, Task>";
 
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unchecked";
+            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
     public ValueTask If{caseData.Name}({argType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
@@ -541,8 +549,10 @@ internal class SymbolHandler
                 Builder.Append($@"
                 writer.WritePropertyName(""{caseData.Index}"");");
 
+                // Note: Generic converters cannot see the unsafe version of the
+                // As* properties because they are defined outside the class.
                 Builder.AppendLine($@"
-                System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unchecked, options);");
+                System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}{(IsGenericType ? "" : "Unsafe")}, options);");
             }
 
             Builder.Append($@"
