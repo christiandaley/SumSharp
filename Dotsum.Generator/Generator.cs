@@ -47,6 +47,8 @@ public class Generator : IIncrementalGenerator
 
         var enableJsonSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableJsonSerializationAttribute")!;
 
+        var storageSymbol = compilation.GetTypeByMetadataName("Dotsum.StorageAttribute")!;
+
         var builder = new StringBuilder();
 
         foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
@@ -58,7 +60,11 @@ public class Generator : IIncrementalGenerator
 
             builder.Clear();
 
-            var symbolHandler = new SymbolHandler(builder, (INamedTypeSymbol)symbol, caseAttrSymbol, enableJsonSymbol);
+            var symbolHandler = new SymbolHandler(builder, 
+                                                (INamedTypeSymbol)symbol, 
+                                                caseAttrSymbol, 
+                                                enableJsonSymbol,
+                                                storageSymbol);
 
             symbolHandler.Emit();
 

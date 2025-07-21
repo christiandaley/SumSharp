@@ -7,7 +7,7 @@ namespace Dotsum.Generator;
 
 internal class SymbolHandler
 {
-    public record CaseData(int Index, string Name, string? Type);
+    public record CaseData(int Index, string Name, string? Type, bool StoreAsDeclaredType);
 
     public StringBuilder Builder { get; }
 
@@ -41,7 +41,8 @@ internal class SymbolHandler
         StringBuilder builder,
         INamedTypeSymbol symbol,
         INamedTypeSymbol caseAttrSymbol,
-        INamedTypeSymbol enableJsonSerializationAttrSymbol)
+        INamedTypeSymbol enableJsonSerializationAttrSymbol,
+        INamedTypeSymbol StorageAttrSymbol)
     {
         Builder = builder;
         
@@ -60,6 +61,14 @@ internal class SymbolHandler
 
         Name = GetFullName(symbol);
 
+        var storageData =
+            symbol!
+            .GetAttributes()
+            .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, StorageAttrSymbol))
+            .SingleOrDefault();
+
+        var storeAsDeclaredType = (int?)storageData?.ConstructorArguments[0].Value == 2;
+
         Cases = symbol!
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, caseAttrSymbol))
@@ -67,8 +76,9 @@ internal class SymbolHandler
             {
                 return attr.ConstructorArguments switch
                 {
-                    [var caseName] => new CaseData(i, caseName.Value!.ToString(), null),
-                    [var caseName, var caseType, var storageMode] => new CaseData(i, caseName.Value!.ToString(), caseType.Value!.ToString()),
+                    [var caseName] => new CaseData(i, caseName.Value!.ToString(), null, false),
+                    [var caseName, var caseType, var storageMode] => 
+                        new CaseData(i, caseName.Value!.ToString(), caseType.Value!.ToString(), (int?)storageMode.Value == 2 || ((int?)storageMode.Value == 1 ? false : storeAsDeclaredType)),
                 };
             })
             .ToArray();
