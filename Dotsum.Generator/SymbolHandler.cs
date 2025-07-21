@@ -45,7 +45,7 @@ internal class SymbolHandler
         INamedTypeSymbol StorageAttrSymbol)
     {
         Builder = builder;
-        
+
         Namespace =
             symbol.ContainingNamespace.IsGlobalNamespace
             ? null
@@ -77,7 +77,7 @@ internal class SymbolHandler
                 return attr.ConstructorArguments switch
                 {
                     [var caseName] => new CaseData(i, caseName.Value!.ToString(), null, false),
-                    [var caseName, var caseType, var storageMode] => 
+                    [var caseName, var caseType, var storageMode] =>
                         new CaseData(i, caseName.Value!.ToString(), caseType.Value!.ToString(), (int?)storageMode.Value == 2 || ((int?)storageMode.Value == 1 ? false : storeAsDeclaredType)),
                 };
             })
@@ -196,14 +196,14 @@ internal class SymbolHandler
 
         EmitImplicitConversions();
 
-        if (EnableStandardJsonSerialization && !IsGenericType)
+        if (EnableStandardJsonSerialization)
         {
             EmitStandardJsonConverter();
         }
 
         EmitEndClassDeclaration();
 
-        if (IsGenericType && EnableStandardJsonSerialization)
+        if (EnableStandardJsonSerialization && IsGenericType)
         {
             EmitStaticClass();
 
@@ -482,7 +482,7 @@ internal class SymbolHandler
     private void EmitStandardJsonConverter()
     {
         Builder.Append($@"
-    {(IsGenericType ? "private" : "public")} partial class {(IsGenericType ? $"JsonConverter<{string.Join(", ", TypeArguments)}>" : "StandardJsonConverter")} : System.Text.Json.Serialization.JsonConverter<{Name}>
+    public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
         public override {Name} Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
@@ -559,10 +559,8 @@ internal class SymbolHandler
                 Builder.Append($@"
                 writer.WritePropertyName(""{caseData.Index}"");");
 
-                // Note: Generic converters cannot see the unsafe version of the
-                // As* properties because they are defined outside the class.
                 Builder.AppendLine($@"
-                System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}{(IsGenericType ? "" : "Unsafe")}, options);");
+                System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
             }
 
             Builder.Append($@"
@@ -583,38 +581,36 @@ internal class SymbolHandler
 
     private void EmitStaticClass()
     {
-        Builder.AppendLine($@"
-
+        Builder.Append($@"
 {Accessibility} static partial class {NameWithoutTypeArguments}
-{{
-");
+{{");
     }
 
     private void EmitStandardJsonConverterFactory()
     {
-        Builder.AppendLine($@"
+        var genericTypeDefinition = $"{NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>";
+
+        Builder.Append($@"
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
     {{
         public override bool CanConvert(Type typeToConvert)
         {{
             return typeToConvert.IsGenericType &&
-                   typeToConvert.GetGenericTypeDefinition() == typeof({NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>);
+                   typeToConvert.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
         }}
 
         public override System.Text.Json.Serialization.JsonConverter CreateConverter(Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
-            return (System.Text.Json.Serialization.JsonConverter)System.Activator.CreateInstance(typeof(JsonConverter<{new string(',', TypeArguments.Length - 1)}>).MakeGenericType(typeToConvert.GetGenericArguments()));
-        }}");
+            var converterType = typeof({genericTypeDefinition}.StandardJsonConverter).MakeGenericType(typeToConvert.GetGenericArguments());
 
-        EmitStandardJsonConverter();
-
-        Builder.Append(@"
-    }");
+            return (System.Text.Json.Serialization.JsonConverter)System.Activator.CreateInstance(converterType);
+        }}
+    }}");
     }
 
     private void EmitEndStaticClass()
     {
-        Builder.AppendLine(@"
+        Builder.Append(@"
 }");
     }
 
