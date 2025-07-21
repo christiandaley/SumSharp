@@ -7,7 +7,18 @@ namespace Dotsum.Generator;
 
 internal class SymbolHandler
 {
-    public record CaseData(int Index, string Name, string? Type, bool StoreAsDeclaredType);
+    public class TypeInfo
+    {
+        public required string Name { get; init; }
+
+        public required bool IsGeneric { get; init; }
+
+        public required bool IsValueType { get; init; }
+
+        public required bool IsInterface { get; init; }
+    }
+
+    public record CaseData(int Index, string Name, TypeInfo? TypeInfo);
 
     public StringBuilder Builder { get; }
 
@@ -74,31 +85,54 @@ internal class SymbolHandler
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, caseAttrSymbol))
             .Select((attr, i) =>
             {
-                return attr.ConstructorArguments switch
+                switch (attr.ConstructorArguments)
                 {
-                    [var caseName] => new CaseData(i, caseName.Value!.ToString(), null, false),
-                    [var caseName, var caseType, var storageMode] =>
-                        new CaseData(i, caseName.Value!.ToString(), caseType.Value!.ToString(), (int?)storageMode.Value == 2 || ((int?)storageMode.Value == 1 ? false : storeAsDeclaredType)),
+                    case [var caseName]:
+                        return new CaseData(i, caseName.Value!.ToString(), null);
+
+                    case [var caseName, var caseType, var storageMode]:
+
+                        if (caseType.Value is not INamedTypeSymbol type)
+                        {
+                            return new CaseData(i, caseName.Value!.ToString(), new TypeInfo
+                            {
+                                Name = caseType.Value!.ToString(),
+                                IsValueType = false,
+                                IsInterface = false,
+                                IsGeneric = true,
+                            });
+                        }
+
+                        return new CaseData(i, caseName.Value!.ToString(), new TypeInfo
+                        {
+                            Name = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                            IsValueType = type.IsValueType,
+                            IsInterface = type.TypeKind == TypeKind.Interface,
+                            IsGeneric = false,
+                        });
+
+                    default:
+                        throw new System.InvalidOperationException();
                 };
             })
             .ToArray();
 
         UniqueCases =
             Cases
-            .Where(caseData => caseData.Type is not null)
-            .GroupBy(caseData => caseData.Type)
+            .Where(caseData => caseData.TypeInfo is not null)
+            .GroupBy(caseData => caseData.TypeInfo!.Name)
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
 
         var distinctTypes =
             Cases
-            .Select(caseData => caseData.Type)
+            .Select(caseData => caseData.TypeInfo)
             .Where(type => type != null)
             .Distinct()
             .ToArray();
 
-        ValueType = distinctTypes.Length == 0 ? distinctTypes[0]! : "object";
+        ValueType = "object";
 
         var enableJsonSerializationData =
             symbol!
@@ -280,7 +314,7 @@ internal class SymbolHandler
     {
         foreach (var caseData in Cases)
         {
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 Builder.AppendLine($@"
     public static readonly {Name} {caseData.Name} = new({caseData.Index}, default);");
@@ -288,7 +322,7 @@ internal class SymbolHandler
             else
             {
                 Builder.AppendLine($@"
-    public static {Name} {caseData.Name}({caseData.Type} value) => new({caseData.Index}, value);");
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}, value);");
             }
         }
     }
@@ -299,32 +333,32 @@ internal class SymbolHandler
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
         {
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 return $"Action f{caseData.Index}";
             }
             else
             {
-                return $"Action<{caseData.Type}> f{caseData.Index}";
+                return $"Action<{caseData.TypeInfo.Name}> f{caseData.Index}";
             }
         })));
 
         Builder.Append(")");
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
     {
         switch (Index)
         {");
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
+            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
 
-            Builder.AppendLine($@"
-        case {caseData.Index}: f{caseData.Index}({arg}); break;");
+            Builder.Append($@"
+            case {caseData.Index}: f{caseData.Index}({arg}); break;");
         }
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
         }
     }");
     }
@@ -336,32 +370,32 @@ internal class SymbolHandler
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
         {
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 return $"Func<Task> f{caseData.Index}";
             }
             else
             {
-                return $"Func<{caseData.Type}, Task> f{caseData.Index}";
+                return $"Func<{caseData.TypeInfo.Name}, Task> f{caseData.Index}";
             }
         })));
 
         Builder.Append(")");
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
     {
         return Index switch
         {");
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
+            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
 
-            Builder.AppendLine($@"
+            Builder.Append($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
         }
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
         };
     }");
     }
@@ -373,32 +407,32 @@ internal class SymbolHandler
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
         {
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 return $"Func<TRet_> f{caseData.Index}";
             }
             else
             {
-                return $"Func<{caseData.Type}, TRet_> f{caseData.Index}";
+                return $"Func<{caseData.TypeInfo.Name}, TRet_> f{caseData.Index}";
             }
         })));
 
         Builder.Append(")");
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
     {
         return Index switch
         {");
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
+            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
 
-            Builder.AppendLine($@"
+            Builder.Append($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
         }
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
         };
     }");
     }
@@ -416,22 +450,22 @@ internal class SymbolHandler
     {
         foreach (var caseData in Cases)
         {
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 continue;
             }
 
             Builder.AppendLine($@"
-    public {caseData.Type} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
             Builder.AppendLine($@"
-    private {caseData.Type} As{caseData.Name}Unsafe
+    private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
     {{
         get
         {{
             System.Diagnostics.Debug.Assert(Index == {caseData.Index});
 
-            return ({caseData.Type})_value;
+            return ({caseData.TypeInfo.Name})_value;
         }}
     }}");
         }
@@ -441,9 +475,9 @@ internal class SymbolHandler
     {
         foreach (var caseData in Cases)
         {
-            var argType = caseData.Type == null ? "Action" : $"Action<{caseData.Type}>";
+            var argType = caseData.TypeInfo == null ? "Action" : $"Action<{caseData.TypeInfo.Name}>";
 
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
+            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
     public void If{caseData.Name}({argType} f)");
@@ -461,9 +495,9 @@ internal class SymbolHandler
     {
         foreach (var caseData in Cases)
         {
-            var argType = caseData.Type == null ? "Func<Task>" : $"Func<{caseData.Type}, Task>";
+            var argType = caseData.TypeInfo == null ? "Func<Task>" : $"Func<{caseData.TypeInfo.Name}, Task>";
 
-            var arg = caseData.Type == null ? "" : $"As{caseData.Name}Unsafe";
+            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
     public ValueTask If{caseData.Name}({argType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
@@ -475,7 +509,7 @@ internal class SymbolHandler
         foreach (var caseData in UniqueCases)
         {
             Builder.AppendLine($@"
-    public static implicit operator {Name}({caseData.Type} value) => {caseData.Name}(value);");
+    public static implicit operator {Name}({caseData.TypeInfo!.Name} value) => {caseData.Name}(value);");
         }
     }
 
@@ -512,7 +546,7 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 Builder.Append($@"
                 {caseData.Index} => {Name}.{caseData.Name},");
@@ -520,7 +554,7 @@ internal class SymbolHandler
             else
             {
                 Builder.Append($@"
-                {caseData.Index} => {Name}.{caseData.Name}(System.Text.Json.JsonSerializer.Deserialize<{caseData.Type}>(ref reader, options)),");
+                {caseData.Index} => {Name}.{caseData.Name}(System.Text.Json.JsonSerializer.Deserialize<{caseData.TypeInfo.Name}>(ref reader, options)),");
             }
         }
 
@@ -547,27 +581,27 @@ internal class SymbolHandler
         foreach (var caseData in Cases)
         {
             Builder.Append($@"
-            case {caseData.Index}:");
+                case {caseData.Index}:");
 
-            if (caseData.Type == null)
+            if (caseData.TypeInfo == null)
             {
                 Builder.AppendLine($@"
-                writer.WriteNull(""{caseData.Index}"");");
+                    writer.WriteNull(""{caseData.Index}"");");
             }
             else
             {
                 Builder.Append($@"
-                writer.WritePropertyName(""{caseData.Index}"");");
+                    writer.WritePropertyName(""{caseData.Index}"");");
 
                 Builder.AppendLine($@"
-                System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
+                    System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
             }
 
             Builder.Append($@"
-                break;");
+                    break;");
         }
 
-        Builder.AppendLine(@"
+        Builder.Append(@"
             }
 
             writer.WriteEndObject();

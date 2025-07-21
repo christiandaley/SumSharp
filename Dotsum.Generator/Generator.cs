@@ -70,7 +70,7 @@ public class Generator : IIncrementalGenerator
 
             var fileName = $"{symbolHandler.Namespace}_{string.Join("_", symbolHandler.ContainingTypes.Select(symbol => symbol.Name))}_{symbolHandler.NameWithoutTypeArguments}.g.cs";
 
-            context.AddSource($"{fileName}.g.cs", SourceText.From(builder.ToString(), Encoding.UTF8));
+            context.AddSource(fileName, SourceText.From(builder.ToString(), Encoding.UTF8));
         }
     }
 }
