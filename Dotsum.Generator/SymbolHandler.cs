@@ -68,7 +68,7 @@ internal class SymbolHandler
                 return attr.ConstructorArguments switch
                 {
                     [var caseName] => new CaseData(i, caseName.Value!.ToString(), null),
-                    [var caseName, var caseType] => new CaseData(i, caseName.Value!.ToString(), caseType.Value!.ToString())
+                    [var caseName, var caseType, var storageMode] => new CaseData(i, caseName.Value!.ToString(), caseType.Value!.ToString()),
                 };
             })
             .ToArray();
