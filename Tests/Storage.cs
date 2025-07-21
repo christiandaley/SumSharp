@@ -1,5 +1,7 @@
 namespace Tests;
 
+using System.Reflection;
+
 using Dotsum;
 
 public partial class Storage
@@ -28,13 +30,13 @@ public partial class Storage
     [Fact]
     public void NoBoxingProperties()
     {
-        Assert.Equal(typeof(int), typeof(NoBoxing).GetProperty("_value0")?.GetType());
-        Assert.Equal(typeof(float), typeof(NoBoxing).GetProperty("_value1")?.GetType());
-        Assert.Equal(typeof(double), typeof(NoBoxing).GetProperty("_value2")?.GetType());
-        Assert.Equal(typeof(object), typeof(NoBoxing).GetProperty("_value3")?.GetType());
-        Assert.Equal(typeof(long), typeof(NoBoxing).GetProperty("_value4")?.GetType());
-        Assert.Equal(typeof(ushort), typeof(NoBoxing).GetProperty("_value5")?.GetType());
-        Assert.Equal(typeof(short), typeof(NoBoxing).GetProperty("_value6")?.GetType());
+        Assert.Equal(typeof(int), typeof(NoBoxing).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(float), typeof(NoBoxing).GetProperty("_value1", BindingFlags.NonPublic)?.PropertyType);
+        Assert.Equal(typeof(double), typeof(NoBoxing).GetProperty("_value2", BindingFlags.NonPublic)?.PropertyType);
+        Assert.Equal(typeof(object), typeof(NoBoxing).GetProperty("_value3", BindingFlags.NonPublic)?.PropertyType);
+        Assert.Equal(typeof(long), typeof(NoBoxing).GetProperty("_value4", BindingFlags.NonPublic)?.PropertyType);
+        Assert.Equal(typeof(ushort), typeof(NoBoxing).GetProperty("_value5",BindingFlags.NonPublic)?.PropertyType);
+        Assert.Equal(typeof(short), typeof(NoBoxing).GetProperty("_value6", BindingFlags.NonPublic)?.PropertyType);
     }
 
     [Fact]
