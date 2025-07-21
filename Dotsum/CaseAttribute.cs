@@ -10,7 +10,7 @@ public class CaseAttribute : Attribute
 
     }
 
-    public CaseAttribute(string Name, string TypeName, StorageMode StorageMode = StorageMode.Default)
+    public CaseAttribute(string Name, string GenericTypeName, StorageMode StorageMode = StorageMode.Default)
     {
 
     }

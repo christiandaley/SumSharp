@@ -7,18 +7,62 @@ namespace Dotsum.Generator;
 
 internal class SymbolHandler
 {
-    public class TypeInfo
+    public abstract class TypeInfo
     {
-        public required string Name { get; init; }
+        public abstract string Name { get; }
 
-        public required bool IsGeneric { get; init; }
+        public abstract bool IsGeneric { get;}
 
-        public required bool IsValueType { get; init; }
+        public abstract bool IsAlwaysValueType { get; }
 
-        public required bool IsInterface { get; init; }
+        public abstract bool IsAlwaysRefType { get; }
+
+        public abstract bool IsInterface { get; }
+
+        public class Concrete(INamedTypeSymbol symbol) : TypeInfo
+        {
+            public override string Name => symbol.ToDisplayString();
+
+            public override bool IsGeneric => false;
+
+            public override bool IsAlwaysValueType => symbol.IsValueType;
+
+            public override bool IsAlwaysRefType => symbol.IsReferenceType;
+
+            public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
+        }
+
+        public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol) : TypeInfo
+        {
+            public override string Name => symbol.Name;
+
+            public override bool IsGeneric => true;
+
+            public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint;
+
+            public override bool IsAlwaysRefType => symbol.HasReferenceTypeConstraint;
+
+            public override bool IsInterface => false;
+        }
+
+        public class GeneralGenericTypeArgument(string name) : TypeInfo
+        {
+            public override string Name => name;
+
+            public override bool IsGeneric => true;
+
+            public override bool IsAlwaysValueType => false;
+
+            public override bool IsAlwaysRefType => false;
+
+            public override bool IsInterface => false;
+        }
     }
 
-    public record CaseData(int Index, string Name, TypeInfo? TypeInfo);
+    public record CaseData(int Index, string Name, TypeInfo? TypeInfo, bool StoreAsObject)
+    {
+        public string? FieldType => TypeInfo == null ? null : StoreAsObject ? "object" : TypeInfo.Name;
+    }
 
     public StringBuilder Builder { get; }
 
@@ -40,9 +84,9 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
-    public string ValueType { get; }
-
     public INamedTypeSymbol[] ContainingTypes;
+
+    public Dictionary<string, string> TypeToFieldNameMap { get; } = [];
 
     public bool EnableStandardJsonSerialization { get; }
 
@@ -78,7 +122,7 @@ internal class SymbolHandler
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, StorageAttrSymbol))
             .SingleOrDefault();
 
-        var storeAsDeclaredType = (int?)storageData?.ConstructorArguments[0].Value == 2;
+        var storageStrategy = (int?)storageData?.ConstructorArguments[0].Value ?? 0;
 
         Cases = symbol!
             .GetAttributes()
@@ -88,28 +132,34 @@ internal class SymbolHandler
                 switch (attr.ConstructorArguments)
                 {
                     case [var caseName]:
-                        return new CaseData(i, caseName.Value!.ToString(), null);
+                        return new CaseData(i, caseName.Value!.ToString(), null, true);
 
-                    case [var caseName, var caseType, var storageMode]:
+                    case [var caseName, var caseType, var caseStorageMode]:
 
-                        if (caseType.Value is not INamedTypeSymbol type)
+                        TypeInfo? typeInfo = null;
+
+                        if (caseType.Value is INamedTypeSymbol type)
                         {
-                            return new CaseData(i, caseName.Value!.ToString(), new TypeInfo
+                            typeInfo = new TypeInfo.Concrete(type);
+                        }
+                        else
+                        {
+                            var genericTypeName = caseType.Value!.ToString();
+
+                            foreach (var genericType in symbol.TypeArguments)
                             {
-                                Name = caseType.Value!.ToString(),
-                                IsValueType = false,
-                                IsInterface = false,
-                                IsGeneric = true,
-                            });
+                                if (genericType.Name == genericTypeName)
+                                {
+                                    typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType);
+                                }
+                            }
+
+                            typeInfo = new TypeInfo.GeneralGenericTypeArgument(genericTypeName);
                         }
 
-                        return new CaseData(i, caseName.Value!.ToString(), new TypeInfo
-                        {
-                            Name = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                            IsValueType = type.IsValueType,
-                            IsInterface = type.TypeKind == TypeKind.Interface,
-                            IsGeneric = false,
-                        });
+                        var storeAsObject = true;
+
+                        return new CaseData(i, caseName.Value!.ToString(), typeInfo, storeAsObject);
 
                     default:
                         throw new System.InvalidOperationException();
@@ -124,15 +174,6 @@ internal class SymbolHandler
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
-
-        var distinctTypes =
-            Cases
-            .Select(caseData => caseData.TypeInfo)
-            .Where(type => type != null)
-            .Distinct()
-            .ToArray();
-
-        ValueType = "object";
 
         var enableJsonSerializationData =
             symbol!
@@ -166,6 +207,23 @@ internal class SymbolHandler
         }
 
         ContainingTypes = [.. containingTypes];
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo == null)
+            {
+                continue;
+            }
+
+            var fieldType = caseData.StoreAsObject ? "object" : caseData.TypeInfo.Name;
+
+            if (TypeToFieldNameMap.ContainsKey(fieldType))
+            {
+                continue;
+            }
+
+            TypeToFieldNameMap[fieldType] = $"_value{TypeToFieldNameMap.Count}";
+        }
     }
 
     private bool GetIsStruct(INamedTypeSymbol symbol) => symbol.TypeKind == TypeKind.Struct;
@@ -210,7 +268,9 @@ internal class SymbolHandler
             EmitJsonConverterAttribute();
         }
 
-        EmitClassDeclaration();
+        EmitFieldsAndConstructor();
+
+        EmitEquals();
 
         EmitCaseConstructors();
 
@@ -276,35 +336,85 @@ internal class SymbolHandler
 [System.Text.Json.Serialization.JsonConverter(typeof({NameWithoutTypeArguments}.StandardJsonConverter))]");
     }
 
-    private void EmitClassDeclaration()
+    private void EmitFieldsAndConstructor()
     {
         Builder.AppendLine($@"
 {Accessibility} partial {(IsStruct ? "struct" : "class")} {Name} : IEquatable<{Name}>
 {{
-    private readonly {ValueType} _value;
+    public int Index {{ get; }}");
 
-    public int Index {{ get; }}
+        foreach (var typeToField in TypeToFieldNameMap)
+        {
+            Builder.Append($@"
+    private {typeToField.Key} {typeToField.Value} {{ get; init; }} = default;");
+        }
 
-    private {NameWithoutTypeArguments}(int index, {ValueType} value)
+        Builder.AppendLine($@" 
+
+    private {NameWithoutTypeArguments}(int index)
     {{
         System.Diagnostics.Debug.Assert(index >= 0 && index < {Cases.Length});
 
         Index = index;
-        _value = value;
-    }}
+    }}");
+    }
 
-    public bool Equals({Name} other) => {(IsStruct ? "" : "other is not null && ")}other.Index == Index && Equals(_value, other._value);
+    public void EmitEquals()
+    { 
+        Builder.Append($@"
+    public bool Equals({Name} other)
+    {{
+        {(IsStruct ? "" : "if (ReferenceEquals(null, other)) return false;")}
+        if (Index != other.Index) return false;
+
+        return Index switch
+        {{");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo == null)
+            {
+                Builder.Append($@"
+            {caseData.Index} => true,");
+            }
+            else
+            {
+                var fieldName = TypeToFieldNameMap[caseData.FieldType!];
+
+                Builder.Append($@"
+            {caseData.Index} => Equals({fieldName}, other.{fieldName}),");
+            }
+        }
+
+        Builder.Append($@"
+        }};
+    }}
 
     public override bool Equals(object obj)
     {{
         if (ReferenceEquals(null, obj)) return false;
-        if (ReferenceEquals(this, obj)) return true;
+        {(IsStruct ? "" : "if (ReferenceEquals(this, obj)) return true;")}
         if (obj.GetType() != GetType()) return false;
 
         return Equals(({Name})obj);
     }}
 
-    public override int GetHashCode() => HashCode.Combine(Index, _value);
+    public override int GetHashCode()
+    {{
+        var hash = new System.HashCode();
+
+        hash.Add(Index);");
+
+        foreach (var typeToField in TypeToFieldNameMap)
+        {
+            Builder.Append($@"
+        hash.Add({typeToField.Value});");
+        }
+
+        Builder.AppendLine($@"
+
+        return hash.ToHashCode();
+    }}
 
     public static bool operator==({Name} left, {Name} right) => left.Equals(right);
 
@@ -317,12 +427,12 @@ internal class SymbolHandler
             if (caseData.TypeInfo == null)
             {
                 Builder.AppendLine($@"
-    public static readonly {Name} {caseData.Name} = new({caseData.Index}, default);");
+    public static readonly {Name} {caseData.Name} = new({caseData.Index});");
             }
             else
             {
                 Builder.AppendLine($@"
-    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}, value);");
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = value }};");
             }
         }
     }
@@ -458,6 +568,22 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
+            var fieldName = TypeToFieldNameMap[caseData.FieldType!];
+
+            string? valueExpression = null;
+
+            if (caseData.StoreAsObject)
+            {
+                valueExpression = 
+                    caseData.TypeInfo.IsAlwaysRefType ? 
+                    $"System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({fieldName})" :
+                    $"({caseData.TypeInfo.Name}){fieldName}";
+            }
+            else
+            {
+                valueExpression = fieldName;
+            }
+
             Builder.AppendLine($@"
     private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
     {{
@@ -465,7 +591,7 @@ internal class SymbolHandler
         {{
             System.Diagnostics.Debug.Assert(Index == {caseData.Index});
 
-            return ({caseData.TypeInfo.Name})_value;
+            return {valueExpression};
         }}
     }}");
         }
