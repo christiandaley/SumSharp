@@ -157,7 +157,9 @@ internal class SymbolHandler
                             typeInfo = new TypeInfo.GeneralGenericTypeArgument(genericTypeName);
                         }
 
-                        var storeAsObject = true;
+                        var storageMode = (int)caseStorageMode.Value!;
+
+                        var storeAsObject = GetStoreAsObject(storageStrategy, storageMode, typeInfo.IsAlwaysValueType);
 
                         return new CaseData(i, caseName.Value!.ToString(), typeInfo, storeAsObject);
 
@@ -215,15 +217,42 @@ internal class SymbolHandler
                 continue;
             }
 
-            var fieldType = caseData.StoreAsObject ? "object" : caseData.TypeInfo.Name;
-
-            if (TypeToFieldNameMap.ContainsKey(fieldType))
+            if (TypeToFieldNameMap.ContainsKey(caseData.FieldType!))
             {
                 continue;
             }
 
-            TypeToFieldNameMap[fieldType] = $"_value{TypeToFieldNameMap.Count}";
+            TypeToFieldNameMap[caseData.FieldType!] = $"_value{TypeToFieldNameMap.Count}";
         }
+    }
+
+    private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
+    {
+        if (storageMode == 1) // StorageMode.AsObject
+        {
+            return true;
+        }
+        if (storageMode == 2) // StorageMode.AsDeclaredType
+        {
+            return false;
+        }
+
+        if (storageStrategy == 1) // StorageStrategy.OneObject
+        {
+            return true;
+        }
+
+        if (storageStrategy == 2) // StorageStrategy.OneFieldPerType
+        {
+            return false;
+        }
+
+        if (storageStrategy == 3) // StorageStrategy.NoBoxing
+        {
+            return !isAlwaysValueType;
+        }
+
+        return true;
     }
 
     private bool GetIsStruct(INamedTypeSymbol symbol) => symbol.TypeKind == TypeKind.Struct;
