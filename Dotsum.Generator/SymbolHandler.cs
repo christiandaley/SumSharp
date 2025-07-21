@@ -237,9 +237,9 @@ internal class SymbolHandler
         Builder.AppendLine($@"
 {Accessibility} partial {(IsStruct ? "struct" : "class")} {Name} : IEquatable<{Name}>
 {{
-    public int Index {{ get; }}
-
     private readonly {ValueType} _value;
+
+    public int Index {{ get; }}
 
     private {NameWithoutTypeArguments}(int index, {ValueType} value)
     {{
