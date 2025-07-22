@@ -22,6 +22,9 @@ public partial class StandardJsonSerializationWithSourceGen
     [Case("Case0", typeof(string))]
     [Case("Case1", typeof(NestedRecord1))]
     [Case("Case2")]
+    [Case("Case3", typeof(int))]
+    [Case("Case4", typeof(double))]
+    [Storage(StorageStrategy.NoBoxing)]
     [EnableJsonSerialization(UsingSourceGeneration: true)]
     [JsonConverter(typeof(StandardJsonConverter))]
     internal partial class NonGenericType
@@ -122,6 +125,40 @@ public partial class StandardJsonSerializationWithSourceGen
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
         {
             ""2"": null
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize(json, StandardJsonSerializationWithSourceGenJsonContext.Default.NonGenericType);
+
+        Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void NonGenericTypeCase3()
+    {
+        var value = NonGenericType.Case3(-157);
+
+        var json = JsonSerializer.Serialize(value, StandardJsonSerializationWithSourceGenJsonContext.Default.NonGenericType);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""3"": -157
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize(json, StandardJsonSerializationWithSourceGenJsonContext.Default.NonGenericType);
+
+        Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void NonGenericTypeCase4()
+    {
+        var value = NonGenericType.Case4(18.54321);
+
+        var json = JsonSerializer.Serialize(value, StandardJsonSerializationWithSourceGenJsonContext.Default.NonGenericType);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""4"": 18.54321
         }")));
 
         var deserializedValue = JsonSerializer.Deserialize(json, StandardJsonSerializationWithSourceGenJsonContext.Default.NonGenericType);
