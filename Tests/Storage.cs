@@ -6,6 +6,24 @@ using Dotsum;
 
 public partial class Storage
 {
+    [Case("Case0", typeof(string))]
+    [Case("Case1", typeof(bool))]
+    [Case("Case2", typeof(byte[]))]
+    partial struct DefaultStorage
+    {
+
+    }
+
+    [Case("Case0", typeof(string))]
+    [Case("Case1", typeof(bool))]
+    [Case("Case2", typeof(byte[]))]
+    [Storage(StorageStrategy.OneFieldPerType)]
+    partial struct FieldPerType
+    {
+
+    }
+
+
     [Case("Case0", typeof(int))]
     [Case("Case1", typeof(float))]
     [Case("Case2", typeof(double))]
@@ -25,6 +43,31 @@ public partial class Storage
     partial class NoBoxing
     {
         
+    }
+
+
+    [Case("Case0", "T")]
+    [Case("Case1", "U")]
+    [Case("Case2", "V")]
+    [Storage(StorageStrategy.NoBoxing)]
+    partial class NoBoxingGeneric<T, U, V> where U : struct
+    {
+
+    }
+
+
+    [Fact]
+    public void DefaultStorageProperties()
+    {
+        Assert.Equal(typeof(object), typeof(DefaultStorage).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+    }
+
+    [Fact]
+    public void FieldPerTypeProperties()
+    {
+        Assert.Equal(typeof(string), typeof(FieldPerType).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(bool), typeof(FieldPerType).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(byte[]), typeof(FieldPerType).GetProperty("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
     }
 
     [Fact]
@@ -72,5 +115,12 @@ public partial class Storage
         Assert.Equal(-128, NoBoxing.Case13(-128).AsCase13);
 
         Assert.Equal(123456789ul, NoBoxing.Case14(123456789).AsCase14);
+    }
+
+    [Fact]
+    public void NoBoxingGenericProperties()
+    {
+        Assert.Equal(typeof(object), typeof(NoBoxingGeneric<double, float, int>).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(float), typeof(NoBoxingGeneric<double, float, int>).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
     }
 }

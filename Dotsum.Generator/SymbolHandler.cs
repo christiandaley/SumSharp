@@ -172,8 +172,10 @@ internal class SymbolHandler
                                     typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType);
                                 }
                             }
-
-                            typeInfo = new TypeInfo.GeneralGenericTypeArgument(genericTypeName);
+                            if (typeInfo == null)
+                            {
+                                typeInfo = new TypeInfo.GeneralGenericTypeArgument(genericTypeName);
+                            }
                         }
 
                         var storageMode = (int)caseStorageMode.Value!;
@@ -419,11 +421,11 @@ internal class SymbolHandler
     public void EmitBoxType()
     {
         Builder.AppendLine(@"
-    class Box<T> : IEquatable<Box<T>> where T : struct
+    class Box<TBoxed_> : IEquatable<Box<TBoxed_>> where TBoxed_ : struct
     {
-        public T Value;
+        public TBoxed_ Value;
 
-        public bool Equals(Box<T> other)
+        public bool Equals(Box<TBoxed_> other)
         {
             if (ReferenceEquals(null, other)) return false;
             
@@ -436,7 +438,7 @@ internal class SymbolHandler
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
 
-            return Equals(System.Runtime.CompilerServices.Unsafe.As<Box<T>>(obj));
+            return Equals(System.Runtime.CompilerServices.Unsafe.As<Box<TBoxed_>>(obj));
         }
 
         public override int GetHashCode() => Value.GetHashCode();
