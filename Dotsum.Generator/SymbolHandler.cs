@@ -19,7 +19,7 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
-        public class Concrete(INamedTypeSymbol symbol) : TypeInfo
+        public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name => symbol.ToDisplayString();
 
@@ -30,6 +30,19 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => symbol.IsReferenceType;
 
             public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
+        }
+
+        public class Array(string name) : TypeInfo
+        {
+            public override string Name => name;
+
+            public override bool IsGeneric => false;
+
+            public override bool IsAlwaysValueType => false;
+
+            public override bool IsAlwaysRefType => true;
+
+            public override bool IsInterface => false;
         }
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol) : TypeInfo
@@ -140,7 +153,11 @@ internal class SymbolHandler
 
                         if (caseType.Value is INamedTypeSymbol type)
                         {
-                            typeInfo = new TypeInfo.Concrete(type);
+                            typeInfo = new TypeInfo.NonArray(type);
+                        }
+                        else if (caseType.Value is IArrayTypeSymbol arrayType)
+                        {
+                            typeInfo = new TypeInfo.Array(arrayType.ToDisplayString());
                         }
                         else
                         {
