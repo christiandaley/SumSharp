@@ -14,6 +14,13 @@ public partial class Storage
 
     }
 
+    [Case("Case0", typeof(string[]))]
+    [Case("Case1", typeof(string[]))]
+    partial class SingleUniqueType
+    {
+
+    }
+
     [Case("Case0", typeof(string), StorageMode.Inline)]
     [Case("Case1", typeof(bool))]
     [Case("Case2", typeof(byte[]))]
@@ -68,6 +75,14 @@ public partial class Storage
     public void DefaultStorageProperties()
     {
         Assert.Equal(typeof(object), typeof(DefaultStorage).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Null(typeof(DefaultStorage).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+    }
+
+    [Fact]
+    public void SingleUniqueTypeProperties()
+    {
+        Assert.Equal(typeof(string[]), typeof(SingleUniqueType).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Null(typeof(SingleUniqueType).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
