@@ -101,6 +101,8 @@ internal class SymbolHandler
 
     public Dictionary<string, string> TypeToFieldNameMap { get; } = [];
 
+    public bool BoxesValueTypes { get; } = false;
+
     public bool EnableStandardJsonSerialization { get; }
 
     public bool UsingSourceGeneration { get; }
@@ -233,6 +235,10 @@ internal class SymbolHandler
             {
                 continue;
             }
+            if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
+            {
+                BoxesValueTypes = true;
+            }
 
             if (TypeToFieldNameMap.ContainsKey(caseData.FieldType!))
             {
@@ -315,6 +321,11 @@ internal class SymbolHandler
         }
 
         EmitFieldsAndConstructor();
+
+        if (BoxesValueTypes)
+        {
+            EmitBoxType();
+        }
 
         EmitEquals();
 
@@ -405,6 +416,32 @@ internal class SymbolHandler
     }}");
     }
 
+    public void EmitBoxType()
+    {
+        Builder.AppendLine(@"
+    class Box<T> : IEquatable<Box<T>> where T : struct
+    {
+        public T Value;
+
+        public bool Equals(Box<T> other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            
+            return Equals(Value, other.Value);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+
+            return Equals(System.Runtime.CompilerServices.Unsafe.As<Box<T>>(obj));
+        }
+
+        public override int GetHashCode() => Value.GetHashCode();
+    }");
+    }
     public void EmitEquals()
     { 
         Builder.Append($@"
@@ -477,8 +514,13 @@ internal class SymbolHandler
             }
             else
             {
+                var valueToStore =
+                    caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType ?
+                    $"new Box<{caseData.TypeInfo.Name}> {{ Value = value }}" :
+                    "value";
+
                 Builder.AppendLine($@"
-    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = value }};");
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = {valueToStore} }};");
             }
         }
     }
@@ -620,10 +662,18 @@ internal class SymbolHandler
 
             if (caseData.StoreAsObject)
             {
-                valueExpression = 
-                    caseData.TypeInfo.IsAlwaysRefType ? 
-                    $"System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({fieldName})" :
-                    $"({caseData.TypeInfo.Name}){fieldName}";
+                if (caseData.TypeInfo.IsAlwaysRefType)
+                {
+                    valueExpression = $"System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({fieldName})";
+                }
+                else if (caseData.TypeInfo.IsAlwaysValueType)
+                {
+                    valueExpression = $"System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({fieldName}).Value";
+                }
+                else
+                {
+                    valueExpression = $"({caseData.TypeInfo.Name}){fieldName}";
+                }
             }
             else
             {
