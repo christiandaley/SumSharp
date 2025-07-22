@@ -803,6 +803,11 @@ internal class SymbolHandler
     {
         foreach (var caseData in UniqueCases)
         {
+            if (caseData.TypeInfo!.IsInterface)
+            {
+                continue;
+            }
+
             Builder.AppendLine($@"
     public static implicit operator {Name}({caseData.TypeInfo!.Name} value) => {caseData.Name}(value);");
         }

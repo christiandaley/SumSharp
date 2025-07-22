@@ -23,6 +23,13 @@ public partial class Conversions
 
     }
 
+    [Case("Case0", typeof(int))]
+    [Case("Case1", typeof(IEnumerable<int>))]
+    partial class IntOrIntEnumerable
+    {
+
+    }
+
     [Fact]
     public void DoubleOrNoneConversion()
     {
@@ -44,5 +51,10 @@ public partial class Conversions
         Assert.Equal(GenericType<byte>.Case3(3.5), x3);
     }
 
-
+    [Fact]
+    public void IntOrIntEnumerableConversion()
+    {
+        var x1 = (IntOrIntEnumerable)5;
+        Assert.Equal(IntOrIntEnumerable.Case0(5), x1);
+    }
 }
