@@ -14,6 +14,16 @@ public partial class Storage
 
     }
 
+    [Case("Case0", typeof(string), StorageMode.AsDeclaredType)]
+    [Case("Case1", typeof(bool))]
+    [Case("Case2", typeof(byte[]))]
+    [Case("Case3", typeof(int), StorageMode.AsObject)]
+    [Storage(StorageStrategy.NoBoxing)]
+    partial class VariousStorageModes
+    {
+
+    }
+
     [Case("Case0", typeof(string))]
     [Case("Case1", typeof(bool))]
     [Case("Case2", typeof(byte[]))]
@@ -60,6 +70,15 @@ public partial class Storage
     public void DefaultStorageProperties()
     {
         Assert.Equal(typeof(object), typeof(DefaultStorage).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+    }
+
+    [Fact]
+    public void VariousStorageModesProperties()
+    {
+        Assert.Equal(typeof(string), typeof(VariousStorageModes).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(bool), typeof(VariousStorageModes).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(object), typeof(VariousStorageModes).GetProperty("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Null(typeof(VariousStorageModes).GetProperty("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
     }
 
     [Fact]

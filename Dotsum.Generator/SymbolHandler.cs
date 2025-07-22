@@ -170,6 +170,8 @@ internal class SymbolHandler
                                 if (genericType.Name == genericTypeName)
                                 {
                                     typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType);
+
+                                    break;
                                 }
                             }
                             if (typeInfo == null)
