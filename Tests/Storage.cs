@@ -14,21 +14,12 @@ public partial class Storage
 
     }
 
-    [Case("Case0", typeof(string), StorageMode.AsDeclaredType)]
+    [Case("Case0", typeof(string), StorageMode.Inline)]
     [Case("Case1", typeof(bool))]
     [Case("Case2", typeof(byte[]))]
     [Case("Case3", typeof(int), StorageMode.AsObject)]
     [Storage(StorageStrategy.NoBoxing)]
     partial class VariousStorageModes
-    {
-
-    }
-
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(bool))]
-    [Case("Case2", typeof(byte[]))]
-    [Storage(StorageStrategy.OneFieldPerType)]
-    partial struct FieldPerType
     {
 
     }
@@ -48,11 +39,17 @@ public partial class Storage
     [Case("Case11", typeof(short))]
     [Case("Case12", typeof(ushort))]
     [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(ulong))]
+    [Case("Case14", typeof(InnerStruct))]
+    [Case("Case15", typeof(ulong))]
+    [Case("Case16", typeof(InnerStruct))]
     [Storage(StorageStrategy.NoBoxing)]
     partial class NoBoxing
     {
-        
+        public struct InnerStruct
+        {
+            public int X;
+            public int Y;
+        }
     }
 
 
@@ -69,37 +66,25 @@ public partial class Storage
     [Fact]
     public void DefaultStorageProperties()
     {
-        Assert.Equal(typeof(object), typeof(DefaultStorage).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(object), typeof(DefaultStorage).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
     public void VariousStorageModesProperties()
     {
-        Assert.Equal(typeof(string), typeof(VariousStorageModes).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(bool), typeof(VariousStorageModes).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(object), typeof(VariousStorageModes).GetProperty("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Null(typeof(VariousStorageModes).GetProperty("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-    }
-
-    [Fact]
-    public void FieldPerTypeProperties()
-    {
-        Assert.Equal(typeof(string), typeof(FieldPerType).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(bool), typeof(FieldPerType).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(byte[]), typeof(FieldPerType).GetProperty("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(ulong), typeof(VariousStorageModes).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Null(typeof(VariousStorageModes).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
     public void NoBoxingProperties()
     {
-        Assert.Equal(typeof(int), typeof(NoBoxing).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(float), typeof(NoBoxing).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(double), typeof(NoBoxing).GetProperty("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(object), typeof(NoBoxing).GetProperty("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(long), typeof(NoBoxing).GetProperty("_value4", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(ushort), typeof(NoBoxing).GetProperty("_value5",BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(short), typeof(NoBoxing).GetProperty("_value6", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(ulong), typeof(NoBoxing).GetProperty("_value7", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(ulong), typeof(NoBoxing).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(NoBoxing).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(NoBoxing.InnerStruct), typeof(NoBoxing).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Null(typeof(NoBoxing).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
@@ -133,13 +118,17 @@ public partial class Storage
 
         Assert.Equal(-128, NoBoxing.Case13(-128).AsCase13);
 
-        Assert.Equal(123456789ul, NoBoxing.Case14(123456789).AsCase14);
+        Assert.Equal(new NoBoxing.InnerStruct { X = 2, Y = 3 }, NoBoxing.Case14(new NoBoxing.InnerStruct { X = 2, Y = 3 }).AsCase14);
+
+        Assert.Equal(123456789ul, NoBoxing.Case15(123456789).AsCase15);
+
+        Assert.Equal(new NoBoxing.InnerStruct { X = 100, Y = -200 }, NoBoxing.Case16(new NoBoxing.InnerStruct { X = 100, Y = -200 }).AsCase16);
     }
 
     [Fact]
     public void NoBoxingGenericProperties()
     {
-        Assert.Equal(typeof(object), typeof(NoBoxingGeneric<double, float, int>).GetProperty("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
-        Assert.Equal(typeof(float), typeof(NoBoxingGeneric<double, float, int>).GetProperty("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.PropertyType);
+        Assert.Equal(typeof(object), typeof(NoBoxingGeneric<double, float, int>).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(float), typeof(NoBoxingGeneric<double, float, int>).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 }

@@ -6,5 +6,5 @@ public enum StorageMode
 {
     Default = 0,
     AsObject = 1,
-    AsDeclaredType = 2,
+    Inline = 2,
 }

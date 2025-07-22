@@ -17,7 +17,7 @@ public partial class Switch
     {
         bool passed = false;
 
-        IntOrNone.Case0(3).Switch(_ => { passed = true; }, () => { });
+        IntOrNone.Case0(19).Switch(value => { passed = value == 19; }, () => { });
 
         Assert.True(passed);
     }
@@ -28,9 +28,9 @@ public partial class Switch
         bool passed = false;
 
         await IntOrNone.Case0(3).Switch(
-            _ => 
+            value => 
             { 
-                passed = true;
+                passed = value == 3;
 
                 return Task.CompletedTask;
             }, 

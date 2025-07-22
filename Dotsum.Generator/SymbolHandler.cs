@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +12,9 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
-        public abstract bool IsGeneric { get;}
+        public abstract int PrimitiveTypeSize { get; }
+
+        public bool IsPrimitiveType => PrimitiveTypeSize > 0;
 
         public abstract bool IsAlwaysValueType { get; }
 
@@ -23,7 +26,35 @@ internal class SymbolHandler
         {
             public override string Name => symbol.ToDisplayString();
 
-            public override bool IsGeneric => false;
+            public override int PrimitiveTypeSize
+            {
+                get
+                {
+                    if (!symbol.IsValueType)
+                    {
+                        return -1;
+                    }
+
+                    return symbol.SpecialType switch
+                    {
+                        SpecialType.System_Boolean => sizeof(bool),
+                        SpecialType.System_Byte => sizeof(byte),
+                        SpecialType.System_SByte => sizeof(sbyte),
+                        SpecialType.System_Int16 => sizeof(Int16),
+                        SpecialType.System_UInt16 => sizeof(UInt16),
+                        SpecialType.System_Int32 => sizeof(Int32),
+                        SpecialType.System_UInt32 => sizeof(UInt32),
+                        SpecialType.System_Int64 => sizeof(Int64),
+                        SpecialType.System_UInt64 => sizeof(UInt64),
+                        //SpecialType.System_IntPtr => sizeof(IntPtr),
+                        //SpecialType.System_UIntPtr => sizeof(UIntPtr),
+                        SpecialType.System_Char => sizeof(char),
+                        SpecialType.System_Single => sizeof(Single),
+                        SpecialType.System_Double => sizeof(double),
+                        _ => -1
+                    };
+                }
+            }
 
             public override bool IsAlwaysValueType => symbol.IsValueType;
 
@@ -36,7 +67,7 @@ internal class SymbolHandler
         {
             public override string Name => name;
 
-            public override bool IsGeneric => false;
+            public override int PrimitiveTypeSize => -1;
 
             public override bool IsAlwaysValueType => false;
 
@@ -49,7 +80,7 @@ internal class SymbolHandler
         {
             public override string Name => symbol.Name;
 
-            public override bool IsGeneric => true;
+            public override int PrimitiveTypeSize => -1;
 
             public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint;
 
@@ -62,7 +93,7 @@ internal class SymbolHandler
         {
             public override string Name => name;
 
-            public override bool IsGeneric => true;
+            public override int PrimitiveTypeSize => -1;
 
             public override bool IsAlwaysValueType => false;
 
@@ -74,7 +105,11 @@ internal class SymbolHandler
 
     public record CaseData(int Index, string Name, TypeInfo? TypeInfo, bool StoreAsObject)
     {
-        public string? FieldType => TypeInfo == null ? null : StoreAsObject ? "object" : TypeInfo.Name;
+        public string? FieldType => 
+            TypeInfo == null ? null :
+            StoreAsObject ? "object" :
+            TypeInfo.IsPrimitiveType ?
+            "ulong" : TypeInfo.Name;
     }
 
     public StringBuilder Builder { get; }
@@ -259,7 +294,7 @@ internal class SymbolHandler
         {
             return true;
         }
-        if (storageMode == 2) // StorageMode.AsDeclaredType
+        if (storageMode == 2) // StorageMode.Inline
         {
             return false;
         }
@@ -269,12 +304,7 @@ internal class SymbolHandler
             return true;
         }
 
-        if (storageStrategy == 2) // StorageStrategy.OneFieldPerType
-        {
-            return false;
-        }
-
-        if (storageStrategy == 3) // StorageStrategy.NoBoxing
+        if (storageStrategy == 2) // StorageStrategy.NoBoxing
         {
             return !isAlwaysValueType;
         }
@@ -407,7 +437,7 @@ internal class SymbolHandler
         foreach (var typeToField in TypeToFieldNameMap)
         {
             Builder.Append($@"
-    private {typeToField.Key} {typeToField.Value} {{ get; init; }} = default;");
+    private {typeToField.Key} {typeToField.Value} = default;");
         }
 
         Builder.AppendLine($@" 
@@ -522,15 +552,27 @@ internal class SymbolHandler
                 Builder.AppendLine($@"
     public static readonly {Name} {caseData.Name} = new({caseData.Index});");
             }
+            else if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
+            {
+                Builder.AppendLine($@"
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = new Box<{caseData.TypeInfo.Name}> {{ Value = value }} }};");
+            }
+            else if (caseData.TypeInfo.IsPrimitiveType)
+            {
+                Builder.AppendLine($@"
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
+    {{
+        var ret = new {Name}({caseData.Index});
+
+        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{TypeToFieldNameMap[caseData.FieldType!]}) = value;
+
+        return ret;
+    }}");
+            }
             else
             {
-                var valueToStore =
-                    caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType ?
-                    $"new Box<{caseData.TypeInfo.Name}> {{ Value = value }}" :
-                    "value";
-
                 Builder.AppendLine($@"
-    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = {valueToStore} }};");
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = value }};");
             }
         }
     }
@@ -668,38 +710,46 @@ internal class SymbolHandler
 
             var fieldName = TypeToFieldNameMap[caseData.FieldType!];
 
-            string? valueExpression = null;
-
-            if (caseData.StoreAsObject)
-            {
-                if (caseData.TypeInfo.IsAlwaysRefType)
-                {
-                    valueExpression = $"System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({fieldName})";
-                }
-                else if (caseData.TypeInfo.IsAlwaysValueType)
-                {
-                    valueExpression = $"System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({fieldName}).Value";
-                }
-                else
-                {
-                    valueExpression = $"({caseData.TypeInfo.Name}){fieldName}";
-                }
-            }
-            else
-            {
-                valueExpression = fieldName;
-            }
-
             Builder.AppendLine($@"
     private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
     {{
         get
         {{
-            System.Diagnostics.Debug.Assert(Index == {caseData.Index});
+            System.Diagnostics.Debug.Assert(Index == {caseData.Index});");
 
-            return {valueExpression};
-        }}
-    }}");
+            if (caseData.StoreAsObject)
+            {
+                if (caseData.TypeInfo.IsAlwaysRefType)
+                {
+                    Builder.Append($@"
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({fieldName});");
+                }
+                else if (caseData.TypeInfo.IsAlwaysValueType)
+                {
+                    Builder.Append($@"
+            return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({fieldName}).Value;");
+                }
+                else
+                {
+                    Builder.Append($@"
+            return ({caseData.TypeInfo.Name}){fieldName};");
+                }
+            }
+            else if (caseData.TypeInfo.IsPrimitiveType)
+            {
+                Builder.Append($@"
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {fieldName});");
+            }
+            else
+            {
+                Builder.Append($@"
+            return {fieldName};");
+            }
+
+
+            Builder.AppendLine(@"
+        }
+    }");
         }
     }
 
