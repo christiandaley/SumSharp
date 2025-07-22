@@ -484,19 +484,25 @@ internal class SymbolHandler
 
     public override int GetHashCode()
     {{
-        var hash = new System.HashCode();
+        return Index switch
+        {{");
 
-        hash.Add(Index);");
-
-        foreach (var typeToField in TypeToFieldNameMap)
+        foreach (var caseData in Cases)
         {
-            Builder.Append($@"
-        hash.Add({typeToField.Value});");
+            if (caseData.TypeInfo == null)
+            {
+                Builder.Append($@"
+            {caseData.Index} => Index.GetHashCode(),");
+            }
+            else
+            {
+                Builder.Append($@"
+            {caseData.Index} => System.HashCode.Combine({caseData.Index}, {TypeToFieldNameMap[caseData.FieldType!]}),");
+            }
         }
 
         Builder.AppendLine($@"
-
-        return hash.ToHashCode();
+        }};
     }}
 
     public static bool operator==({Name} left, {Name} right) => left.Equals(right);
