@@ -105,11 +105,13 @@ internal class SymbolHandler
 
     public record CaseData(int Index, string Name, TypeInfo? TypeInfo, bool StoreAsObject)
     {
+        public const string PrimitiveStorageTypePlaceholder = "__PRIMITIVE_STORAGE_FIELD__";
+
         public string? FieldType => 
             TypeInfo == null ? null :
             StoreAsObject ? "object" :
             TypeInfo.IsPrimitiveType ?
-            "ulong" : TypeInfo.Name;
+            PrimitiveStorageTypePlaceholder : TypeInfo.Name;
     }
 
     public StringBuilder Builder { get; }
@@ -400,6 +402,19 @@ internal class SymbolHandler
         EmitEndContainingTypes();
 
         EmitEndNamespace();
+
+        var primitiveStorageSize = Cases.Max(caseData => caseData.TypeInfo == null ? 0 : caseData.TypeInfo.PrimitiveTypeSize);
+
+        var primitiveStorageType = primitiveStorageSize switch
+        {
+            1 => "byte",
+            2 => "ushort",
+            4 => "uint",
+            8 => "ulong",
+            _ => ""
+        };
+
+        Builder.Replace(CaseData.PrimitiveStorageTypePlaceholder, primitiveStorageType);
 
         return Builder.ToString();
     }

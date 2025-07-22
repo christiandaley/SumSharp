@@ -18,6 +18,7 @@ public partial class Storage
     [Case("Case1", typeof(bool))]
     [Case("Case2", typeof(byte[]))]
     [Case("Case3", typeof(int), StorageMode.AsObject)]
+    [Case("Case4", typeof(float))]
     [Storage(StorageStrategy.NoBoxing)]
     partial class VariousStorageModes
     {
@@ -73,7 +74,7 @@ public partial class Storage
     public void VariousStorageModesProperties()
     {
         Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(ulong), typeof(VariousStorageModes).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(uint), typeof(VariousStorageModes).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Null(typeof(VariousStorageModes).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
