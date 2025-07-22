@@ -483,7 +483,7 @@ internal class SymbolHandler
         {(IsStruct ? "" : "if (ReferenceEquals(this, obj)) return true;")}
         if (obj.GetType() != GetType()) return false;
 
-        return Equals(({Name})obj);
+        return Equals({(IsStruct ? $"({Name})obj" : $"System.Runtime.CompilerServices.Unsafe.As<{Name}>(obj)")});
     }}
 
     public override int GetHashCode()
