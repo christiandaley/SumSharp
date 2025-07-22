@@ -403,7 +403,7 @@ internal class SymbolHandler
 
         EmitEndNamespace();
 
-        var primitiveStorageSize = Cases.Max(caseData => caseData.TypeInfo == null ? 0 : caseData.TypeInfo.PrimitiveTypeSize);
+        var primitiveStorageSize = Cases.Max(caseData => caseData.TypeInfo == null ? -1 : caseData.TypeInfo.PrimitiveTypeSize);
 
         var primitiveStorageType = primitiveStorageSize switch
         {
@@ -511,10 +511,8 @@ internal class SymbolHandler
             }
             else
             {
-                var fieldName = TypeToFieldNameMap[caseData.FieldType!];
-
                 Builder.Append($@"
-            {caseData.Index} => Equals({fieldName}, other.{fieldName}),");
+            {caseData.Index} => Equals(As{caseData.Name}Unsafe, other.As{caseData.Name}Unsafe),");
             }
         }
 
@@ -546,7 +544,7 @@ internal class SymbolHandler
             else
             {
                 Builder.Append($@"
-            {caseData.Index} => System.HashCode.Combine({caseData.Index}, {TypeToFieldNameMap[caseData.FieldType!]}),");
+            {caseData.Index} => System.HashCode.Combine({caseData.Index}, As{caseData.Name}Unsafe),");
             }
         }
 
