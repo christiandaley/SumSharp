@@ -19,7 +19,7 @@ public partial class Storage
     [Case("Case2", typeof(byte[]))]
     [Case("Case3", typeof(int), StorageMode.AsObject)]
     [Case("Case4", typeof(float))]
-    [Storage(StorageStrategy.NoBoxing)]
+    [Storage(StorageStrategy.InlineValueTypes)]
     partial class VariousStorageModes
     {
 
@@ -43,8 +43,8 @@ public partial class Storage
     [Case("Case14", typeof(InnerStruct))]
     [Case("Case15", typeof(ulong))]
     [Case("Case16", typeof(InnerStruct))]
-    [Storage(StorageStrategy.NoBoxing)]
-    partial class NoBoxing
+    [Storage(StorageStrategy.InlineValueTypes)]
+    partial class InlineValueTypes
     {
         public struct InnerStruct
         {
@@ -57,8 +57,8 @@ public partial class Storage
     [Case("Case0", "T")]
     [Case("Case1", "U")]
     [Case("Case2", "V")]
-    [Storage(StorageStrategy.NoBoxing)]
-    partial class NoBoxingGeneric<T, U, V> where U : struct
+    [Storage(StorageStrategy.InlineValueTypes)]
+    partial class InlineValueTypesGeneric<T, U, V> where U : struct
     {
 
     }
@@ -80,56 +80,56 @@ public partial class Storage
     }
 
     [Fact]
-    public void NoBoxingProperties()
+    public void InlineValueTypesProperties()
     {
-        Assert.Equal(typeof(ulong), typeof(NoBoxing).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(object), typeof(NoBoxing).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(NoBoxing.InnerStruct), typeof(NoBoxing).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Null(typeof(NoBoxing).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(ulong), typeof(InlineValueTypes).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(InlineValueTypes).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(InlineValueTypes.InnerStruct), typeof(InlineValueTypes).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Null(typeof(InlineValueTypes).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
-    public void NoBoxingAccess()
+    public void InlineValueTypesAccess()
     {
-        Assert.Equal(-10, NoBoxing.Case0(-10).AsCase0);
+        Assert.Equal(-10, InlineValueTypes.Case0(-10).AsCase0);
 
-        Assert.Equal(1.5f, NoBoxing.Case1(1.5f).AsCase1);
+        Assert.Equal(1.5f, InlineValueTypes.Case1(1.5f).AsCase1);
 
-        Assert.Equal(2.4, NoBoxing.Case2(2.4).AsCase2);
+        Assert.Equal(2.4, InlineValueTypes.Case2(2.4).AsCase2);
 
-        Assert.Equal("abc", NoBoxing.Case3("abc").AsCase3);
+        Assert.Equal("abc", InlineValueTypes.Case3("abc").AsCase3);
 
-        Assert.Equal([0, 1, 2], NoBoxing.Case4([0, 1, 2]).AsCase4);
+        Assert.Equal([0, 1, 2], InlineValueTypes.Case4([0, 1, 2]).AsCase4);
 
-        Assert.Equal(8, NoBoxing.Case5(8).AsCase5);
+        Assert.Equal(8, InlineValueTypes.Case5(8).AsCase5);
 
-        Assert.Equal(3.9f, NoBoxing.Case6(3.9f).AsCase6);
+        Assert.Equal(3.9f, InlineValueTypes.Case6(3.9f).AsCase6);
 
-        Assert.Equal(200, NoBoxing.Case7(200).AsCase7);
+        Assert.Equal(200, InlineValueTypes.Case7(200).AsCase7);
 
-        Assert.Equal(200.1, NoBoxing.Case8(200.1).AsCase8);
+        Assert.Equal(200.1, InlineValueTypes.Case8(200.1).AsCase8);
 
-        Assert.Equal(8000, NoBoxing.Case9(8000).AsCase9);
+        Assert.Equal(8000, InlineValueTypes.Case9(8000).AsCase9);
 
-        Assert.Equal(1600, NoBoxing.Case10(1600).AsCase10);
+        Assert.Equal(1600, InlineValueTypes.Case10(1600).AsCase10);
 
-        Assert.Equal(1900, NoBoxing.Case11(1900).AsCase11);
+        Assert.Equal(1900, InlineValueTypes.Case11(1900).AsCase11);
 
-        Assert.Equal(256, NoBoxing.Case12(256).AsCase12);
+        Assert.Equal(256, InlineValueTypes.Case12(256).AsCase12);
 
-        Assert.Equal(-128, NoBoxing.Case13(-128).AsCase13);
+        Assert.Equal(-128, InlineValueTypes.Case13(-128).AsCase13);
 
-        Assert.Equal(new NoBoxing.InnerStruct { X = 2, Y = 3 }, NoBoxing.Case14(new NoBoxing.InnerStruct { X = 2, Y = 3 }).AsCase14);
+        Assert.Equal(new InlineValueTypes.InnerStruct { X = 2, Y = 3 }, InlineValueTypes.Case14(new InlineValueTypes.InnerStruct { X = 2, Y = 3 }).AsCase14);
 
-        Assert.Equal(123456789ul, NoBoxing.Case15(123456789).AsCase15);
+        Assert.Equal(123456789ul, InlineValueTypes.Case15(123456789).AsCase15);
 
-        Assert.Equal(new NoBoxing.InnerStruct { X = 100, Y = -200 }, NoBoxing.Case16(new NoBoxing.InnerStruct { X = 100, Y = -200 }).AsCase16);
+        Assert.Equal(new InlineValueTypes.InnerStruct { X = 100, Y = -200 }, InlineValueTypes.Case16(new InlineValueTypes.InnerStruct { X = 100, Y = -200 }).AsCase16);
     }
 
     [Fact]
-    public void NoBoxingGenericProperties()
+    public void InlineValueTypesGenericProperties()
     {
-        Assert.Equal(typeof(object), typeof(NoBoxingGeneric<double, float, int>).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(float), typeof(NoBoxingGeneric<double, float, int>).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(float), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 }

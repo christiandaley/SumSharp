@@ -7,7 +7,7 @@ public partial class If
 
     [Case("Case0", typeof(double))]
     [Case("Case1")]
-    [Storage(StorageStrategy.NoBoxing)]
+    [Storage(StorageStrategy.InlineValueTypes)]
     partial class DoubleOrNone
     {
 

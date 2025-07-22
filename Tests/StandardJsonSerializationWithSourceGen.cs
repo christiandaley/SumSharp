@@ -24,7 +24,7 @@ public partial class StandardJsonSerializationWithSourceGen
     [Case("Case2")]
     [Case("Case3", typeof(int))]
     [Case("Case4", typeof(double))]
-    [Storage(StorageStrategy.NoBoxing)]
+    [Storage(StorageStrategy.InlineValueTypes)]
     [EnableJsonSerialization(UsingSourceGeneration: true)]
     [JsonConverter(typeof(StandardJsonConverter))]
     internal partial class NonGenericType

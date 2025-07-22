@@ -306,7 +306,7 @@ internal class SymbolHandler
             return true;
         }
 
-        if (storageStrategy == 2) // StorageStrategy.NoBoxing
+        if (storageStrategy == 2) // StorageStrategy.InlineValueTypes
         {
             return !isAlwaysValueType;
         }

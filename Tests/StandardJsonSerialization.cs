@@ -12,7 +12,7 @@ public partial class StandardJsonSerialization
     [Case("Case2")]
     [Case("Case3", typeof(int))]
     [Case("Case4", typeof(double))]
-    [Storage(StorageStrategy.NoBoxing)]
+    [Storage(StorageStrategy.InlineValueTypes)]
     [EnableJsonSerialization]
     partial class NonGenericType
     {
