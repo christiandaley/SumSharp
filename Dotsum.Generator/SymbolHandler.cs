@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
 
 namespace Dotsum.Generator;
@@ -981,9 +982,31 @@ internal class SymbolHandler
     {{
         public override {Name} ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, {Name} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
         {{
-            throw new System.NotImplementedException();");
+            if (reader.TokenType == Newtonsoft.Json.JsonToken.Null)
+            {{
+                return default;
+            }}
 
-        /*foreach (var caseData in Cases)
+            if (reader.TokenType != Newtonsoft.Json.JsonToken.StartObject)
+            {{
+                throw new Newtonsoft.Json.JsonException($""Expected StartObject token but found: {{reader.TokenType}}"");
+            }}
+
+            reader.Read();
+
+            if (reader.TokenType != Newtonsoft.Json.JsonToken.PropertyName)
+            {{
+                throw new Newtonsoft.Json.JsonException($""Expected PropertyName token but found: {{reader.TokenType}}"");
+            }}
+
+            var index = int.Parse(reader.Value.ToString());
+
+            reader.Read();
+
+            var ret = index switch
+            {{");
+
+        foreach (var caseData in Cases)
         {
             if (caseData.TypeInfo == null)
             {
@@ -993,41 +1016,57 @@ internal class SymbolHandler
             else
             {
                 Builder.Append($@"
-                {caseData.Index} => {Name}.{caseData.Name}(System.Text.Json.JsonSerializer.Deserialize<{caseData.TypeInfo.Name}>(ref reader, options)),");
+                {caseData.Index} => {Name}.{caseData.Name}(serializer.Deserialize<{caseData.TypeInfo.Name}>(reader)),");
             }
-        }*/
+        }
 
         Builder.Append($@"
-        }}
+            }};
 
+            reader.Read();
+
+            if (reader.TokenType != Newtonsoft.Json.JsonToken.EndObject)
+            {{
+                throw new Newtonsoft.Json.JsonException($""Expected EndObject token but found: {{reader.TokenType}}"");
+            }}
+
+            return ret;
+        }}
+    
         public override void WriteJson(Newtonsoft.Json.JsonWriter writer, {Name} value, Newtonsoft.Json.JsonSerializer serializer)
         {{
-            throw new System.NotImplementedException();");
+            writer.WriteStartObject();
+            
+            switch (value.Index)
+            {{");
 
-        /*foreach (var caseData in Cases)
+        foreach (var caseData in Cases)
         {
             Builder.Append($@"
                 case {caseData.Index}:");
 
+            Builder.Append($@"
+                    writer.WritePropertyName(""{caseData.Index}"");");
+
             if (caseData.TypeInfo == null)
             {
                 Builder.AppendLine($@"
-                    writer.WriteNull(""{caseData.Index}"");");
+                    writer.WriteNull();");
             }
             else
             {
-                Builder.Append($@"
-                    writer.WritePropertyName(""{caseData.Index}"");");
-
                 Builder.AppendLine($@"
-                    System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
+                    serializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe);");
             }
 
             Builder.Append($@"
                     break;");
-        }*/
+        }
 
         Builder.Append(@"
+            }
+
+            writer.WriteEndObject();
         }
     }");
     }
