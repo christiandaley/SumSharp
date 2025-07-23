@@ -159,6 +159,8 @@ internal class SymbolHandler
 
     public bool DisableValueEquality { get; } = false;
 
+    public bool IsRecord { get; }
+
     public SymbolHandler(
         StringBuilder builder,
         INamedTypeSymbol symbol,
@@ -307,11 +309,14 @@ internal class SymbolHandler
             }
         }
 
+        IsRecord = symbol.IsRecord;
+
         DisableValueEquality =
+            IsRecord ||
             symbol!
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableValueEqualitySymbol))
-            .Any(); 
+            .Any();
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
@@ -470,8 +475,16 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
+        var declarationKind = (IsStruct, IsRecord) switch
+        {
+            (true, true) => "record struct",
+            (true, false) => "struct",
+            (false, true) => "record",
+            (false, false) => "class"
+        };
+
         Builder.AppendLine($@"
-{Accessibility} partial {(IsStruct ? "struct" : "class")} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
+{Accessibility} partial {declarationKind} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
 {{
     public int Index {{ get; }}");
 

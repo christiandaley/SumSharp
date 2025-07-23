@@ -36,6 +36,7 @@ public class Generator : IIncrementalGenerator
             {
                 ClassDeclarationSyntax c => c.Modifiers.Any(SyntaxKind.PartialKeyword),
                 StructDeclarationSyntax s => s.Modifiers.Any(SyntaxKind.PartialKeyword),
+                RecordDeclarationSyntax r => r.Modifiers.Any(SyntaxKind.PartialKeyword),
                 _ => false,
             };
         }
