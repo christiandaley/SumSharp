@@ -157,13 +157,15 @@ internal class SymbolHandler
 
     public bool AddJsonConverterAttribute { get; } = false;
 
+    public bool DisableValueEquality { get; } = false;
+
     public SymbolHandler(
         StringBuilder builder,
         INamedTypeSymbol symbol,
         INamedTypeSymbol caseAttrSymbol,
         INamedTypeSymbol enableJsonSerializationAttrSymbol,
-        INamedTypeSymbol StorageAttrSymbol,
-        INamedTypeSymbol DisableValueEquality)
+        INamedTypeSymbol storageAttrSymbol,
+        INamedTypeSymbol disableValueEqualitySymbol)
     {
         Builder = builder;
 
@@ -201,7 +203,7 @@ internal class SymbolHandler
         var storageData =
             symbol!
             .GetAttributes()
-            .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, StorageAttrSymbol))
+            .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, storageAttrSymbol))
             .SingleOrDefault();
 
         var storageStrategy = (int?)storageData?.ConstructorArguments[0].Value ?? 0;
@@ -304,6 +306,12 @@ internal class SymbolHandler
                 BoxesValueTypes = true;
             }
         }
+
+        DisableValueEquality =
+            symbol!
+            .GetAttributes()
+            .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableValueEqualitySymbol))
+            .Any(); 
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
@@ -379,19 +387,22 @@ internal class SymbolHandler
             EmitBoxType();
         }
 
-        EmitEquals();
+        if (!DisableValueEquality)
+        {
+            EmitEquals();
+        }
 
         EmitCaseConstructors();
+
+        EmitAs();
+
+        EmitIs();
 
         EmitSwitch();
 
         EmitSwitchAsync();
 
         EmitMatch();
-
-        EmitIs();
-
-        EmitAs();
 
         EmitIf();
 
@@ -460,7 +471,7 @@ internal class SymbolHandler
         }
 
         Builder.AppendLine($@"
-{Accessibility} partial {(IsStruct ? "struct" : "class")} {Name} : IEquatable<{Name}>
+{Accessibility} partial {(IsStruct ? "struct" : "class")} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
 {{
     public int Index {{ get; }}");
 
@@ -606,6 +617,64 @@ internal class SymbolHandler
             }
         }
     }
+
+    public void EmitAs()
+    {
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo == null)
+            {
+                continue;
+            }
+
+            Builder.AppendLine($@"
+    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+
+            Builder.AppendLine($@"
+    private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
+    {{
+        get
+        {{
+            System.Diagnostics.Debug.Assert(Index == {caseData.Index});");
+
+            if (caseData.StoreAsObject)
+            {
+                if (caseData.TypeInfo.IsAlwaysValueType)
+                {
+                    Builder.AppendLine($@"
+            return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
+                }
+                else if (caseData.TypeInfo.IsAlwaysRefType)
+                {
+                    Builder.AppendLine($@"
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({caseData.Access});");
+                }
+                else
+                {
+                    Builder.AppendLine($@"
+            return ({caseData.TypeInfo.Name}){caseData.Access};");
+                }
+            }
+            else
+            {
+                Builder.AppendLine($@"
+            return {caseData.Access};");
+
+            }
+            Builder.AppendLine(@"
+        }
+    }");
+        }
+    }
+    public void EmitIs()
+    {
+        foreach (var caseData in Cases)
+        {
+            Builder.AppendLine($@"
+    public bool Is{caseData.Name} => Index == {caseData.Index};");
+        }
+    }
+
     private void EmitSwitch()
     {
         Builder.Append($@"
@@ -716,65 +785,6 @@ internal class SymbolHandler
         };
     }");
     }
-
-    public void EmitIs()
-    {
-        foreach (var caseData in Cases)
-        {
-            Builder.AppendLine($@"
-    public bool Is{caseData.Name} => Index == {caseData.Index};");
-        }
-    }
-
-    public void EmitAs()
-    {
-        foreach (var caseData in Cases)
-        {
-            if (caseData.TypeInfo == null)
-            {
-                continue;
-            }
-
-            Builder.AppendLine($@"
-    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
-
-            Builder.AppendLine($@"
-    private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
-    {{
-        get
-        {{
-            System.Diagnostics.Debug.Assert(Index == {caseData.Index});");
-
-            if (caseData.StoreAsObject)
-            {
-                if (caseData.TypeInfo.IsAlwaysValueType)
-                {
-                    Builder.AppendLine($@"
-            return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
-                }
-                else if (caseData.TypeInfo.IsAlwaysRefType)
-                {
-                    Builder.AppendLine($@"
-            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({caseData.Access});");
-                }
-                else
-                {
-                    Builder.AppendLine($@"
-            return ({caseData.TypeInfo.Name}){caseData.Access};");
-                }
-            }
-            else
-            {
-                Builder.AppendLine($@"
-            return {caseData.Access};");
-
-            }
-                Builder.AppendLine(@"
-        }
-    }");
-        }
-    }
-
     private void EmitIf()
     {
         foreach (var caseData in Cases)
