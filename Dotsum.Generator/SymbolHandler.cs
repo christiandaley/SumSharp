@@ -155,7 +155,7 @@ internal class SymbolHandler
 
     public bool EnableStandardJsonSerialization { get; }
 
-    public bool UsingSourceGeneration { get; }
+    public bool AddJsonConverterAttribute { get; } = false;
 
     public SymbolHandler(
         StringBuilder builder,
@@ -289,13 +289,8 @@ internal class SymbolHandler
         {
             EnableStandardJsonSerialization = true;
 
-            UsingSourceGeneration = enableJsonSerializationData.ConstructorArguments[0].Value as bool? ?? false;
+            AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[0].Value as bool? ?? false;
         }
-
-        UsingSourceGeneration =
-            EnableStandardJsonSerialization ?
-            (bool)enableJsonSerializationData!.ConstructorArguments[0].Value! :
-            false;
 
         foreach (var caseData in Cases)
         {
@@ -371,9 +366,9 @@ internal class SymbolHandler
 
         EmitContainingTypes();
 
-        if (EnableStandardJsonSerialization && !UsingSourceGeneration)
+        if (EnableStandardJsonSerialization && AddJsonConverterAttribute)
         {
-            EmitJsonConverterAttribute();
+            EmitJsonStandardConverterAttribute();
         }
 
         EmitFieldsAndConstructor();
@@ -443,7 +438,7 @@ internal class SymbolHandler
         }
     }
 
-    private void EmitJsonConverterAttribute()
+    private void EmitJsonStandardConverterAttribute()
     {
         Builder.Append($@"
 [System.Text.Json.Serialization.JsonConverter(typeof({NameWithoutTypeArguments}.StandardJsonConverter))]");

@@ -25,7 +25,7 @@ public partial class StandardJsonSerializationWithSourceGen
     [Case("Case3", typeof(int))]
     [Case("Case4", typeof(double))]
     [Storage(StorageStrategy.InlineValueTypes)]
-    [EnableJsonSerialization(UsingSourceGeneration: true)]
+    [EnableJsonSerialization(AddJsonConverterAttribute: false)]
     [JsonConverter(typeof(StandardJsonConverter))]
     internal partial class NonGenericType
     {
@@ -43,7 +43,7 @@ public partial class StandardJsonSerializationWithSourceGen
     [Case("Case0", "T")]
     [Case("Case1", "U[]")]
     [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
-    [EnableJsonSerialization(UsingSourceGeneration: true)]
+    [EnableJsonSerialization(AddJsonConverterAttribute: false)]
     [JsonConverter(typeof(GenericType.StandardJsonConverter))]
     internal partial class GenericType<T, U, V>
     {
