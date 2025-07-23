@@ -181,6 +181,22 @@ internal class SymbolHandler
 
         Name = GetFullName(symbol);
 
+        var containingTypes = new List<INamedTypeSymbol>();
+
+        var tempSymbol = symbol.ContainingType;
+
+        while (tempSymbol != null)
+        {
+            containingTypes.Insert(0, tempSymbol);
+
+            tempSymbol = tempSymbol.ContainingType;
+        }
+
+        ContainingTypes = [.. containingTypes];
+
+        ITypeSymbol[] allGenericTypeArguments =
+            [.. symbol.TypeArguments, ..ContainingTypes.SelectMany(t => t.TypeArguments)];
+
         var storageData =
             symbol!
             .GetAttributes()
@@ -215,7 +231,7 @@ internal class SymbolHandler
                         {
                             var genericTypeName = caseType.Value!.ToString();
 
-                            foreach (var genericType in symbol.TypeArguments)
+                            foreach (var genericType in allGenericTypeArguments)
                             {
                                 if (genericType.Name == genericTypeName)
                                 {
@@ -280,19 +296,6 @@ internal class SymbolHandler
             EnableStandardJsonSerialization ?
             (bool)enableJsonSerializationData!.ConstructorArguments[0].Value! :
             false;
-
-        var containingTypes = new List<INamedTypeSymbol>();
-
-        symbol = symbol.ContainingType;
-
-        while (symbol != null)
-        {
-            containingTypes.Insert(0, symbol);
-
-            symbol = symbol.ContainingType;
-        }
-
-        ContainingTypes = [.. containingTypes];
 
         foreach (var caseData in Cases)
         {
