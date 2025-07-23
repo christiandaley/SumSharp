@@ -70,6 +70,25 @@ public partial class Storage
 
     }
 
+    public partial class Generic1<T, U> 
+        where T : struct
+        where U : class
+    {
+        public partial class Generic2<V> where V : struct
+        {
+
+            [Case("Case0", "T")]
+            [Case("Case1", "U")]
+            [Case("Case2", "V")]
+            [Storage(StorageStrategy.InlineValueTypes)]
+
+            public partial struct NestedGeneric
+            {
+
+            }
+        }
+
+    }
 
     [Fact]
     public void DefaultStorageProperties()
@@ -142,5 +161,13 @@ public partial class Storage
     {
         Assert.Equal(typeof(object), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(float), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_U", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+    }
+
+    [Fact]
+    public void NestedGenericProperties()
+    {
+        Assert.Equal(typeof(bool), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric).GetField("_T", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(double), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric).GetField("_V", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 }
