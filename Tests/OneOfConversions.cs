@@ -2,6 +2,7 @@ namespace Tests;
 
 using Dotsum;
 using OneOf;
+using System.Reflection;
 
 public partial class OneOfConversions
 {
@@ -11,6 +12,22 @@ public partial class OneOfConversions
     [Case("Case2", typeof(double))]
     [EnableOneOfConversions]
     partial class IntOrStringOrDouble
+    {
+
+    }
+
+    [Case("Case0", typeof(IEnumerable<int>))]
+    [Case("Case1", typeof(float))]
+    [EnableOneOfConversions]
+    partial class ContainsInterface
+    {
+
+    }
+
+    [Case("Case0", "T")]
+    [Case("Case1", typeof(float))]
+    [EnableOneOfConversions]
+    partial class Wrapper<T>
     {
 
     }
@@ -45,5 +62,29 @@ public partial class OneOfConversions
         Assert.Equal((OneOf<int, string, double>)"abc", (OneOf<int, string, double>)value2);
 
         Assert.Equal((OneOf<int, string, double>)9.999, (OneOf<int, string, double>)value3);
+    }
+
+    [Fact]
+    public void Interfaces()
+    {
+        OneOf<IEnumerable<int>, float> value1 = new int[] { 1, 2 };
+
+        ContainsInterface convertedValue1 = value1;
+
+        Assert.True(convertedValue1.IsCase0);
+        Assert.Equal([1, 2], convertedValue1.AsCase0);
+    }
+
+    [Fact]
+    public void Generic()
+    {
+        OneOf<IEnumerable<int>, float> value1 = new int[] { 1, 2 };
+
+        Wrapper<IEnumerable<int>> convertedValue1 = value1;
+
+        Assert.True(convertedValue1.IsCase0);
+        Assert.Equal([1, 2], convertedValue1.AsCase0);
+
+        Assert.Equal(value1, (OneOf<IEnumerable<int>, float>)convertedValue1);
     }
 }

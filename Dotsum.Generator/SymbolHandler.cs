@@ -910,6 +910,11 @@ internal class SymbolHandler
         return value.Match({string.Join(", ", Cases.Select(caseData => caseData.Name))});
     }}");
 
+        if (Cases.Any(caseData => caseData.TypeInfo!.IsInterface))
+        {
+            return;
+        }
+
         var conversionFuncs = string.Join(", ", Enumerable.Repeat($"static _ => ({oneOfName})_", Cases.Length));
 
         Builder.Append($@"
