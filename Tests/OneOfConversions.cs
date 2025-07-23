@@ -9,6 +9,7 @@ public partial class OneOfConversions
     [Case("Case0", typeof(int))]
     [Case("Case1", typeof(string))]
     [Case("Case2", typeof(double))]
+    [EnableOneOfConversions]
     partial class IntOrStringOrDouble
     {
 
@@ -23,16 +24,26 @@ public partial class OneOfConversions
 
         OneOf<int, string, double> value3 = 9.999;
 
-        IntOrStringOrDouble convertedValue1 = value1;
+        Assert.Equal(IntOrStringOrDouble.Case0(5), (IntOrStringOrDouble)value1);
 
-        IntOrStringOrDouble convertedValue2 = value2;
+        Assert.Equal(IntOrStringOrDouble.Case1("abc"),(IntOrStringOrDouble)value2);
 
-        IntOrStringOrDouble convertedValue3 = value3;
+        Assert.Equal(IntOrStringOrDouble.Case2(9.999), (IntOrStringOrDouble)value3);
+    }
 
-        Assert.Equal(IntOrStringOrDouble.Case0(5), convertedValue1);
+    [Fact]
+    public void ToOneOf()
+    {
+        IntOrStringOrDouble value1 = 5;
 
-        Assert.Equal(IntOrStringOrDouble.Case1("abc"), convertedValue2);
+        IntOrStringOrDouble value2 = "abc";
 
-        Assert.Equal(IntOrStringOrDouble.Case2(9.999), convertedValue3);
+        IntOrStringOrDouble value3 = 9.999;
+
+        Assert.Equal((OneOf<int, string, double>)5, (OneOf<int, string, double>)value1);
+
+        Assert.Equal((OneOf<int, string, double>)"abc", (OneOf<int, string, double>)value2);
+
+        Assert.Equal((OneOf<int, string, double>)9.999, (OneOf<int, string, double>)value3);
     }
 }

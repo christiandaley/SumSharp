@@ -30,6 +30,13 @@ public partial class Conversions
 
     }
 
+    [Case("Case0", "T")]
+    [Case("Case1")]
+    partial class Wrapper<T>
+    {
+
+    }
+
     [Fact]
     public void DoubleOrNoneConversion()
     {
@@ -56,5 +63,16 @@ public partial class Conversions
     {
         var x1 = (IntOrIntEnumerable)5;
         Assert.Equal(IntOrIntEnumerable.Case0(5), x1);
+    }
+
+    [Fact]
+    public void InterfaceGenericArgumentConversion()
+    {
+        var d = new List<double> { 1.0, 2.0 };
+
+        Wrapper<IEnumerable<double>> converted = d;
+
+        Assert.True(converted.IsCase0);
+        Assert.Equal([1.0, 2.0], converted.AsCase0);
     }
 }

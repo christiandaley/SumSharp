@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using static Dotsum.Generator.SymbolHandler;
 
 namespace Dotsum.Generator;
 
@@ -164,13 +165,16 @@ internal class SymbolHandler
 
     public bool IsRecord { get; }
 
+    public bool EnableOneOfConversions { get; }
+
     public SymbolHandler(
         StringBuilder builder,
         INamedTypeSymbol symbol,
         INamedTypeSymbol caseAttrSymbol,
         INamedTypeSymbol enableJsonSerializationAttrSymbol,
         INamedTypeSymbol storageAttrSymbol,
-        INamedTypeSymbol disableValueEqualitySymbol)
+        INamedTypeSymbol disableValueEqualitySymbol,
+        INamedTypeSymbol enableOneOfConversionsSymbol)
     {
         Builder = builder;
 
@@ -270,9 +274,10 @@ internal class SymbolHandler
             Cases
             .Where(caseData => caseData.TypeInfo != null)
             .Select(caseData => caseData.TypeInfo!.Name)
-            .Distinct();
+            .Distinct()
+            .ToArray();
 
-        if (distinctTypes.Count() == 1)
+        if (distinctTypes.Length == 1)
         {
             Cases = [.. Cases.Select(caseData => caseData with { StoreAsObject = false })];
         }
@@ -327,6 +332,15 @@ internal class SymbolHandler
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableValueEqualitySymbol))
             .Any();
+
+        if (distinctTypes.Length == Cases.Length)
+        {
+            EnableOneOfConversions =
+                symbol!
+                .GetAttributes()
+                .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableOneOfConversionsSymbol))
+                .Any();
+        }
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
@@ -431,6 +445,11 @@ internal class SymbolHandler
         EmitIfAsync();
 
         EmitImplicitConversions();
+
+        if (EnableOneOfConversions)
+        {
+            EmitOneOfConversions();
+        }
 
         EmitToString();
 
@@ -879,6 +898,25 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     public static implicit operator {Name}({caseData.TypeInfo!.Name} value) => {caseData.Name}(value);");
         }
+    }
+
+    private void EmitOneOfConversions()
+    {
+        var oneOfName = $"global::OneOf.OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo!.Name))}>";
+
+        Builder.AppendLine($@"
+    public static implicit operator {Name}({oneOfName} value)
+    {{
+        return value.Match({string.Join(", ", Cases.Select(caseData => caseData.Name))});
+    }}");
+
+        var conversionFuncs = string.Join(", ", Enumerable.Repeat($"static _ => ({oneOfName})_", Cases.Length));
+
+        Builder.Append($@"
+    public static implicit operator {oneOfName}({Name} value)
+    {{
+        return value.Match({conversionFuncs});
+    }}");
     }
 
     private void EmitToString()

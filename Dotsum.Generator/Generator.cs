@@ -52,6 +52,8 @@ public class Generator : IIncrementalGenerator
 
         var disableValueEqualitySymbol = compilation.GetTypeByMetadataName("Dotsum.DisableValueEqualityAttribute")!;
 
+        var enableOneOfConversionsSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableOneOfConversionsAttribute")!;
+
         var builder = new StringBuilder();
 
         foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
@@ -68,7 +70,8 @@ public class Generator : IIncrementalGenerator
                                                 caseAttrSymbol, 
                                                 enableJsonSymbol,
                                                 storageSymbol,
-                                                disableValueEqualitySymbol);
+                                                disableValueEqualitySymbol,
+                                                enableOneOfConversionsSymbol);
 
             symbolHandler.Emit();
 
