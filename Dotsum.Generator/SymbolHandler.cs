@@ -155,6 +155,8 @@ internal class SymbolHandler
 
     public bool EnableStandardJsonSerialization { get; }
 
+    public bool EnableNewtonsoftJsonSerialization { get; }
+
     public bool AddJsonConverterAttribute { get; } = false;
 
     public bool DisableValueEquality { get; } = false;
@@ -288,13 +290,13 @@ internal class SymbolHandler
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableJsonSerializationAttrSymbol))
             .SingleOrDefault();
 
-        EnableStandardJsonSerialization = enableJsonSerializationData != null;
-
         if (enableJsonSerializationData != null)
         {
             var support = enableJsonSerializationData.ConstructorArguments[0].Value as int? ?? 0;
 
             EnableStandardJsonSerialization = (support & 1) != 0;
+
+            EnableNewtonsoftJsonSerialization = (support & 2) != 0;
 
             AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false;
 
@@ -387,9 +389,16 @@ internal class SymbolHandler
 
         EmitContainingTypes();
 
-        if (EnableStandardJsonSerialization && AddJsonConverterAttribute)
+        if (AddJsonConverterAttribute)
         {
-            EmitJsonStandardConverterAttribute();
+            if (EnableStandardJsonSerialization)
+            {
+                EmitStandardJsonConverterAttribute();
+            }
+            if (EnableNewtonsoftJsonSerialization)
+            {
+                EmitNewtonsoftJsonConverterAttribute();
+            }
         }
 
         EmitFieldsAndConstructor();
@@ -426,14 +435,25 @@ internal class SymbolHandler
         {
             EmitStandardJsonConverter();
         }
+        if (EnableNewtonsoftJsonSerialization)
+        {
+            EmitNewtonsoftJsonConverter();
+        }
 
         EmitEndClassDeclaration();
 
-        if (EnableStandardJsonSerialization && IsGenericType)
+        if ((EnableStandardJsonSerialization || EnableNewtonsoftJsonSerialization) && IsGenericType)
         {
             EmitStaticClass();
 
-            EmitStandardJsonConverterFactory();
+            if (EnableStandardJsonSerialization)
+            {
+                EmitStandardJsonConverterFactory();
+            }
+            if (EnableNewtonsoftJsonSerialization)
+            {
+                EmitGenericNewtonsoftJsonConverter();
+            }
 
             EmitEndStaticClass();
         }
@@ -462,10 +482,16 @@ internal class SymbolHandler
         }
     }
 
-    private void EmitJsonStandardConverterAttribute()
+    private void EmitStandardJsonConverterAttribute()
     {
         Builder.Append($@"
 [System.Text.Json.Serialization.JsonConverter(typeof({NameWithoutTypeArguments}.StandardJsonConverter))]");
+    }
+
+    private void EmitNewtonsoftJsonConverterAttribute()
+    {
+        Builder.Append($@"
+[Newtonsoft.Json.JsonConverter(typeof({NameWithoutTypeArguments}.NewtonsoftJsonConverter))]");
     }
 
     private void EmitFieldsAndConstructor()
@@ -947,6 +973,64 @@ internal class SymbolHandler
         }
     }");
     }
+
+    private void EmitNewtonsoftJsonConverter()
+    {
+        Builder.Append($@"
+    public partial class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter<{Name}>
+    {{
+        public override {Name} ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, {Name} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+        {{
+            throw new System.NotImplementedException();");
+
+        /*foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo == null)
+            {
+                Builder.Append($@"
+                {caseData.Index} => {Name}.{caseData.Name},");
+            }
+            else
+            {
+                Builder.Append($@"
+                {caseData.Index} => {Name}.{caseData.Name}(System.Text.Json.JsonSerializer.Deserialize<{caseData.TypeInfo.Name}>(ref reader, options)),");
+            }
+        }*/
+
+        Builder.Append($@"
+        }}
+
+        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, {Name} value, Newtonsoft.Json.JsonSerializer serializer)
+        {{
+            throw new System.NotImplementedException();");
+
+        /*foreach (var caseData in Cases)
+        {
+            Builder.Append($@"
+                case {caseData.Index}:");
+
+            if (caseData.TypeInfo == null)
+            {
+                Builder.AppendLine($@"
+                    writer.WriteNull(""{caseData.Index}"");");
+            }
+            else
+            {
+                Builder.Append($@"
+                    writer.WritePropertyName(""{caseData.Index}"");");
+
+                Builder.AppendLine($@"
+                    System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
+            }
+
+            Builder.Append($@"
+                    break;");
+        }*/
+
+        Builder.Append(@"
+        }
+    }");
+    }
     private void EmitEndClassDeclaration()
     {
         Builder.AppendLine("}");
@@ -979,6 +1063,29 @@ internal class SymbolHandler
             return (System.Text.Json.Serialization.JsonConverter)System.Activator.CreateInstance(converterType);
         }}
     }}");
+    }
+
+    private void EmitGenericNewtonsoftJsonConverter()
+    {
+        Builder.AppendLine($@"
+public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
+{{
+    public override bool CanConvert(Type objectType)
+    {{
+        throw new System.NotImplementedException();
+    }}
+
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+    {{
+        throw new System.NotImplementedException();
+    }}
+
+    public override object? ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    {{
+        throw new System.NotImplementedException();
+    }}
+}}
+");
     }
 
     private void EmitEndStaticClass()
