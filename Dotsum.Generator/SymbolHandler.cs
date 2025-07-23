@@ -614,7 +614,7 @@ internal class SymbolHandler
             if (caseData.TypeInfo == null)
             {
                 Builder.Append($@"
-            {caseData.Index} => Index.GetHashCode(),");
+            {caseData.Index} => Index,");
             }
             else
             {
