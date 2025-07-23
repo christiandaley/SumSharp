@@ -80,9 +80,10 @@ public partial class Storage
             [Case("Case0", "T")]
             [Case("Case1", "U")]
             [Case("Case2", "V")]
+            [Case("Case3", "W")]
             [Storage(StorageStrategy.InlineValueTypes)]
 
-            public partial struct NestedGeneric
+            public partial struct NestedGeneric<W> where W : class
             {
 
             }
@@ -166,8 +167,9 @@ public partial class Storage
     [Fact]
     public void NestedGenericProperties()
     {
-        Assert.Equal(typeof(bool), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric).GetField("_T", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(object), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(double), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric).GetField("_V", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(bool), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_T", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(double), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_V", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Null(typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_W", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 }
