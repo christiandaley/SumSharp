@@ -295,6 +295,11 @@ internal class SymbolHandler
             EnableStandardJsonSerialization = true;
 
             AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[0].Value as bool? ?? false;
+
+            if (allGenericTypeArguments.Length > symbol.TypeArguments.Length)
+            {
+                AddJsonConverterAttribute = false;
+            }
         }
 
         foreach (var caseData in Cases)
