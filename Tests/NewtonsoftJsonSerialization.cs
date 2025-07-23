@@ -25,9 +25,21 @@ public partial class NewtonsoftJsonSerialization
     [Case("Case1", "U[]")]
     [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
     [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
-    partial class GenericType<T, U, V>
+    partial struct GenericType<T, U, V>
     {
 
+    }
+
+    [Case("Case0", "T")]
+    [Case("Case1", "InnerStruct<T>")]
+    [Case("Case2", "(StandardAndNewtonsoft<U, T>, StandardAndNewtonsoft<T, U>)")]
+    [EnableJsonSerialization(JsonSerializationSupport.Standard | JsonSerializationSupport.Newtonsoft)]
+    partial class StandardAndNewtonsoft<T, U>
+    {
+        public struct InnerStruct<TValue>
+        {
+            public TValue Value { get; init; }
+        }
     }
 
     [Fact]
@@ -222,5 +234,51 @@ public partial class NewtonsoftJsonSerialization
             Assert.Single(dict2);
             Assert.Equal(5, dict2[4]);
         });
+    }
+
+    [Fact]
+    public void NewtonsoftToStandard()
+    {
+        var left = StandardAndNewtonsoft<double, string>.Case0(8.9);
+
+        var right = StandardAndNewtonsoft<string, double>.Case1(
+            new()
+            {
+                Value = "abc",
+            });
+
+        var value = StandardAndNewtonsoft<string, double>.Case2((left, right));
+
+        var json = JsonConvert.SerializeObject(value);
+
+        // IncludeFields is needed for it to work on tuple types
+        var options = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+
+        var deserializedValue = System.Text.Json.JsonSerializer.Deserialize(json, value.GetType(), options);
+
+        Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void StandardToNewtonsoft()
+    {
+        var left = StandardAndNewtonsoft<double, string>.Case0(8.9);
+
+        var right = StandardAndNewtonsoft<string, double>.Case1(
+            new()
+            {
+                Value = "abc",
+            });
+
+        var value = StandardAndNewtonsoft<string, double>.Case2((left, right));
+
+        // IncludeFields is needed for it to work on tuple types
+        var options = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(value, options);
+
+        var deserializedValue = JsonConvert.DeserializeObject(json, value.GetType());
+
+        Assert.Equal(value, deserializedValue);
     }
 }

@@ -432,6 +432,8 @@ internal class SymbolHandler
 
         EmitImplicitConversions();
 
+        EmitToString();
+
         if (EnableStandardJsonSerialization)
         {
             EmitStandardJsonConverter();
@@ -879,6 +881,36 @@ internal class SymbolHandler
         }
     }
 
+    private void EmitToString()
+    {
+        Builder.Append($@"
+    public override string ToString()
+    {{
+        var valueString = Index switch
+        {{");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo == null)
+            {
+                Builder.Append($@"
+            {caseData.Index} => ""(empty)"",");
+            }
+            else
+            {
+                Builder.Append($@"
+            {caseData.Index} => As{caseData.Name}Unsafe.ToString(),");
+            }
+        }
+
+        Builder.AppendLine(@"
+        };
+
+        return $""{{ Index = {Index}, Value = {valueString} }}"";
+    }
+");
+    }
+
     private void EmitStandardJsonConverter()
     {
         Builder.Append($@"
@@ -1106,22 +1138,34 @@ internal class SymbolHandler
 
     private void EmitGenericNewtonsoftJsonConverter()
     {
+        var genericTypeDefinition = $"{NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>";
+
         Builder.AppendLine($@"
 public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 {{
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
+
+    private static Newtonsoft.Json.JsonConverter GetConverter(Type objectType)
+    {{
+        var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
+
+        return _converters.GetOrAdd(converterType, static converterType => (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType));
+    }}
+
     public override bool CanConvert(Type objectType)
     {{
-        throw new System.NotImplementedException();
+        return objectType.IsGenericType &&
+               objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
     }}
 
     public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
     {{
-        throw new System.NotImplementedException();
+        GetConverter(value.GetType()).WriteJson(writer, value, serializer);
     }}
 
-    public override object? ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    public override object ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
     {{
-        throw new System.NotImplementedException();
+        return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
     }}
 }}
 ");
