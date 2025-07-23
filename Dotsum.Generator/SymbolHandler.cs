@@ -292,7 +292,9 @@ internal class SymbolHandler
 
         if (enableJsonSerializationData != null)
         {
-            EnableStandardJsonSerialization = true;
+            var support = enableJsonSerializationData.ConstructorArguments[0].Value as int? ?? 0;
+
+            EnableStandardJsonSerialization = (support & 1) != 0;
 
             AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false;
 
