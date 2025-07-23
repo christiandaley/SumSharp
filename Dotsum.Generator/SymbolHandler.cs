@@ -287,7 +287,7 @@ internal class SymbolHandler
 
         while (symbol != null)
         {
-            containingTypes.Add(symbol);
+            containingTypes.Insert(0, symbol);
 
             symbol = symbol.ContainingType;
         }
