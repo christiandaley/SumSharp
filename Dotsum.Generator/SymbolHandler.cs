@@ -294,7 +294,7 @@ internal class SymbolHandler
         {
             EnableStandardJsonSerialization = true;
 
-            AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[0].Value as bool? ?? false;
+            AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false;
 
             if (allGenericTypeArguments.Length > symbol.TypeArguments.Length)
             {
