@@ -105,14 +105,29 @@ internal class SymbolHandler
 
     public record CaseData(int Index, string Name, TypeInfo? TypeInfo, bool StoreAsObject)
     {
-        public const string PrimitiveStorageTypePlaceholder = "__PRIMITIVE_STORAGE_FIELD__";
+        public bool UsePrimitiveStorage => !StoreAsObject && (TypeInfo != null && TypeInfo.IsPrimitiveType);
 
-        public string? FieldType => 
+        public string? FieldName =>
             TypeInfo == null ? null :
+            UsePrimitiveStorage ? PrimitiveStorageFieldName :
+            StoreAsObject ? "_object" :
+            $"_{TypeInfo.Name.Replace('.', '_')}";
+
+        public string? FieldType =>
+            TypeInfo == null ? null :
+            UsePrimitiveStorage ? PrimitiveStorageTypeName :
             StoreAsObject ? "object" :
-            TypeInfo.IsPrimitiveType ?
-            PrimitiveStorageTypePlaceholder : TypeInfo.Name;
+            TypeInfo.Name;
+
+        public string? Access =>
+            TypeInfo == null ? null :
+            UsePrimitiveStorage ? $"{PrimitiveStorageFieldName}._{TypeInfo.Name}" :
+            FieldName;
     }
+
+    public const string PrimitiveStorageTypeName = "global::Dotsum.Internal.PrimitiveStorage";
+
+    public const string PrimitiveStorageFieldName = "_primitiveStorage";
 
     public StringBuilder Builder { get; }
 
@@ -135,8 +150,6 @@ internal class SymbolHandler
     public CaseData[] UniqueCases { get; }
 
     public INamedTypeSymbol[] ContainingTypes;
-
-    public Dictionary<string, string> TypeToFieldNameMap { get; } = [];
 
     public bool BoxesValueTypes { get; } = false;
 
@@ -229,6 +242,17 @@ internal class SymbolHandler
             })
             .ToArray();
 
+        var distinctTypes =
+            Cases
+            .Where(caseData => caseData.TypeInfo != null)
+            .Select(caseData => caseData.TypeInfo!.Name)
+            .Distinct();
+
+        if (distinctTypes.Count() == 1)
+        {
+            Cases = [.. Cases.Select(caseData => caseData with { StoreAsObject = false })];
+        }
+
         UniqueCases =
             Cases
             .Where(caseData => caseData.TypeInfo is not null)
@@ -280,13 +304,6 @@ internal class SymbolHandler
             {
                 BoxesValueTypes = true;
             }
-
-            if (TypeToFieldNameMap.ContainsKey(caseData.FieldType!))
-            {
-                continue;
-            }
-
-            TypeToFieldNameMap[caseData.FieldType!] = $"_value{TypeToFieldNameMap.Count}";
         }
     }
 
@@ -403,19 +420,6 @@ internal class SymbolHandler
 
         EmitEndNamespace();
 
-        var primitiveStorageSize = Cases.Max(caseData => caseData.TypeInfo == null ? -1 : caseData.TypeInfo.PrimitiveTypeSize);
-
-        var primitiveStorageType = primitiveStorageSize switch
-        {
-            1 => "byte",
-            2 => "ushort",
-            4 => "uint",
-            8 => "ulong",
-            _ => ""
-        };
-
-        Builder.Replace(CaseData.PrimitiveStorageTypePlaceholder, primitiveStorageType);
-
         return Builder.ToString();
     }
 
@@ -444,15 +448,27 @@ internal class SymbolHandler
 
     private void EmitFieldsAndConstructor()
     {
+        Dictionary<string, string> fieldNameTypeMap = [];
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo == null)
+            {
+                continue;
+            }
+
+            fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
+        }
+
         Builder.AppendLine($@"
 {Accessibility} partial {(IsStruct ? "struct" : "class")} {Name} : IEquatable<{Name}>
 {{
     public int Index {{ get; }}");
 
-        foreach (var typeToField in TypeToFieldNameMap)
+        foreach (var field in fieldNameTypeMap)
         {
             Builder.Append($@"
-    private {typeToField.Key} {typeToField.Value} = default;");
+    private {field.Key} {field.Value} = default;");
         }
 
         Builder.AppendLine($@" 
@@ -568,16 +584,11 @@ internal class SymbolHandler
             else if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
             {
                 Builder.AppendLine($@"
-    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = new Box<{caseData.TypeInfo.Name}> {{ Value = value }} }};");
-            }
-            else if (caseData.TypeInfo.IsPrimitiveType)
-            {
-                Builder.AppendLine($@"
     public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
     {{
         var ret = new {Name}({caseData.Index});
-
-        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{TypeToFieldNameMap[caseData.FieldType!]}) = value;
+        
+        ret.{caseData.Access} = new Box<{caseData.TypeInfo.Name}>() {{ Value = value }};
 
         return ret;
     }}");
@@ -585,7 +596,14 @@ internal class SymbolHandler
             else
             {
                 Builder.AppendLine($@"
-    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value) => new({caseData.Index}) {{ {TypeToFieldNameMap[caseData.FieldType!]} = value }};");
+    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
+    {{
+        var ret = new {Name}({caseData.Index});
+        
+        ret.{caseData.Access} = value;
+
+        return ret;
+    }}");
             }
         }
     }
@@ -721,8 +739,6 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
-            var fieldName = TypeToFieldNameMap[caseData.FieldType!];
-
             Builder.AppendLine($@"
     private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
     {{
@@ -732,35 +748,29 @@ internal class SymbolHandler
 
             if (caseData.StoreAsObject)
             {
-                if (caseData.TypeInfo.IsAlwaysRefType)
+                if (caseData.TypeInfo.IsAlwaysValueType)
                 {
-                    Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({fieldName});");
+                    Builder.AppendLine($@"
+            return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
                 }
-                else if (caseData.TypeInfo.IsAlwaysValueType)
+                else if (caseData.TypeInfo.IsAlwaysRefType)
                 {
-                    Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({fieldName}).Value;");
+                    Builder.AppendLine($@"
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({caseData.Access});");
                 }
                 else
                 {
-                    Builder.Append($@"
-            return ({caseData.TypeInfo.Name}){fieldName};");
+                    Builder.AppendLine($@"
+            return ({caseData.TypeInfo.Name}){caseData.Access};");
                 }
-            }
-            else if (caseData.TypeInfo.IsPrimitiveType)
-            {
-                Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {fieldName});");
             }
             else
             {
-                Builder.Append($@"
-            return {fieldName};");
+                Builder.AppendLine($@"
+            return {caseData.Access};");
+
             }
-
-
-            Builder.AppendLine(@"
+                Builder.AppendLine(@"
         }
     }");
         }

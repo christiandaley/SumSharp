@@ -14,8 +14,8 @@ public partial class Storage
 
     }
 
-    [Case("Case0", typeof(string[]))]
-    [Case("Case1", typeof(string[]))]
+    [Case("Case0", typeof(double))]
+    [Case("Case1", typeof(double))]
     partial class SingleUniqueType
     {
 
@@ -39,7 +39,7 @@ public partial class Storage
     [Case("Case3", typeof(string))]
     [Case("Case4", typeof(int[]))]
     [Case("Case5", typeof(int))]
-    [Case("Case6", typeof(float))]
+    [Case("Case6", typeof(Single))]
     [Case("Case7", typeof(long))]
     [Case("Case8", typeof(double))]
     [Case("Case9", typeof(long))]
@@ -74,33 +74,29 @@ public partial class Storage
     [Fact]
     public void DefaultStorageProperties()
     {
-        Assert.Equal(typeof(object), typeof(DefaultStorage).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Null(typeof(DefaultStorage).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(DefaultStorage).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
     public void SingleUniqueTypeProperties()
     {
-        Assert.Equal(typeof(string[]), typeof(SingleUniqueType).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Null(typeof(SingleUniqueType).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(SingleUniqueType).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
     public void VariousStorageModesProperties()
     {
-        Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(uint), typeof(VariousStorageModes).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Null(typeof(VariousStorageModes).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_string", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(Dotsum.Internal.PrimitiveStorage), typeof(VariousStorageModes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
     public void InlineValueTypesProperties()
     {
-        Assert.Equal(typeof(ulong), typeof(InlineValueTypes).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(object), typeof(InlineValueTypes).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(InlineValueTypes.InnerStruct), typeof(InlineValueTypes).GetField("_value2", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Null(typeof(InlineValueTypes).GetField("_value3", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(InlineValueTypes.InnerStruct), typeof(InlineValueTypes).GetField("_Tests_Storage_InlineValueTypes_InnerStruct", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(InlineValueTypes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(Dotsum.Internal.PrimitiveStorage), typeof(InlineValueTypes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
@@ -144,7 +140,7 @@ public partial class Storage
     [Fact]
     public void InlineValueTypesGenericProperties()
     {
-        Assert.Equal(typeof(object), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_value0", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(float), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_value1", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(float), typeof(InlineValueTypesGeneric<double, float, int>).GetField("_U", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 }
