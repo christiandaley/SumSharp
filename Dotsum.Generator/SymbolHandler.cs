@@ -162,7 +162,8 @@ internal class SymbolHandler
         INamedTypeSymbol symbol,
         INamedTypeSymbol caseAttrSymbol,
         INamedTypeSymbol enableJsonSerializationAttrSymbol,
-        INamedTypeSymbol StorageAttrSymbol)
+        INamedTypeSymbol StorageAttrSymbol,
+        INamedTypeSymbol DisableValueEquality)
     {
         Builder = builder;
 

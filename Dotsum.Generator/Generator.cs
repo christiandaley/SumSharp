@@ -49,6 +49,8 @@ public class Generator : IIncrementalGenerator
 
         var storageSymbol = compilation.GetTypeByMetadataName("Dotsum.StorageAttribute")!;
 
+        var disableValueEqualitySymbol = compilation.GetTypeByMetadataName("Dotsum.DisableValueEqualityAttribute")!;
+
         var builder = new StringBuilder();
 
         foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
@@ -64,7 +66,8 @@ public class Generator : IIncrementalGenerator
                                                 (INamedTypeSymbol)symbol, 
                                                 caseAttrSymbol, 
                                                 enableJsonSymbol,
-                                                storageSymbol);
+                                                storageSymbol,
+                                                disableValueEqualitySymbol);
 
             symbolHandler.Emit();
 

@@ -3,7 +3,7 @@
 namespace Dotsum;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-public class DisableValueEquality : Attribute
+public class EnableJsonSerializationAttribute(bool AddJsonConverterAttribute = true) : Attribute
 {
     
 }
