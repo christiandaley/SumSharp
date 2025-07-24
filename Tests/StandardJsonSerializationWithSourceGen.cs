@@ -49,6 +49,9 @@ public partial class StandardJsonSerializationWithSourceGen
     [EnableJsonSerialization(AddJsonConverterAttribute: false)]
     [JsonConverter(typeof(GenericType.StandardJsonConverter))]
     internal partial class GenericType<T, U, V>
+        where T : notnull
+        where U : notnull
+        where V : notnull
     {
 
     }

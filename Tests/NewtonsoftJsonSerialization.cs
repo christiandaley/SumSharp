@@ -26,6 +26,9 @@ public partial class NewtonsoftJsonSerialization
     [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
     [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
     partial struct GenericType<T, U, V>
+        where T : notnull
+        where U : notnull
+        where V : notnull
     {
 
     }

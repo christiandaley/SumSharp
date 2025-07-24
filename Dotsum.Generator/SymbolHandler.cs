@@ -146,6 +146,12 @@ internal class SymbolHandler
 
     public bool IsStruct { get; }
 
+    public bool NullableEnabled { get; } = true;
+
+    public string Nullable => NullableEnabled ? "?" : "";
+
+    public string NullableIfRef => NullableEnabled && !IsStruct ? "?" : "";
+
     public string Accessibility { get; }
 
     public bool IsGenericType => TypeArguments.Length > 0;
@@ -406,6 +412,11 @@ internal class SymbolHandler
 
         Builder.AppendLine("#pragma warning disable CS8509");
 
+        if (NullableEnabled)
+        {
+            Builder.AppendLine("#nullable enable");
+        }
+
         Builder.AppendLine("using System.Threading.Tasks;");
 
         if (Namespace != null)
@@ -580,34 +591,34 @@ internal class SymbolHandler
 
     public void EmitBoxType()
     {
-        Builder.AppendLine(@"
+        Builder.AppendLine($@"
     class Box<TBoxed_> : IEquatable<Box<TBoxed_>> where TBoxed_ : struct
-    {
+    {{
         public TBoxed_ Value;
 
-        public bool Equals(Box<TBoxed_> other)
-        {
+        public bool Equals(Box<TBoxed_>{Nullable} other)
+        {{
             if (ReferenceEquals(null, other)) return false;
             
             return Equals(Value, other.Value);
-        }
+        }}
 
-        public override bool Equals(object obj)
-        {
+        public override bool Equals(object{Nullable} obj)
+        {{
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
 
             return Equals(System.Runtime.CompilerServices.Unsafe.As<Box<TBoxed_>>(obj));
-        }
+        }}
 
         public override int GetHashCode() => Value.GetHashCode();
-    }");
+    }}");
     }
     public void EmitEquals()
     { 
         Builder.Append($@"
-    public bool Equals({Name} other)
+    public bool Equals({Name}{NullableIfRef} other)
     {{
         {(IsStruct ? "" : "if (ReferenceEquals(null, other)) return false;")}
         if (Index != other.Index) return false;
@@ -633,7 +644,7 @@ internal class SymbolHandler
         }};
     }}
 
-    public override bool Equals(object obj)
+    public override bool Equals(object{Nullable} obj)
     {{
         if (ReferenceEquals(null, obj)) return false;
         {(IsStruct ? "" : "if (ReferenceEquals(this, obj)) return true;")}
@@ -715,9 +726,6 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
-    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
-
-            Builder.AppendLine($@"
     private {caseData.TypeInfo.Name} As{caseData.Name}Unsafe
     {{
         get
@@ -751,6 +759,22 @@ internal class SymbolHandler
             Builder.AppendLine(@"
         }
     }");
+
+            Builder.AppendLine($@"
+    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+
+            Builder.AppendLine($@"
+    public {caseData.TypeInfo.Name}{(NullableEnabled && !caseData.TypeInfo.IsAlwaysValueType ? "?" : "")} As{caseData.Name}OrDefault => Index == {caseData.Index} ? As{caseData.Name}Unsafe : default;");
+
+            Builder.AppendLine($@"
+    public {caseData.TypeInfo.Name} As{caseData.Name}Or({caseData.TypeInfo.Name} defaultValue) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValue;");
+
+            Builder.AppendLine($@"
+    public {caseData.TypeInfo.Name} As{caseData.Name}Or(Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
+
+            Builder.AppendLine($@"
+    public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
+
         }
     }
     public void EmitIs()
@@ -975,7 +999,7 @@ internal class SymbolHandler
         Builder.Append($@"
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
-        public override {Name} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        public override {Name}{NullableIfRef} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
             if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
             {{
@@ -1028,7 +1052,7 @@ internal class SymbolHandler
             return ret;
         }}
 
-        public override void Write(System.Text.Json.Utf8JsonWriter writer, {Name} value, System.Text.Json.JsonSerializerOptions options)
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, {Name}{NullableIfRef} value, System.Text.Json.JsonSerializerOptions options)
         {{
             writer.WriteStartObject();
 
@@ -1071,7 +1095,7 @@ internal class SymbolHandler
         Builder.Append($@"
     public partial class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter<{Name}>
     {{
-        public override {Name} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, {Name} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+        public override {Name}{NullableIfRef} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, {Name}{NullableIfRef} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
         {{
             if (reader.TokenType == Newtonsoft.Json.JsonToken.Null)
             {{
@@ -1124,7 +1148,7 @@ internal class SymbolHandler
             return ret;
         }}
     
-        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, {Name} value, Newtonsoft.Json.JsonSerializer serializer)
+        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, {Name}{NullableIfRef} value, Newtonsoft.Json.JsonSerializer serializer)
         {{
             writer.WriteStartObject();
             
@@ -1220,12 +1244,12 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
                objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
     }}
 
-    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object{Nullable} value, Newtonsoft.Json.JsonSerializer serializer)
     {{
         GetConverter(value.GetType()).WriteJson(writer, value, serializer);
     }}
 
-    public override object ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    public override object{Nullable} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object{Nullable} existingValue, Newtonsoft.Json.JsonSerializer serializer)
     {{
         return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
     }}

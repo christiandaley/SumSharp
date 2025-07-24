@@ -26,7 +26,10 @@ public partial class StandardJsonSerialization
     [Case("Case1", "U[]")]
     [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
     [EnableJsonSerialization]
-    partial class GenericType<T, U, V>
+    partial class GenericType<T, U, V> 
+        where T : notnull
+        where U : notnull
+        where V : notnull
     {
 
     }
