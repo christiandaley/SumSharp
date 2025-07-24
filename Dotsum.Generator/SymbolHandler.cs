@@ -333,14 +333,12 @@ internal class SymbolHandler
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableValueEqualitySymbol))
             .Any();
 
-        if (distinctTypes.Length == Cases.Length)
-        {
-            EnableOneOfConversions =
-                symbol!
-                .GetAttributes()
-                .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableOneOfConversionsSymbol))
-                .Any();
-        }
+
+        EnableOneOfConversions =
+            symbol!
+            .GetAttributes()
+            .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableOneOfConversionsSymbol))
+            .Any();
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
@@ -902,25 +900,22 @@ internal class SymbolHandler
 
     private void EmitOneOfConversions()
     {
-        var oneOfName = $"global::OneOf.OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo!.Name))}>";
+        var oneOfName = $"global::OneOf.OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? "global::OneOf.Types.None"))}>";
+
+        var conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static _ => {caseData.Name}" : caseData.Name);
 
         Builder.AppendLine($@"
     public static implicit operator {Name}({oneOfName} value)
     {{
-        return value.Match({string.Join(", ", Cases.Select(caseData => caseData.Name))});
+        return value.Match({string.Join(", ", conversionFuncs)});
     }}");
 
-        if (Cases.Any(caseData => caseData.TypeInfo!.IsInterface))
-        {
-            return;
-        }
-
-        var conversionFuncs = string.Join(", ", Enumerable.Repeat($"static _ => ({oneOfName})_", Cases.Length));
+        conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static () => {oneOfName}.FromT{caseData.Index}(new global::OneOf.Types.None())" : $"static _ => {oneOfName}.FromT{caseData.Index}(_)");
 
         Builder.Append($@"
     public static implicit operator {oneOfName}({Name} value)
     {{
-        return value.Match({conversionFuncs});
+        return value.Match({string.Join(", ", conversionFuncs)});
     }}");
     }
 

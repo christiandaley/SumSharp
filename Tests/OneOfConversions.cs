@@ -1,8 +1,9 @@
 namespace Tests;
 
 using Dotsum;
+using Newtonsoft.Json.Linq;
 using OneOf;
-using System.Reflection;
+using OneOf.Types;
 
 public partial class OneOfConversions
 {
@@ -28,6 +29,17 @@ public partial class OneOfConversions
     [Case("Case1", typeof(float))]
     [EnableOneOfConversions]
     partial class Wrapper<T>
+    {
+
+    }
+
+    [Case("Case0", typeof(int))]
+    [Case("Case1", typeof(string))]
+    [Case("Case2")]
+    [Case("Case3", typeof(double))]
+    [Case("Case4")]
+    [EnableOneOfConversions]
+    partial class HasEmptyCases
     {
 
     }
@@ -73,6 +85,8 @@ public partial class OneOfConversions
 
         Assert.True(convertedValue1.IsCase0);
         Assert.Equal([1, 2], convertedValue1.AsCase0);
+
+        Assert.Equal(value1, (OneOf<IEnumerable<int>, float>)convertedValue1);
     }
 
     [Fact]
@@ -86,5 +100,24 @@ public partial class OneOfConversions
         Assert.Equal([1, 2], convertedValue1.AsCase0);
 
         Assert.Equal(value1, (OneOf<IEnumerable<int>, float>)convertedValue1);
+    }
+
+    [Fact]
+    public void EmptyCases()
+    {
+        OneOf<int, string, None, double, None> value1 = 5;
+
+        OneOf<int, string, None, double, None> value2 = "abc";
+
+        var value3 = OneOf<int, string, None, double, None>.FromT4(new());
+
+        Assert.Equal(HasEmptyCases.Case0(5), (HasEmptyCases)value1);
+        Assert.Equal(value1, (OneOf<int, string, None, double, None>)HasEmptyCases.Case0(5));
+
+        Assert.Equal(HasEmptyCases.Case1("abc"), (HasEmptyCases)value2);
+        Assert.Equal(value2, (OneOf<int, string, None, double, None>)HasEmptyCases.Case1("abc"));
+
+        Assert.Equal(HasEmptyCases.Case4, (HasEmptyCases)value3);
+        Assert.Equal(value3, (OneOf<int, string, None, double, None>)HasEmptyCases.Case4);
     }
 }
