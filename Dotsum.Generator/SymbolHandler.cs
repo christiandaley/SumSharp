@@ -975,7 +975,7 @@ internal class SymbolHandler
         Builder.Append($@"
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
-        public override {Name} Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        public override {Name} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
             if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
             {{
@@ -1071,7 +1071,7 @@ internal class SymbolHandler
         Builder.Append($@"
     public partial class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter<{Name}>
     {{
-        public override {Name} ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, {Name} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+        public override {Name} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, {Name} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
         {{
             if (reader.TokenType == Newtonsoft.Json.JsonToken.Null)
             {{
@@ -1180,13 +1180,13 @@ internal class SymbolHandler
         Builder.Append($@"
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
     {{
-        public override bool CanConvert(Type typeToConvert)
+        public override bool CanConvert(System.Type typeToConvert)
         {{
             return typeToConvert.IsGenericType &&
                    typeToConvert.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
         }}
 
-        public override System.Text.Json.Serialization.JsonConverter CreateConverter(Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        public override System.Text.Json.Serialization.JsonConverter CreateConverter(System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
             var converterType = typeof({genericTypeDefinition}.StandardJsonConverter).MakeGenericType(typeToConvert.GetGenericArguments());
 
@@ -1202,9 +1202,9 @@ internal class SymbolHandler
         Builder.AppendLine($@"
 public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 {{
-    static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Newtonsoft.Json.JsonConverter> _converters = new();
 
-    private static Newtonsoft.Json.JsonConverter GetConverter(Type objectType)
+    private static Newtonsoft.Json.JsonConverter GetConverter(System.Type objectType)
     {{
         return _converters.GetOrAdd(objectType, static objectType => 
         {{
@@ -1214,7 +1214,7 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
         }});
     }}
 
-    public override bool CanConvert(Type objectType)
+    public override bool CanConvert(System.Type objectType)
     {{
         return objectType.IsGenericType &&
                objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
@@ -1225,7 +1225,7 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
         GetConverter(value.GetType()).WriteJson(writer, value, serializer);
     }}
 
-    public override object ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+    public override object ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
     {{
         return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
     }}
