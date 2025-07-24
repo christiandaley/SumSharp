@@ -88,7 +88,25 @@ public partial class Storage
 
             }
         }
+    }
 
+    [Case("Case0", "Dictionary<int, T>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
+    [Case("Case1", "InnerStruct<U>", GenericTypeInfo: GenericTypeInfo.ValueType)]
+    [Case("Case2", "IEnumerable<V>", IsInterface: true)]
+    [Case("Case3", "InnerStruct<V>", GenericTypeInfo: GenericTypeInfo.ValueType)]
+    [Case("Case4", "InnerClass<V>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
+    [Storage(StorageStrategy.InlineValueTypes)]
+    partial class GenericWithTypeInfo<T, U, V>
+    {
+        public struct InnerStruct<W>
+        {
+
+        }
+
+        public class InnerClass<W>
+        {
+
+        }
     }
 
     [Fact]
@@ -171,5 +189,13 @@ public partial class Storage
         Assert.Equal(typeof(object), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(double), typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_V", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Null(typeof(Generic1<bool, string>.Generic2<double>.NestedGeneric<byte[]>).GetField("_W", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+    }
+
+    [Fact]
+    public void GenericWithTypeInfoProperties()
+    {
+        Assert.Equal(typeof(object), typeof(GenericWithTypeInfo<int, float, double>).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(GenericWithTypeInfo<int, float, double>.InnerStruct<float>), typeof(GenericWithTypeInfo<int, float, double>).GetField("_InnerStruct_U_", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(GenericWithTypeInfo<int, float, double>.InnerStruct<double>), typeof(GenericWithTypeInfo<int, float, double>).GetField("_InnerStruct_V_", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 }

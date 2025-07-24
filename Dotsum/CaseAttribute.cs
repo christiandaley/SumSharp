@@ -10,7 +10,12 @@ public class CaseAttribute : Attribute
 
     }
 
-    public CaseAttribute(string Name, string GenericTypeName, StorageMode StorageMode = StorageMode.Default)
+    public CaseAttribute(
+        string Name, 
+        string GenericTypeName, 
+        StorageMode StorageMode = StorageMode.Default, 
+        GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType, 
+        bool IsInterface = false)
     {
 
     }

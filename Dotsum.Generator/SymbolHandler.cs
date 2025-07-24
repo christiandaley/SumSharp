@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.RegularExpressions;
 using static Dotsum.Generator.SymbolHandler;
 
 namespace Dotsum.Generator;
@@ -91,29 +92,31 @@ internal class SymbolHandler
             public override bool IsInterface => false;
         }
 
-        public class GeneralGenericTypeArgument(string name) : TypeInfo
+        public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface) : TypeInfo
         {
             public override string Name => name;
 
             public override int PrimitiveTypeSize => -1;
 
-            public override bool IsAlwaysValueType => false;
+            public override bool IsAlwaysValueType => (genericTypeInfo & 1) == 0 && !isInterface;
 
-            public override bool IsAlwaysRefType => false;
+            public override bool IsAlwaysRefType => (genericTypeInfo & 2) == 0 || isInterface;
 
-            public override bool IsInterface => false;
+            public override bool IsInterface => isInterface;
         }
     }
 
     public record CaseData(int Index, string Name, TypeInfo? TypeInfo, bool StoreAsObject)
     {
+        private static readonly Regex _fieldNameRegex = new("[.<>]");
+
         public bool UsePrimitiveStorage => !StoreAsObject && (TypeInfo != null && TypeInfo.IsPrimitiveType);
 
         public string? FieldName =>
             TypeInfo == null ? null :
             UsePrimitiveStorage ? PrimitiveStorageFieldName :
             StoreAsObject ? "_object" :
-            $"_{TypeInfo.Name.Replace('.', '_')}";
+            $"_{_fieldNameRegex.Replace(TypeInfo.Name, "_")}";
 
         public string? FieldType =>
             TypeInfo == null ? null :
@@ -224,51 +227,57 @@ internal class SymbolHandler
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, caseAttrSymbol))
             .Select((attr, i) =>
             {
-                switch (attr.ConstructorArguments)
+                var caseName = attr.ConstructorArguments[0].Value!.ToString();
+
+                if (attr.ConstructorArguments.Length == 1)
                 {
-                    case [var caseName]:
-                        return new CaseData(i, caseName.Value!.ToString(), null, true);
+                    return new CaseData(i, caseName, null, true);
+                }
 
-                    case [var caseName, var caseType, var caseStorageMode]:
+                var caseType = attr.ConstructorArguments[1].Value!;
 
-                        TypeInfo? typeInfo = null;
+                var caseStorageMode = (int)attr.ConstructorArguments[2].Value!;
 
-                        if (caseType.Value is INamedTypeSymbol type)
+                int genericTypeInfo =
+                    attr.ConstructorArguments.Length > 3 ?
+                    (int)attr.ConstructorArguments[3].Value! :
+                    -1;
+
+                bool isGenericInterface =
+                    attr.ConstructorArguments.Length > 3 ?
+                    (bool)attr.ConstructorArguments[4].Value! :
+                    false;
+
+                TypeInfo? typeInfo = null;
+
+                if (caseType is INamedTypeSymbol type)
+                {
+                    typeInfo = new TypeInfo.NonArray(type);
+                }
+                else if (caseType is IArrayTypeSymbol arrayType)
+                {
+                    typeInfo = new TypeInfo.Array(arrayType.ToDisplayString());
+                }
+                else
+                {
+                    var genericTypeName = caseType.ToString();
+
+                    foreach (var genericType in allGenericTypeArguments)
+                    {
+                        if (genericType.Name == genericTypeName)
                         {
-                            typeInfo = new TypeInfo.NonArray(type);
+                            typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType);
+
+                            break;
                         }
-                        else if (caseType.Value is IArrayTypeSymbol arrayType)
-                        {
-                            typeInfo = new TypeInfo.Array(arrayType.ToDisplayString());
-                        }
-                        else
-                        {
-                            var genericTypeName = caseType.Value!.ToString();
+                    }
 
-                            foreach (var genericType in allGenericTypeArguments)
-                            {
-                                if (genericType.Name == genericTypeName)
-                                {
-                                    typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType);
+                    typeInfo ??= new TypeInfo.GeneralGenericTypeArgument(genericTypeName, genericTypeInfo, isGenericInterface);
+                }
 
-                                    break;
-                                }
-                            }
-                            if (typeInfo == null)
-                            {
-                                typeInfo = new TypeInfo.GeneralGenericTypeArgument(genericTypeName);
-                            }
-                        }
+                var storeAsObject = GetStoreAsObject(storageStrategy, caseStorageMode, typeInfo.IsAlwaysValueType);
 
-                        var storageMode = (int)caseStorageMode.Value!;
-
-                        var storeAsObject = GetStoreAsObject(storageStrategy, storageMode, typeInfo.IsAlwaysValueType);
-
-                        return new CaseData(i, caseName.Value!.ToString(), typeInfo, storeAsObject);
-
-                    default:
-                        throw new System.InvalidOperationException();
-                };
+                return new CaseData(i, caseName, typeInfo, storeAsObject);
             })
             .ToArray();
 
@@ -537,8 +546,7 @@ internal class SymbolHandler
 
         Builder.AppendLine($@"
 {Accessibility} partial {declarationKind} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
-{{
-    public int Index {{ get; }}");
+{{");
 
         foreach (var field in fieldNameTypeMap)
         {
@@ -547,6 +555,8 @@ internal class SymbolHandler
         }
 
         Builder.AppendLine($@" 
+
+    public int Index {{ get; }}
 
     private {NameWithoutTypeArguments}(int index)
     {{
@@ -713,23 +723,23 @@ internal class SymbolHandler
             {
                 if (caseData.TypeInfo.IsAlwaysValueType)
                 {
-                    Builder.AppendLine($@"
+                    Builder.Append($@"
             return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
                 }
                 else if (caseData.TypeInfo.IsAlwaysRefType)
                 {
-                    Builder.AppendLine($@"
+                    Builder.Append($@"
             return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({caseData.Access});");
                 }
                 else
                 {
-                    Builder.AppendLine($@"
+                    Builder.Append($@"
             return ({caseData.TypeInfo.Name}){caseData.Access};");
                 }
             }
             else
             {
-                Builder.AppendLine($@"
+                Builder.Append($@"
             return {caseData.Access};");
 
             }
