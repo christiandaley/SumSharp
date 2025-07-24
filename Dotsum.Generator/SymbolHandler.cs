@@ -153,6 +153,8 @@ internal class SymbolHandler
 
     public INamedTypeSymbol[] ContainingTypes;
 
+    public bool HasGenericContainingTypes => ContainingTypes.Any(type => type.TypeArguments.Length > 0);
+
     public bool BoxesValueTypes { get; } = false;
 
     public bool EnableStandardJsonSerialization { get; }
@@ -304,12 +306,9 @@ internal class SymbolHandler
 
             EnableNewtonsoftJsonSerialization = (support & 2) != 0;
 
-            AddJsonConverterAttribute = enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false;
-
-            if (allGenericTypeArguments.Length > symbol.TypeArguments.Length)
-            {
-                AddJsonConverterAttribute = false;
-            }
+            AddJsonConverterAttribute =
+                !HasGenericContainingTypes &&
+                (enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false);
         }
 
         foreach (var caseData in Cases)
@@ -555,6 +554,13 @@ internal class SymbolHandler
 
         Index = index;
     }}");
+
+        if (EnableStandardJsonSerialization && HasGenericContainingTypes)
+        {
+            Builder.AppendLine($@"
+    internal {NameWithoutTypeArguments}() => throw new System.InvalidOperationException(""The default constructor for {Name} exists only to ensure that System.Text.Json generated source code will compile. It is an error to invoke the default constructor. You must use the generated JsonConverter to serialize/deserialize an instance of {Name}."");
+");
+        }
     }
 
     public void EmitBoxType()

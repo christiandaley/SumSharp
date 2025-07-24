@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 [JsonSerializable(typeof(double[]))]
 [JsonSerializable(typeof(Dictionary<int, int>[]))]
 [JsonSerializable(typeof(StandardJsonSerializationWithSourceGen.Outer<string>.Nested1<byte>.Nested2<double[]>))]
+[JsonSerializable(typeof(byte))]
 internal partial class StandardJsonSerializationWithSourceGenJsonContext : JsonSerializerContext
 {
 
@@ -290,5 +291,11 @@ public partial class StandardJsonSerializationWithSourceGen
         var deserializedValue = JsonSerializer.Deserialize(json, value.GetType(), options)!;
 
         Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void NestedGenericTypesDefaultConstructor()
+    {
+        Assert.Throws<InvalidOperationException>(() => new Outer<int>.Nested1<string[]>.Nested2<float>());
     }
 }
