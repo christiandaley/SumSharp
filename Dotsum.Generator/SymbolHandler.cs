@@ -1185,9 +1185,12 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 
     private static Newtonsoft.Json.JsonConverter GetConverter(Type objectType)
     {{
-        var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
+        return _converters.GetOrAdd(objectType, static objectType => 
+        {{
+            var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
 
-        return _converters.GetOrAdd(converterType, static converterType => (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType));
+            return (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType);
+        }});
     }}
 
     public override bool CanConvert(Type objectType)
