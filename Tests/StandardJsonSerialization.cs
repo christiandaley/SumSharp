@@ -49,6 +49,27 @@ public partial class StandardJsonSerialization
         }
     }
 
+    partial class Container
+    {
+        [Case("Case0", typeof(int))]
+        [EnableJsonSerialization]
+        public partial class ReferenceType
+        {
+
+        }
+
+        [Case("Case0", typeof(int))]
+        [EnableJsonSerialization]
+        public partial struct ValueType
+        {
+
+        }
+
+        public ReferenceType R { get; set; } = default!;
+
+        public ValueType V { get; set; } = default;
+    }
+
     [Fact]
     public void NonGenericTypeCase0()
     {
@@ -263,5 +284,27 @@ public partial class StandardJsonSerialization
         var deserializedValue = JsonSerializer.Deserialize(json, value.GetType(), options)!;
 
         Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void NullClassValue()
+    {
+        var container = new Container();
+
+        var json = JsonSerializer.Serialize(container);
+
+        var deserializedValue = JsonSerializer.Deserialize<Container>(json)!;
+
+        Assert.Null(deserializedValue.R);
+    }
+
+    [Fact]
+    public void NullStructValue()
+    {
+        var container = new Container();
+
+        var json = @"{ ""V"": null }";
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Container>(json)!);
     }
 }

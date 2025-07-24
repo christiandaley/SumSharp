@@ -1003,7 +1003,7 @@ internal class SymbolHandler
         {{
             if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
             {{
-                return default;
+                {(IsStruct ? $"throw new System.Text.Json.JsonException(\"Expected {NameWithoutTypeArguments} object but found: null\")" : "return null;")};
             }}
 
             if (reader.TokenType != System.Text.Json.JsonTokenType.StartObject)

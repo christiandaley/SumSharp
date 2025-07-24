@@ -59,6 +59,26 @@ public partial class NewtonsoftJsonSerialization
             }
         }
     }
+    partial class Container
+    {
+        [Case("Case0", typeof(int))]
+        [EnableJsonSerialization]
+        public partial class ReferenceType
+        {
+
+        }
+
+        [Case("Case0", typeof(int))]
+        [EnableJsonSerialization]
+        public partial struct ValueType
+        {
+
+        }
+
+        public ReferenceType R { get; set; } = default!;
+
+        public ValueType V { get; set; } = default;
+    }
 
     [Fact]
     public void NonGenericTypeCase0()
@@ -320,5 +340,27 @@ public partial class NewtonsoftJsonSerialization
         var deserializedValue = JsonConvert.DeserializeObject(json, value.GetType());
 
         Assert.Equal(value, deserializedValue);
+    }
+
+    [Fact]
+    public void NullClassValue()
+    {
+        var container = new Container();
+
+        var json = JsonConvert.SerializeObject(container);
+
+        var deserializedValue = JsonConvert.DeserializeObject<Container>(json)!;
+
+        Assert.Null(deserializedValue.R);
+    }
+
+    [Fact]
+    public void NullStructValue()
+    {
+        var container = new Container();
+
+        var json = @"{ ""V"": null }";
+
+        Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Container>(json)!);
     }
 }
