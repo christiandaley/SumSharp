@@ -13,8 +13,6 @@ namespace Dotsum.Generator;
 [Generator]
 public class Generator : IIncrementalGenerator
 {
-    record CaseData(int Index, string Name, string? Type);
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var dotsumClasses = 

@@ -2,10 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Dotsum.Generator.SymbolHandler;
 
 namespace Dotsum.Generator;
 
@@ -106,11 +104,19 @@ internal class SymbolHandler
         }
     }
 
-    public record CaseData(int Index, string Name, TypeInfo? TypeInfo, bool StoreAsObject)
+    public class CaseData(int index, string name, TypeInfo? typeInfo, bool storeAsObject)
     {
         private static readonly Regex _fieldNameRegex = new("[.<>]");
 
-        public bool UsePrimitiveStorage => !StoreAsObject && (TypeInfo != null && TypeInfo.IsPrimitiveType);
+        public int Index => index;
+
+        public string Name => name;
+
+        public TypeInfo? TypeInfo => typeInfo;
+
+        public bool StoreAsObject => storeAsObject;
+
+        public bool UsePrimitiveStorage => !StoreAsObject && TypeInfo != null && TypeInfo.IsPrimitiveType;
 
         public string? FieldName =>
             TypeInfo == null ? null :
@@ -285,12 +291,11 @@ internal class SymbolHandler
             Cases
             .Where(caseData => caseData.TypeInfo != null)
             .Select(caseData => caseData.TypeInfo!.Name)
-            .Distinct()
-            .ToArray();
+            .Distinct();
 
-        if (distinctTypes.Length == 1)
+        if (distinctTypes.Count() == 1)
         {
-            Cases = [.. Cases.Select(caseData => caseData with { StoreAsObject = false })];
+            Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false))];
         }
 
         UniqueCases =
