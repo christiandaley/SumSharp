@@ -1,6 +1,7 @@
 namespace Tests;
 
 using Dotsum;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -12,6 +13,7 @@ using System.Text.Json.Serialization;
 [JsonSerializable(typeof(StandardJsonSerializationWithSourceGen.GenericType<double, Dictionary<int, int>, Dictionary<string, string>>))]
 [JsonSerializable(typeof(double[]))]
 [JsonSerializable(typeof(Dictionary<int, int>[]))]
+[JsonSerializable(typeof(StandardJsonSerializationWithSourceGen.Outer<string>.Nested1<byte>.Nested2<double[]>))]
 internal partial class StandardJsonSerializationWithSourceGenJsonContext : JsonSerializerContext
 {
 
@@ -55,6 +57,21 @@ public partial class StandardJsonSerializationWithSourceGen
         public partial class StandardJsonConverter : JsonConverterFactory
         {
 
+        }
+    }
+
+    internal partial class Outer<T>
+    {
+        public partial class Nested1<U>
+        {
+            [Case("Case0", "T")]
+            [Case("Case1", "U")]
+            [Case("Case2", "V")]
+            [EnableJsonSerialization]
+            public partial class Nested2<V>
+            {
+
+            }
         }
     }
 
@@ -250,5 +267,28 @@ public partial class StandardJsonSerializationWithSourceGen
             Assert.Single(dict2);
             Assert.Equal(5, dict2[4]);
         });
+    }
+
+    [Fact]
+    public void NestedGenericTypes()
+    {
+        var value = Outer<string>.Nested1<byte>.Nested2<double[]>.Case1(30);
+
+        var options = new JsonSerializerOptions
+        {
+            Converters = { new Outer<string>.Nested1<byte>.Nested2.StandardJsonConverter() },
+            TypeInfoResolver = StandardJsonSerializationWithSourceGenJsonContext.Default,
+        };
+
+        var json = JsonSerializer.Serialize(value, options);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""1"": 30
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize(json, value.GetType(), options)!;
+
+        Assert.Equal(value, deserializedValue);
     }
 }

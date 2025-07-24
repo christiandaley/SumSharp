@@ -1214,7 +1214,7 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 
     private void EmitEndStaticClass()
     {
-        Builder.Append(@"
+        Builder.AppendLine(@"
 }");
     }
 

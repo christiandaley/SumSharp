@@ -31,6 +31,21 @@ public partial class StandardJsonSerialization
 
     }
 
+    partial class Outer<T>
+    {
+        public partial class Nested1<U>
+        {
+            [Case("Case0", "T")]
+            [Case("Case1", "U")]
+            [Case("Case2", "V")]
+            [EnableJsonSerialization]
+            public partial class Nested2<V>
+            {
+
+            }
+        }
+    }
+
     [Fact]
     public void NonGenericTypeCase0()
     {
@@ -223,5 +238,27 @@ public partial class StandardJsonSerialization
             Assert.Single(dict2);
             Assert.Equal(5, dict2[4]);
         });
+    }
+
+    [Fact]
+    public void NestedGenericTypes()
+    {
+        var value = Outer<string>.Nested1<byte>.Nested2<double[]>.Case1(30);
+
+        var options = new JsonSerializerOptions
+        {
+            Converters = { new Outer<string>.Nested1<byte>.Nested2.StandardJsonConverter() }
+        };
+
+        var json = JsonSerializer.Serialize(value, options);
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(@"
+        {
+            ""1"": 30
+        }")));
+
+        var deserializedValue = JsonSerializer.Deserialize(json, value.GetType(), options)!;
+
+        Assert.Equal(value, deserializedValue);
     }
 }
