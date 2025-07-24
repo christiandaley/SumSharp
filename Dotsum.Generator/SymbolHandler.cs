@@ -386,6 +386,19 @@ internal class SymbolHandler
 
     private bool GetIsStruct(INamedTypeSymbol symbol) => symbol.TypeKind == TypeKind.Struct;
 
+    private string GetDeclarationKind(bool isStruct, bool isRecord)
+    {
+        return (isStruct, isRecord) switch
+        {
+            (true, true) => "record struct",
+            (true, false) => "struct",
+            (false, true) => "record",
+            (false, false) => "class"
+        };
+    }
+
+    private string GetDeclarationKind(INamedTypeSymbol symbol) => GetDeclarationKind(symbol.TypeKind == TypeKind.Struct, symbol.IsRecord);
+
     private string GetAccessibility(INamedTypeSymbol symbol)
     {
         return symbol.DeclaredAccessibility switch
@@ -520,7 +533,7 @@ internal class SymbolHandler
         foreach (var symbol in ContainingTypes)
         {
             Builder.AppendLine($@"
-{GetAccessibility(symbol)} partial {(GetIsStruct(symbol) ? "struct" : "class")} {GetFullName(symbol)}
+{GetAccessibility(symbol)} partial {GetDeclarationKind(symbol)} {GetFullName(symbol)}
 {{");
 
         }
@@ -552,16 +565,8 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
-        var declarationKind = (IsStruct, IsRecord) switch
-        {
-            (true, true) => "record struct",
-            (true, false) => "struct",
-            (false, true) => "record",
-            (false, false) => "class"
-        };
-
         Builder.AppendLine($@"
-{Accessibility} partial {declarationKind} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
 {{");
 
         foreach (var field in fieldNameTypeMap)

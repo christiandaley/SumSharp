@@ -49,7 +49,7 @@ public partial class StandardJsonSerialization
         }
     }
 
-    partial class Container
+    partial record Container
     {
         [Case("Case0", typeof(int))]
         [EnableJsonSerialization]

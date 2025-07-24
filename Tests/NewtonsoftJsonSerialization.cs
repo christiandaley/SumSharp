@@ -59,7 +59,7 @@ public partial class NewtonsoftJsonSerialization
             }
         }
     }
-    partial class Container
+    partial record struct Container
     {
         [Case("Case0", typeof(int))]
         [EnableJsonSerialization]
@@ -75,9 +75,9 @@ public partial class NewtonsoftJsonSerialization
 
         }
 
-        public ReferenceType R { get; set; } = default!;
+        public ReferenceType R { get; set; }
 
-        public ValueType V { get; set; } = default;
+        public ValueType V { get; set; }
     }
 
     [Fact]
