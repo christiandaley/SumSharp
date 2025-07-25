@@ -42,14 +42,20 @@ public partial class If
     public void IfCase0Else()
     {
         bool passed = false;
-        DoubleOrNone.Case0(2.5).IfCase0Else(value => passed = value == 2.5, () => passed = false);
+        DoubleOrNone.Case0(2.5).IfCase0Else(value =>
+        {
+            passed = value == 2.5;
+        }, () => passed = false);
         Assert.True(passed);
 
         Assert.Equal(2.5, DoubleOrNone.Case0(2.5).IfCase0Else(value => value, 1.0));
         Assert.Equal(3.5, DoubleOrNone.Case0(3.5).IfCase0Else(value => value, static () => 1.0));
 
         passed = false;
-        DoubleOrNone.Case1.IfCase0Else(value => passed = false, () => passed = true);
+        DoubleOrNone.Case1.IfCase0Else(value =>
+        {
+            passed = false;
+        }, () => passed = true);
         Assert.True(passed);
 
         Assert.Equal(1.0, DoubleOrNone.Case1.IfCase0Else(value => value, 1.0));

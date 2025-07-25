@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using static SumSharp.Generator.SymbolHandler;
 
 namespace SumSharp.Generator;
 
@@ -581,7 +582,7 @@ internal class SymbolHandler
 
         Builder.AppendLine($@" 
 
-    /// <summary>The zero-based index of the alternative held by the discriminated union</summary>
+    ///<summary>The zero-based index of the case held by the discriminated union</summary>
     public int Index {{ get; }}
 
     private {NameWithoutTypeArguments}(int index)
@@ -594,8 +595,8 @@ internal class SymbolHandler
         if (EnableStandardJsonSerialization && !AddJsonConverterAttribute)
         {
             Builder.AppendLine($@"
-    ///<summary>Default constructor that ensures System.Text.Json generated type info for this type will compile. Will always throw.</summary>
-    /// <exception cref=""InvalidOperationException"">Always thrown when the default constructor is invoked</exception>
+    ///<summary>Default constructor that ensures System.Text.Json generated source code will compile. Will always throw.</summary>
+    ///<exception cref=""InvalidOperationException"">Always thrown when the default constructor is invoked</exception>
     public {NameWithoutTypeArguments}() => throw new System.InvalidOperationException(""The default constructor for {Name} exists only to ensure that System.Text.Json generated source code will compile. It is an error to invoke the default constructor. You must use the generated JsonConverter to serialize/deserialize an instance of {Name}."");
 ");
         }
@@ -604,6 +605,7 @@ internal class SymbolHandler
     public void EmitEquals()
     { 
         Builder.Append($@"
+    ///<summary>Compares two {Name} instances for equality. The two instances are equal iff they have the same Index and their underlying values compare equal using Object.Equals</summary>
     public bool Equals({Name}{NullableIfRef} other)
     {{
         {(IsStruct ? "" : "if (ReferenceEquals(null, other)) return false;")}
@@ -630,6 +632,8 @@ internal class SymbolHandler
         }};
     }}
 
+    ///<summary>Compares a {Name} instance and another object for equality. The {Name} instance is equal to the other object iff 
+    /// the other object is a {Name} and they have the same Index and their underlying values compare equal using Object.Equals</summary>
     public override bool Equals(object{Nullable} obj)
     {{
         if (ReferenceEquals(null, obj)) return false;
@@ -662,8 +666,10 @@ internal class SymbolHandler
         }};
     }}
 
+    ///<summary>Compares two {Name} instances for equality using IEquatable<{Name}>.Equals</summary>
     public static bool operator==({Name} left, {Name} right) => left.Equals(right);
 
+    ///<summary>Compares two {Name} instances for inequality using IEquatable<{Name}>.Equals</summary>
     public static bool operator!=({Name} left, {Name} right) => !left.Equals(right);");
     }
     private void EmitCaseConstructors()
@@ -673,11 +679,13 @@ internal class SymbolHandler
             if (caseData.TypeInfo == null)
             {
                 Builder.AppendLine($@"
+    ///<summary>The singleton {Name} that holds a {caseData.Name}</summary>
     public static readonly {Name} {caseData.Name} = new({caseData.Index});");
             }
             else if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
             {
                 Builder.AppendLine($@"
+    ///<summary>A static factory function that returns a {Name} that holds a {caseData.Name}</summary>
     public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
     {{
         var ret = new {Name}({caseData.Index});
@@ -690,6 +698,7 @@ internal class SymbolHandler
             else
             {
                 Builder.AppendLine($@"
+    ///<summary>Factory function that returns a {Name} holding the {caseData.Name} case</summary>
     public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
     {{
         var ret = new {Name}({caseData.Index});
@@ -747,18 +756,27 @@ internal class SymbolHandler
     }");
 
             Builder.AppendLine($@"
+    ///<summary>The {caseData.Name} value, if present. Throws InvalidOperationException if the {Name} does not hold a {caseData.Name}</summary>
+    ///<exception cref=""InvalidOperationException"">Thrown if the {Name} does not hold a {caseData.Name}</exception>
     public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
             Builder.AppendLine($@"
+    ///<summary>The {caseData.Name} value, if present. Otherwise default({caseData.TypeInfo.Name})</summary>
     public {caseData.TypeInfo.Name}{(NullableDisabled || caseData.TypeInfo.IsAlwaysValueType ? "" : "?")} As{caseData.Name}OrDefault => Index == {caseData.Index} ? As{caseData.Name}Unsafe : default;");
 
             Builder.AppendLine($@"
+    ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns <paramref name=""defaultValue"">defaultValue</paramref></summary>
+    ///<param name=""defaultValue"">The default value to return if the {Name} does not hold a {caseData.Name}</param>
     public {caseData.TypeInfo.Name} As{caseData.Name}Or({caseData.TypeInfo.Name} defaultValue) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValue;");
 
             Builder.AppendLine($@"
+    ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory"">defaultValueFactory</paramref></summary>
+    ///<param name=""defaultValueFactory"">Provides the default value to return if the {Name} does not hold a {caseData.Name}</param>
     public {caseData.TypeInfo.Name} As{caseData.Name}Or(Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
 
             Builder.AppendLine($@"
+    ///<summary>Returns a ValueTask wrapping the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory"">defaultValueFactory</paramref></summary>
+    ///<param name=""defaultValueFactory"">Provides the default value to return if the {Name} does not hold a {caseData.Name}</param>
     public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
         }
     }
@@ -767,6 +785,7 @@ internal class SymbolHandler
         foreach (var caseData in Cases)
         {
             Builder.AppendLine($@"
+    ///<summary>True if  the {Name} holds a {caseData.Name}, false otherwise</summary>
     public bool Is{caseData.Name} => Index == {caseData.Index};");
         }
     }
@@ -774,6 +793,7 @@ internal class SymbolHandler
     private void EmitSwitch()
     {
         Builder.Append($@"
+    ///<summary>Invokes the corresponding function with the underlying value held by the {Name}</summary>
     public void Switch(");
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
@@ -811,6 +831,7 @@ internal class SymbolHandler
     private void EmitSwitchAsync()
     {
         Builder.Append($@"
+    ///<summary>Invokes the corresponding function with the underlying value held by the {Name}</summary>
     public Task Switch(");
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
@@ -848,6 +869,7 @@ internal class SymbolHandler
     private void EmitMatch()
     {
         Builder.Append($@"
+    ///<summary>Invokes the corresponding function with the underlying value held by the {Name} and returns the result</summary>
     public TRet_ Match<TRet_>(");
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
@@ -896,23 +918,32 @@ internal class SymbolHandler
 
             var funcWithCtxArgType = $"Func<TContext__, {caseData.TypeInfo.Name}, TRet__>";
 
+            var handlerName = $"{caseData.Name }Handler";
+
             var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
-    public void If{caseData.Name}({actionArgType} f)
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///{caseData.TypeInfo.Name} value, otherwise does nothing.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.TypeInfo.Name} value, if it exists.</param>
+    public void If{caseData.Name}({actionArgType} {handlerName})
     {{
         if (Index == {caseData.Index})
         {{
-            f({arg});
+            {caseData.Name}Handler({arg});
         }}
     }}");
 
             Builder.AppendLine($@"
-    public void IfElse{caseData.Name}({actionArgType} f, Action orElse)
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse"">orElse</paramref>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
+    ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
+    public void If{caseData.Name}Else({actionArgType} {handlerName}, Action orElse)
     {{
         if (Index == {caseData.Index})
         {{
-            f({arg});
+            {handlerName}({arg});
         }}
         else
         {{
@@ -921,10 +952,18 @@ internal class SymbolHandler
     }}");
 
             Builder.AppendLine($@"
-    public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} f, TRet__ defaultValue) => Index == {caseData.Index} ? f({arg}) : defaultValue;");
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue"">elseValue</paramref>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, TRet__ elseValue) => Index == {caseData.Index} ? {handlerName}({arg}) : elseValue;");
 
             Builder.AppendLine($@"
-    public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} f, Func<TRet__> defaultValueFactory) => Index == {caseData.Index} ? f({arg}) : defaultValueFactory();");
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc"">elseFunc</paramref>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, Func<TRet__> elseFunc) => Index == {caseData.Index} ? {handlerName}({arg}) : elseFunc();");
         }
     }
 
@@ -941,19 +980,36 @@ internal class SymbolHandler
 
             var funcArgType = $"Func<{caseData.TypeInfo.Name}, Task<TRet__>>";
 
+            var handlerName = $"{caseData.Name}Handler";
+
             var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///{caseData.TypeInfo.Name} value, otherwise does nothing.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.TypeInfo.Name} value, if it exists.</param>
     public ValueTask If{caseData.Name}({actionArgType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
 
             Builder.AppendLine($@"
-    public Task If{caseData.Name}Else({actionArgType} f, Func<Task> elseF) => Index == {caseData.Index} ? f({arg}) : elseF();");
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse"">orElse</paramref>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
+    ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
+    public Task If{caseData.Name}Else({actionArgType} {handlerName}, Func<Task> elseF) => Index == {caseData.Index} ? {handlerName}({arg}) : elseF();");
 
             Builder.AppendLine($@"
-    public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} f, TRet__ defaultValue) => Index == {caseData.Index} ? new ValueTask<TRet__>(f({arg})) : ValueTask.FromResult(defaultValue);");
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue"">elseValue</paramref> wrapped in a ValueTask.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, TRet__ elseValue) => Index == {caseData.Index} ? new ValueTask<TRet__>({handlerName}({arg})) : ValueTask.FromResult(elseValue);");
 
             Builder.AppendLine($@"
-    public Task<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} f, Func<Task<TRet__>> defaultValueFactory) => Index == {caseData.Index} ? f({arg}) : defaultValueFactory();");
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc"">elseFunc</paramref>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public Task<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, Func<Task<TRet__>> elseFunc) => Index == {caseData.Index} ? {handlerName}({arg}) : elseFunc();");
         }
     }
 
