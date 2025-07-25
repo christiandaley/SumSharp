@@ -357,8 +357,6 @@ public partial class NewtonsoftJsonSerialization
     [Fact]
     public void NullStructValue()
     {
-        var container = new Container();
-
         var json = @"{ ""V"": null }";
 
         Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Container>(json)!);

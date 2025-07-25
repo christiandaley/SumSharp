@@ -778,7 +778,13 @@ internal class SymbolHandler
     public {caseData.TypeInfo.Name} As{caseData.Name}Or(Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
 
             Builder.AppendLine($@"
+    public {caseData.TypeInfo.Name} As{caseData.Name}Or<TContext__>(TContext__ context, Func<TContext__, {caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory(context);");
+
+            Builder.AppendLine($@"
     public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
+
+            Builder.AppendLine($@"
+    public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or<TContext__>(TContext__ context, Func<TContext__, Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory(context));");
 
         }
     }
