@@ -1023,6 +1023,7 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
+    ///<summary>Converts a {caseData.TypeInfo!.Name} to a {Name} that holds a {caseData.Name}</summary>
     public static implicit operator {Name}({caseData.TypeInfo!.Name} value) => {caseData.Name}(value);");
         }
     }
@@ -1031,9 +1032,12 @@ internal class SymbolHandler
     {
         var oneOfName = $"global::OneOf.OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? "global::OneOf.Types.None"))}>";
 
+        var oneOfNameShort = $"OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? "None"))}>";
+
         var conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static _ => {caseData.Name}" : caseData.Name);
 
         Builder.AppendLine($@"
+    ///<summary>Converts a {oneOfNameShort} to a {Name}</summary>
     public static implicit operator {Name}({oneOfName} value)
     {{
         return value.Match({string.Join(", ", conversionFuncs)});
@@ -1042,6 +1046,7 @@ internal class SymbolHandler
         conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static () => {oneOfName}.FromT{caseData.Index}(new global::OneOf.Types.None())" : $"static _ => {oneOfName}.FromT{caseData.Index}(_)");
 
         Builder.Append($@"
+    ///<summary>Converts a {Name} to a {oneOfNameShort}</summary>
     public static implicit operator {oneOfName}({Name} value)
     {{
         return value.Match({string.Join(", ", conversionFuncs)});
@@ -1081,6 +1086,7 @@ internal class SymbolHandler
     private void EmitStandardJsonConverter()
     {
         Builder.Append($@"
+    ///<summary>System.Text.Json converter capable of serializing and deserializing a {Name}</summary>
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
         public override {Name}{NullableIfRef} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
@@ -1177,6 +1183,7 @@ internal class SymbolHandler
     private void EmitNewtonsoftJsonConverter()
     {
         Builder.Append($@"
+    ///<summary>Newtonsoft converter capable of serializing and deserializing a {Name}</summary>
     public partial class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter<{Name}>
     {{
         public override {Name}{NullableIfRef} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, {Name}{NullableIfRef} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
@@ -1286,6 +1293,7 @@ internal class SymbolHandler
         var genericTypeDefinition = $"{NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>";
 
         Builder.Append($@"
+    ///<summary>System.Text.Json converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
     {{
         public override bool CanConvert(System.Type typeToConvert)
@@ -1308,6 +1316,7 @@ internal class SymbolHandler
         var genericTypeDefinition = $"{NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>";
 
         Builder.AppendLine($@"
+///<summary>Newtonsoft converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
 public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 {{
     static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Newtonsoft.Json.JsonConverter> _converters = new();
