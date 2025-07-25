@@ -146,11 +146,11 @@ internal class SymbolHandler
 
     public bool IsStruct { get; }
 
-    public bool NullableEnabled { get; } = true;
+    public bool NullableDisabled { get; }
 
-    public string Nullable => NullableEnabled ? "?" : "";
+    public string Nullable => NullableDisabled ? "" : "?";
 
-    public string NullableIfRef => NullableEnabled && !IsStruct ? "?" : "";
+    public string NullableIfRef => NullableDisabled || IsStruct ? "" : "?";
 
     public string Accessibility { get; }
 
@@ -189,7 +189,8 @@ internal class SymbolHandler
         INamedTypeSymbol enableJsonSerializationAttrSymbol,
         INamedTypeSymbol storageAttrSymbol,
         INamedTypeSymbol disableValueEqualitySymbol,
-        INamedTypeSymbol enableOneOfConversionsSymbol)
+        INamedTypeSymbol enableOneOfConversionsSymbol,
+        INamedTypeSymbol disableNullableSymbol)
     {
         Builder = builder;
 
@@ -344,6 +345,12 @@ internal class SymbolHandler
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableOneOfConversionsSymbol))
             .Any();
+
+        NullableDisabled =
+            symbol!
+            .GetAttributes()
+            .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableNullableSymbol))
+            .Any();
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
@@ -411,7 +418,7 @@ internal class SymbolHandler
 
         Builder.AppendLine("#pragma warning disable CS8509");
 
-        if (NullableEnabled)
+        if (!NullableDisabled)
         {
             Builder.AppendLine("#nullable enable");
         }
@@ -724,7 +731,7 @@ internal class SymbolHandler
     public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
             Builder.AppendLine($@"
-    public {caseData.TypeInfo.Name}{(NullableEnabled && !caseData.TypeInfo.IsAlwaysValueType ? "?" : "")} As{caseData.Name}OrDefault => Index == {caseData.Index} ? As{caseData.Name}Unsafe : default;");
+    public {caseData.TypeInfo.Name}{(NullableDisabled || caseData.TypeInfo.IsAlwaysValueType ? "" : "?")} As{caseData.Name}OrDefault => Index == {caseData.Index} ? As{caseData.Name}Unsafe : default;");
 
             Builder.AppendLine($@"
     public {caseData.TypeInfo.Name} As{caseData.Name}Or({caseData.TypeInfo.Name} defaultValue) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValue;");

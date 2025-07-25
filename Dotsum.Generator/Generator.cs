@@ -52,6 +52,8 @@ public class Generator : IIncrementalGenerator
 
         var enableOneOfConversionsSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableOneOfConversionsAttribute")!;
 
+        var disableNullableSymbol = compilation.GetTypeByMetadataName("Dotsum.DisableNullableAttribute")!;
+
         var builder = new StringBuilder();
 
         foreach (var symbol in targets.Distinct(SymbolEqualityComparer.Default))
@@ -69,7 +71,8 @@ public class Generator : IIncrementalGenerator
                                                 enableJsonSymbol,
                                                 storageSymbol,
                                                 disableValueEqualitySymbol,
-                                                enableOneOfConversionsSymbol);
+                                                enableOneOfConversionsSymbol,
+                                                disableNullableSymbol);
 
             symbolHandler.Emit();
 
