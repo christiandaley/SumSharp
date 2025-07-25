@@ -934,6 +934,19 @@ internal class SymbolHandler
     }}");
 
             Builder.AppendLine($@"
+    public void IfElse{caseData.Name}({actionArgType} f, Action orElse)
+    {{
+        if (Index == {caseData.Index})
+        {{
+            f({arg});
+        }}
+        else
+        {{
+            orElse();
+        }}
+    }}");
+
+            Builder.AppendLine($@"
     public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} f, TRet__ defaultValue) => Index == {caseData.Index} ? f({arg}) : defaultValue;");
 
             Builder.AppendLine($@"
@@ -963,6 +976,9 @@ internal class SymbolHandler
 
             Builder.AppendLine($@"
     public ValueTask If{caseData.Name}({actionArgType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
+
+            Builder.AppendLine($@"
+    public Task If{caseData.Name}Else({actionArgType} f, Func<Task> elseF) => Index == {caseData.Index} ? f({arg}) : elseF();");
 
             Builder.AppendLine($@"
     public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} f, TRet__ defaultValue) => Index == {caseData.Index} ? new ValueTask<TRet__>(f({arg})) : ValueTask.FromResult(defaultValue);");
