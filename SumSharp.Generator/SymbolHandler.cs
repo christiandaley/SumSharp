@@ -1319,7 +1319,7 @@ internal class SymbolHandler
 ///<summary>Newtonsoft converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
 public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 {{
-    static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Newtonsoft.Json.JsonConverter> _converters = new();
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
 
     private static Newtonsoft.Json.JsonConverter GetConverter(System.Type objectType)
     {{
