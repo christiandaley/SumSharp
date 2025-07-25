@@ -581,6 +581,7 @@ internal class SymbolHandler
 
         Builder.AppendLine($@" 
 
+    /// <summary>The zero-based index of the alternative held by the discriminated union</summary>
     public int Index {{ get; }}
 
     private {NameWithoutTypeArguments}(int index)
@@ -590,9 +591,11 @@ internal class SymbolHandler
         Index = index;
     }}");
 
-        if (EnableStandardJsonSerialization && HasGenericContainingTypes)
+        if (EnableStandardJsonSerialization && !AddJsonConverterAttribute)
         {
             Builder.AppendLine($@"
+    ///<summary>Default constructor that ensures System.Text.Json generated type info for this type will compile. Will always throw.</summary>
+    /// <exception cref=""InvalidOperationException"">Always thrown when the default constructor is invoked</exception>
     public {NameWithoutTypeArguments}() => throw new System.InvalidOperationException(""The default constructor for {Name} exists only to ensure that System.Text.Json generated source code will compile. It is an error to invoke the default constructor. You must use the generated JsonConverter to serialize/deserialize an instance of {Name}."");
 ");
         }

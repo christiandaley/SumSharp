@@ -287,6 +287,12 @@ public partial class StandardJsonSerialization
     }
 
     [Fact]
+    public void NestedGenericTypesDefaultConstructor()
+    {
+        Assert.Throws<InvalidOperationException>(() => new Outer<byte>.Nested1<double>.Nested2<int>());
+    }
+
+    [Fact]
     public void NullClassValue()
     {
         var container = new Container();
