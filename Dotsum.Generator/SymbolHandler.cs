@@ -911,19 +911,36 @@ internal class SymbolHandler
     {
         foreach (var caseData in Cases)
         {
-            var argType = caseData.TypeInfo == null ? "Action" : $"Action<{caseData.TypeInfo.Name}>";
+            if (caseData.TypeInfo == null)
+            {
+                continue;
+            }
 
-            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
+            var actionArgType = $"Action<{caseData.TypeInfo.Name}>";
 
-            Builder.Append($@"
-    public void If{caseData.Name}({argType} f)");
+            var funcArgType = $"Func<{caseData.TypeInfo.Name}, TRet__>";
+
+            var funcWithCtxArgType = $"Func<TContext__, {caseData.TypeInfo.Name}, TRet__>";
+
+            var arg = $"As{caseData.Name}Unsafe";
+
             Builder.AppendLine($@"
+    public void If{caseData.Name}({actionArgType} f)
     {{
         if (Index == {caseData.Index})
         {{
             f({arg});
         }}
     }}");
+
+            Builder.AppendLine($@"
+    public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} f, TRet__ defaultValue) => Index == {caseData.Index} ? f({arg}) : defaultValue;");
+
+            Builder.AppendLine($@"
+    public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} f, Func<TRet__> defaultValueFactory) => Index == {caseData.Index} ? f({arg}) : defaultValueFactory();");
+
+            Builder.AppendLine($@"
+    public TRet__ If{caseData.Name}Else<TContext__, TRet__>(TContext__ context, {funcWithCtxArgType} f, Func<TContext__, TRet__> defaultValueFactory) => Index == {caseData.Index} ? f(context, {arg}) : defaultValueFactory(context);");
         }
     }
 
@@ -931,9 +948,14 @@ internal class SymbolHandler
     {
         foreach (var caseData in Cases)
         {
-            var argType = caseData.TypeInfo == null ? "Func<Task>" : $"Func<{caseData.TypeInfo.Name}, Task>";
+            if (caseData.TypeInfo == null)
+            {
+                continue;
+            }
 
-            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
+            var argType = $"Func<{caseData.TypeInfo.Name}, Task>";
+
+            var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
     public ValueTask If{caseData.Name}({argType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");

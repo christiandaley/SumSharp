@@ -14,18 +14,17 @@ public partial class If
     }
 
     [Fact]
-    public void Case0()
+    public void IfCase0()
     {
         var passed = false;
 
         DoubleOrNone.Case0(2.5).IfCase0(value => passed = value == 2.5);
-        DoubleOrNone.Case0(3.0).IfCase1(() => { passed = false; });
 
         Assert.True(passed);
     }
 
     [Fact]
-    public async Task Case0Async()
+    public async Task IfCase0Async()
     {
         var passed = false;
 
@@ -36,46 +35,18 @@ public partial class If
             return Task.CompletedTask;
         });
 
-        await DoubleOrNone.Case0(3.0).IfCase1(() => 
-        { 
-            passed = false; 
-
-            return Task.CompletedTask;
-        });
-
         Assert.True(passed);
     }
 
     [Fact]
-    public void Case1()
+    public void IfCase0Else()
     {
-        var passed = false;
+        Assert.Equal(2.5, DoubleOrNone.Case0(2.5).IfCase0Else(value => value, 1.0));
+        Assert.Equal(3.5, DoubleOrNone.Case0(3.5).IfCase0Else(value => value, static () => 1.0));
+        Assert.Equal(6.5, DoubleOrNone.Case0(4.5).IfCase0Else((1.0, 2.0), static (ctx, value) => value + ctx.Item2, static ctx => ctx.Item1 + ctx.Item2));
 
-        DoubleOrNone.Case1.IfCase1(() => { passed = true; });
-        DoubleOrNone.Case1.IfCase0(_ => { passed = false; });
-
-        Assert.True(passed);
-    }
-
-    [Fact]
-    public async Task Case1Async()
-    {
-        var passed = false;
-
-        await DoubleOrNone.Case1.IfCase1(() =>
-        {
-            passed = true;
-
-            return Task.CompletedTask;
-        });
-
-        await DoubleOrNone.Case1.IfCase0(value =>
-        {
-            passed = false;
-
-            return Task.CompletedTask;
-        });
-
-        Assert.True(passed);
+        Assert.Equal(1.0, DoubleOrNone.Case1.IfCase0Else(value => value, 1.0));
+        Assert.Equal(1.0, DoubleOrNone.Case1.IfCase0Else(value => value, static () => 1.0));
+        Assert.Equal(3.0, DoubleOrNone.Case1.IfCase0Else((1.0, 2.0), static (ctx, value) => value + ctx.Item2, static ctx => ctx.Item1 + ctx.Item2));
     }
 }
