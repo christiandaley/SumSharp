@@ -778,14 +778,7 @@ internal class SymbolHandler
     public {caseData.TypeInfo.Name} As{caseData.Name}Or(Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
 
             Builder.AppendLine($@"
-    public {caseData.TypeInfo.Name} As{caseData.Name}Or<TContext__>(TContext__ context, Func<TContext__, {caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory(context);");
-
-            Builder.AppendLine($@"
     public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
-
-            Builder.AppendLine($@"
-    public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or<TContext__>(TContext__ context, Func<TContext__, Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory(context));");
-
         }
     }
     public void EmitIs()
@@ -951,9 +944,6 @@ internal class SymbolHandler
 
             Builder.AppendLine($@"
     public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} f, Func<TRet__> defaultValueFactory) => Index == {caseData.Index} ? f({arg}) : defaultValueFactory();");
-
-            Builder.AppendLine($@"
-    public TRet__ If{caseData.Name}Else<TContext__, TRet__>(TContext__ context, {funcWithCtxArgType} f, Func<TContext__, TRet__> defaultValueFactory) => Index == {caseData.Index} ? f(context, {arg}) : defaultValueFactory(context);");
         }
     }
 
@@ -970,8 +960,6 @@ internal class SymbolHandler
 
             var funcArgType = $"Func<{caseData.TypeInfo.Name}, Task<TRet__>>";
 
-            var funcWithCtxArgType = $"Func<TContext__, {caseData.TypeInfo.Name}, Task<TRet__>>";
-
             var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
@@ -985,9 +973,6 @@ internal class SymbolHandler
 
             Builder.AppendLine($@"
     public Task<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} f, Func<Task<TRet__>> defaultValueFactory) => Index == {caseData.Index} ? f({arg}) : defaultValueFactory();");
-
-            Builder.AppendLine($@"
-    public Task<TRet__> If{caseData.Name}Else<TContext__, TRet__>(TContext__ context, {funcWithCtxArgType} f, Func<TContext__, Task<TRet__>> defaultValueFactory) => Index == {caseData.Index} ? f(context, {arg}) : defaultValueFactory(context);");
         }
     }
 
