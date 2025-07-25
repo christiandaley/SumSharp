@@ -953,12 +953,25 @@ internal class SymbolHandler
                 continue;
             }
 
-            var argType = $"Func<{caseData.TypeInfo.Name}, Task>";
+            var actionArgType = $"Func<{caseData.TypeInfo.Name}, Task>";
+
+            var funcArgType = $"Func<{caseData.TypeInfo.Name}, Task<TRet__>>";
+
+            var funcWithCtxArgType = $"Func<TContext__, {caseData.TypeInfo.Name}, Task<TRet__>>";
 
             var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
-    public ValueTask If{caseData.Name}({argType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
+    public ValueTask If{caseData.Name}({actionArgType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
+
+            Builder.AppendLine($@"
+    public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} f, TRet__ defaultValue) => Index == {caseData.Index} ? new ValueTask<TRet__>(f({arg})) : ValueTask.FromResult(defaultValue);");
+
+            Builder.AppendLine($@"
+    public Task<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} f, Func<Task<TRet__>> defaultValueFactory) => Index == {caseData.Index} ? f({arg}) : defaultValueFactory();");
+
+            Builder.AppendLine($@"
+    public Task<TRet__> If{caseData.Name}Else<TContext__, TRet__>(TContext__ context, {funcWithCtxArgType} f, Func<TContext__, Task<TRet__>> defaultValueFactory) => Index == {caseData.Index} ? f(context, {arg}) : defaultValueFactory(context);");
         }
     }
 
