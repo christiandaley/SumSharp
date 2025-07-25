@@ -72,11 +72,11 @@ public partial class Storage
 
     }
 
-    public partial class Generic1<T, U> 
+    public static partial class Generic1<T, U> 
         where T : struct
         where U : class
     {
-        public partial class Generic2<V> where V : struct
+        public static partial class Generic2<V> where V : struct
         {
 
             [Case("Case0", "T")]
