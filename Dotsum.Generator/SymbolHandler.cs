@@ -170,8 +170,6 @@ internal class SymbolHandler
 
     public bool HasGenericContainingTypes => ContainingTypes.Any(type => type.TypeArguments.Length > 0);
 
-    public bool BoxesValueTypes { get; } = false;
-
     public bool EnableStandardJsonSerialization { get; }
 
     public bool EnableNewtonsoftJsonSerialization { get; }
@@ -331,18 +329,6 @@ internal class SymbolHandler
                 (enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false);
         }
 
-        foreach (var caseData in Cases)
-        {
-            if (caseData.TypeInfo == null)
-            {
-                continue;
-            }
-            if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
-            {
-                BoxesValueTypes = true;
-            }
-        }
-
         IsRecord = symbol.IsRecord;
 
         DisableValueEquality =
@@ -452,11 +438,6 @@ internal class SymbolHandler
         }
 
         EmitFieldsAndConstructor();
-
-        if (BoxesValueTypes)
-        {
-            EmitBoxType();
-        }
 
         if (!DisableValueEquality)
         {
@@ -594,32 +575,6 @@ internal class SymbolHandler
         }
     }
 
-    public void EmitBoxType()
-    {
-        Builder.AppendLine($@"
-    class Box<TBoxed_> : IEquatable<Box<TBoxed_>> where TBoxed_ : struct
-    {{
-        public TBoxed_ Value;
-
-        public bool Equals(Box<TBoxed_>{Nullable} other)
-        {{
-            if (ReferenceEquals(null, other)) return false;
-            
-            return Equals(Value, other.Value);
-        }}
-
-        public override bool Equals(object{Nullable} obj)
-        {{
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-
-            return Equals(System.Runtime.CompilerServices.Unsafe.As<Box<TBoxed_>>(obj));
-        }}
-
-        public override int GetHashCode() => Value.GetHashCode();
-    }}");
-    }
     public void EmitEquals()
     { 
         Builder.Append($@"
@@ -701,7 +656,7 @@ internal class SymbolHandler
     {{
         var ret = new {Name}({caseData.Index});
         
-        ret.{caseData.Access} = new Box<{caseData.TypeInfo.Name}>() {{ Value = value }};
+        ret.{caseData.Access} = new global::Dotsum.Internal.Box<{caseData.TypeInfo.Name}>(value);
 
         return ret;
     }}");
@@ -742,7 +697,7 @@ internal class SymbolHandler
                 if (caseData.TypeInfo.IsAlwaysValueType)
                 {
                     Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
+            return System.Runtime.CompilerServices.Unsafe.As<global::Dotsum.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
                 }
                 else if (caseData.TypeInfo.IsAlwaysRefType)
                 {
