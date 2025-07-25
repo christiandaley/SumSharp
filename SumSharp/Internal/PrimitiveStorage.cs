@@ -2,7 +2,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Dotsum.Internal;
+namespace SumSharp.Internal;
 
 [StructLayout(LayoutKind.Explicit)]
 public struct PrimitiveStorage

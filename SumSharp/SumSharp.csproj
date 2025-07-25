@@ -6,11 +6,11 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Version>1.0.0</Version>
     <Authors>Christian Daley</Authors>
-    <PackageId>Dotsum</PackageId>
+    <PackageId>SumSharp</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dotsum.Generator\Dotsum.Generator.csproj" Pack="false">
+    <ProjectReference Include="..\SumSharp.Generator\SumSharp.Generator.csproj" Pack="false">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <OutputItemType>Content</OutputItemType>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

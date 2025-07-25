@@ -1,6 +1,6 @@
 namespace Tests;
 
-using Dotsum;
+using SumSharp;
 
 public partial class Match
 {

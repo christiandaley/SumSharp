@@ -1,4 +1,4 @@
-﻿using Dotsum.Generator;
+﻿using SumSharp.Generator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,24 +8,24 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
-namespace Dotsum.Generator;
+namespace SumSharp.Generator;
 
 [Generator]
 public class Generator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var dotsumClasses = 
+        var SumSharpClasses = 
             context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                fullyQualifiedMetadataName: "Dotsum.CaseAttribute",
+                fullyQualifiedMetadataName: "SumSharp.CaseAttribute",
                 predicate: static (s, _) => IsSyntaxTargetForGeneration(s),
                 transform: static (ctx, _) => ctx.TargetSymbol as INamedTypeSymbol)
             .Where(static m => m is not null)
             .Collect();
 
         context.RegisterSourceOutput(
-            context.CompilationProvider.Combine(dotsumClasses),
+            context.CompilationProvider.Combine(SumSharpClasses),
             static (spc, source) => Execute(source.Left, source.Right!, spc));
 
         static bool IsSyntaxTargetForGeneration(SyntaxNode node)
@@ -42,17 +42,17 @@ public class Generator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> targets, SourceProductionContext context)
     {
-        var caseAttrSymbol = compilation.GetTypeByMetadataName("Dotsum.CaseAttribute")!;
+        var caseAttrSymbol = compilation.GetTypeByMetadataName("SumSharp.CaseAttribute")!;
 
-        var enableJsonSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableJsonSerializationAttribute")!;
+        var enableJsonSymbol = compilation.GetTypeByMetadataName("SumSharp.EnableJsonSerializationAttribute")!;
 
-        var storageSymbol = compilation.GetTypeByMetadataName("Dotsum.StorageAttribute")!;
+        var storageSymbol = compilation.GetTypeByMetadataName("SumSharp.StorageAttribute")!;
 
-        var disableValueEqualitySymbol = compilation.GetTypeByMetadataName("Dotsum.DisableValueEqualityAttribute")!;
+        var disableValueEqualitySymbol = compilation.GetTypeByMetadataName("SumSharp.DisableValueEqualityAttribute")!;
 
-        var enableOneOfConversionsSymbol = compilation.GetTypeByMetadataName("Dotsum.EnableOneOfConversionsAttribute")!;
+        var enableOneOfConversionsSymbol = compilation.GetTypeByMetadataName("SumSharp.EnableOneOfConversionsAttribute")!;
 
-        var disableNullableSymbol = compilation.GetTypeByMetadataName("Dotsum.DisableNullableAttribute")!;
+        var disableNullableSymbol = compilation.GetTypeByMetadataName("SumSharp.DisableNullableAttribute")!;
 
         var builder = new StringBuilder();
 

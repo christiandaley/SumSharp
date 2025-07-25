@@ -2,7 +2,7 @@ namespace Tests;
 
 using System.Reflection;
 
-using Dotsum;
+using SumSharp;
 
 public partial class Storage
 {
@@ -127,7 +127,7 @@ public partial class Storage
     public void VariousStorageModesProperties()
     {
         Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_string", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(Dotsum.Internal.PrimitiveStorage), typeof(VariousStorageModes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(SumSharp.Internal.PrimitiveStorage), typeof(VariousStorageModes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(4, typeof(VariousStorageModes).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
@@ -137,7 +137,7 @@ public partial class Storage
     {
         Assert.Equal(typeof(InlineValueTypes.InnerStruct), typeof(InlineValueTypes).GetField("_Tests_Storage_InlineValueTypes_InnerStruct", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(object), typeof(InlineValueTypes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(Dotsum.Internal.PrimitiveStorage), typeof(InlineValueTypes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(SumSharp.Internal.PrimitiveStorage), typeof(InlineValueTypes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]

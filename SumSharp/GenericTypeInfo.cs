@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Dotsum;
+namespace SumSharp;
 public enum GenericTypeInfo
 {
     ReferenceType = 1,

@@ -1,6 +1,6 @@
 namespace Tests;
 
-using Dotsum;
+using SumSharp;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

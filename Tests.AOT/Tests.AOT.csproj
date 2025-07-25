@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dotsum\Dotsum.csproj" />
-    <ProjectReference Include="..\Dotsum.Generator\Dotsum.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SumSharp\SumSharp.csproj" />
+    <ProjectReference Include="..\SumSharp.Generator\SumSharp.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

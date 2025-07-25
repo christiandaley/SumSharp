@@ -1,6 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using Dotsum;
+using SumSharp;
 
 using System.Text.Json;
 using System.Text.Json.Nodes;

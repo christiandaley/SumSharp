@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Dotsum.Generator;
+namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
@@ -136,7 +136,7 @@ internal class SymbolHandler
             FieldName;
     }
 
-    public const string PrimitiveStorageTypeName = "global::Dotsum.Internal.PrimitiveStorage";
+    public const string PrimitiveStorageTypeName = "global::SumSharp.Internal.PrimitiveStorage";
 
     public const string PrimitiveStorageFieldName = "_primitiveStorage";
 
@@ -663,7 +663,7 @@ internal class SymbolHandler
     {{
         var ret = new {Name}({caseData.Index});
         
-        ret.{caseData.Access} = new global::Dotsum.Internal.Box<{caseData.TypeInfo.Name}>(value);
+        ret.{caseData.Access} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);
 
         return ret;
     }}");
@@ -704,7 +704,7 @@ internal class SymbolHandler
                 if (caseData.TypeInfo.IsAlwaysValueType)
                 {
                     Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<global::Dotsum.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
+            return System.Runtime.CompilerServices.Unsafe.As<global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
                 }
                 else if (caseData.TypeInfo.IsAlwaysRefType)
                 {

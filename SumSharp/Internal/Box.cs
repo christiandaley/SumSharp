@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Dotsum.Internal;
+namespace SumSharp.Internal;
 
 public class Box<T>(T value) : IEquatable<Box<T>> where T : struct
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Dotsum;
+namespace SumSharp;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
 public class CaseAttribute : Attribute

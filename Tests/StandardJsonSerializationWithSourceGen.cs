@@ -1,6 +1,6 @@
 namespace Tests;
 
-using Dotsum;
+using SumSharp;
 using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
