@@ -26,6 +26,8 @@ public partial class Storage
     [Case("Case2", typeof(byte[]))]
     [Case("Case3", typeof(int), StorageMode.AsObject)]
     [Case("Case4", typeof(float))]
+    [Case("Case5", typeof(IntPtr))]
+    [Case("Case6", typeof(UIntPtr))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class VariousStorageModes
     {
@@ -127,6 +129,7 @@ public partial class Storage
         Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_string", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(Dotsum.Internal.PrimitiveStorage), typeof(VariousStorageModes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(4, typeof(VariousStorageModes).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
 
     [Fact]
