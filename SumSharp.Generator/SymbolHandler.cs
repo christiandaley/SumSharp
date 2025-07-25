@@ -104,41 +104,57 @@ internal class SymbolHandler
         }
     }
 
-    public class CaseData(int index, string name, TypeInfo? typeInfo, bool storeAsObject)
+    public class CaseData
     {
         private static readonly Regex _fieldNameRegex = new("[.<>]");
 
-        public int Index => index;
+        public CaseData(int index, string name, TypeInfo? typeInfo, bool storeAsObject)
+        {
+            Index = index;
+            Name = name;
+            TypeInfo = typeInfo;
+            StoreAsObject = storeAsObject;
 
-        public string Name => name;
+            if (TypeInfo == null)
+            {
+                return;
+            }
 
-        public TypeInfo? TypeInfo => typeInfo;
+            FieldName =
+                UsePrimitiveStorage ? PrimitiveStorageFieldName :
+                StoreAsObject ? "_object" :
+                $"_{_fieldNameRegex.Replace(TypeInfo.Name, "_")}";
 
-        public bool StoreAsObject => storeAsObject;
+            FieldType =
+                UsePrimitiveStorage ? PrimitiveStorageTypeName :
+                StoreAsObject ? "object" :
+                TypeInfo.Name;
+
+            Access =
+                UsePrimitiveStorage ? $"{PrimitiveStorageFieldName}._{TypeInfo.Name}" :
+                FieldName;
+        }
+
+        public const string PrimitiveStorageTypeName = "global::SumSharp.Internal.PrimitiveStorage";
+
+        public const string PrimitiveStorageFieldName = "_primitiveStorage";
+
+        public int Index { get; }
+
+        public string Name { get; }
+
+        public TypeInfo? TypeInfo { get; }
+
+        public bool StoreAsObject { get; }
 
         public bool UsePrimitiveStorage => !StoreAsObject && TypeInfo != null && TypeInfo.IsPrimitiveType;
 
-        public string? FieldName =>
-            TypeInfo == null ? null :
-            UsePrimitiveStorage ? PrimitiveStorageFieldName :
-            StoreAsObject ? "_object" :
-            $"_{_fieldNameRegex.Replace(TypeInfo.Name, "_")}";
+        public string? FieldName { get; }
 
-        public string? FieldType =>
-            TypeInfo == null ? null :
-            UsePrimitiveStorage ? PrimitiveStorageTypeName :
-            StoreAsObject ? "object" :
-            TypeInfo.Name;
+        public string? FieldType { get; }
 
-        public string? Access =>
-            TypeInfo == null ? null :
-            UsePrimitiveStorage ? $"{PrimitiveStorageFieldName}._{TypeInfo.Name}" :
-            FieldName;
+        public string? Access { get; }
     }
-
-    public const string PrimitiveStorageTypeName = "global::SumSharp.Internal.PrimitiveStorage";
-
-    public const string PrimitiveStorageFieldName = "_primitiveStorage";
 
     public StringBuilder Builder { get; }
 
