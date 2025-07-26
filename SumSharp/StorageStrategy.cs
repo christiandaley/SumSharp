@@ -9,7 +9,7 @@ public enum StorageStrategy
 {
     /// <summary>
     /// If there is a single unique type across all cases, <see cref="StorageMode.Inline">Inline</see> storage
-    /// mode is used. Otherwise all cases share a single <see cref="object"/> field for their storage.
+    /// mode is used. Otherwise all cases share a single <see cref="object"/> field for their storage
     /// </summary>
     Default = 0,
     /// <summary>
