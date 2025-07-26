@@ -788,17 +788,17 @@ internal class SymbolHandler
     public {caseData.TypeInfo.Name}{(NullableDisabled || caseData.TypeInfo.IsAlwaysValueType ? "" : "?")} As{caseData.Name}OrDefault => Index == {caseData.Index} ? As{caseData.Name}Unsafe : default;");
 
             Builder.AppendLine($@"
-    ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns <paramref name=""defaultValue"">defaultValue</paramref></summary>
+    ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns <paramref name=""defaultValue""/></summary>
     ///<param name=""defaultValue"">The default value to return if the {Name} does not hold a {caseData.Name}</param>
     public {caseData.TypeInfo.Name} As{caseData.Name}Or({caseData.TypeInfo.Name} defaultValue) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValue;");
 
             Builder.AppendLine($@"
-    ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory"">defaultValueFactory</paramref></summary>
+    ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory""/></summary>
     ///<param name=""defaultValueFactory"">Provides the default value to return if the {Name} does not hold a {caseData.Name}</param>
     public {caseData.TypeInfo.Name} As{caseData.Name}Or(Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
 
             Builder.AppendLine($@"
-    ///<summary>Returns a ValueTask wrapping the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory"">defaultValueFactory</paramref></summary>
+    ///<summary>Returns a ValueTask wrapping the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory""/></summary>
     ///<param name=""defaultValueFactory"">Provides the default value to return if the {Name} does not hold a {caseData.Name}</param>
     public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
         }
@@ -946,7 +946,7 @@ internal class SymbolHandler
             var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
     ///{caseData.TypeInfo.Name} value, otherwise does nothing.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.TypeInfo.Name} value, if it exists.</param>
     public void If{caseData.Name}({actionArgType} {handlerName})
@@ -958,8 +958,8 @@ internal class SymbolHandler
     }}");
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
-    ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse"">orElse</paramref>.</summary>
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
+    ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
     public void If{caseData.Name}Else({actionArgType} {handlerName}, Action orElse)
@@ -975,15 +975,15 @@ internal class SymbolHandler
     }}");
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
-    ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue"">elseValue</paramref>.</summary>
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, TRet__ elseValue) => Index == {caseData.Index} ? {handlerName}({arg}) : elseValue;");
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
-    ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc"">elseFunc</paramref>.</summary>
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, Func<TRet__> elseFunc) => Index == {caseData.Index} ? {handlerName}({arg}) : elseFunc();");
@@ -1008,28 +1008,28 @@ internal class SymbolHandler
             var arg = $"As{caseData.Name}Unsafe";
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
     ///{caseData.TypeInfo.Name} value, otherwise does nothing.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.TypeInfo.Name} value, if it exists.</param>
     public ValueTask If{caseData.Name}({actionArgType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}"">{handlerName}</paramref> function with the
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
     ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse"">orElse</paramref>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
     public Task If{caseData.Name}Else({actionArgType} {handlerName}, Func<Task> elseF) => Index == {caseData.Index} ? {handlerName}({arg}) : elseF();");
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
-    ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue"">elseValue</paramref> wrapped in a ValueTask.</summary>
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue""/> wrapped in a ValueTask.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, TRet__ elseValue) => Index == {caseData.Index} ? new ValueTask<TRet__>({handlerName}({arg})) : ValueTask.FromResult(elseValue);");
 
             Builder.AppendLine($@"
-    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}"">{handlerName}</paramref>
-    ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc"">elseFunc</paramref>.</summary>
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public Task<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, Func<Task<TRet__>> elseFunc) => Index == {caseData.Index} ? {handlerName}({arg}) : elseFunc();");
