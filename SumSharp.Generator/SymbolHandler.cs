@@ -199,6 +199,8 @@ internal class SymbolHandler
 
     public bool EnableOneOfConversions { get; }
 
+    public string OneOfEmptyCase { get; } = "global::OneOf.Types.None";
+
     public SymbolHandler(
         StringBuilder builder,
         INamedTypeSymbol symbol,
@@ -357,11 +359,21 @@ internal class SymbolHandler
             .Any();
 
 
-        EnableOneOfConversions =
+        var enableOneOfConversionsData =
             symbol!
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enableOneOfConversionsSymbol))
-            .Any();
+            .SingleOrDefault();
+
+        if (enableOneOfConversionsData != null)
+        {
+            EnableOneOfConversions = true;
+
+            if (enableOneOfConversionsData.ConstructorArguments.Length == 1)
+            {
+                OneOfEmptyCase = ((INamedTypeSymbol?)enableOneOfConversionsData.ConstructorArguments[0].Value!).ToDisplayString();
+            }
+        }
 
         NullableDisabled =
             symbol!
@@ -785,7 +797,7 @@ internal class SymbolHandler
         foreach (var caseData in Cases)
         {
             Builder.AppendLine($@"
-    ///<summary>True if  the {Name} holds a {caseData.Name}, false otherwise</summary>
+    ///<summary>True if the {Name} holds a {caseData.Name}, false otherwise</summary>
     public bool Is{caseData.Name} => Index == {caseData.Index};");
         }
     }
@@ -918,7 +930,7 @@ internal class SymbolHandler
 
             var funcWithCtxArgType = $"Func<TContext__, {caseData.TypeInfo.Name}, TRet__>";
 
-            var handlerName = $"{caseData.Name }Handler";
+            var handlerName = $"handle{caseData.Name}";
 
             var arg = $"As{caseData.Name}Unsafe";
 
@@ -930,7 +942,7 @@ internal class SymbolHandler
     {{
         if (Index == {caseData.Index})
         {{
-            {caseData.Name}Handler({arg});
+            {handlerName}({arg});
         }}
     }}");
 
@@ -1030,9 +1042,9 @@ internal class SymbolHandler
 
     private void EmitOneOfConversions()
     {
-        var oneOfName = $"global::OneOf.OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? "global::OneOf.Types.None"))}>";
+        var oneOfName = $"global::OneOf.OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? OneOfEmptyCase))}>";
 
-        var oneOfNameShort = $"OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? "None"))}>";
+        var oneOfNameShort = $"OneOf<{string.Join(", ", Cases.Select(caseData => caseData.TypeInfo?.Name ?? OneOfEmptyCase))}>";
 
         var conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static _ => {caseData.Name}" : caseData.Name);
 
@@ -1043,7 +1055,7 @@ internal class SymbolHandler
         return value.Match({string.Join(", ", conversionFuncs)});
     }}");
 
-        conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static () => {oneOfName}.FromT{caseData.Index}(new global::OneOf.Types.None())" : $"static _ => {oneOfName}.FromT{caseData.Index}(_)");
+        conversionFuncs = Cases.Select(caseData => caseData.TypeInfo == null ? $"static () => {oneOfName}.FromT{caseData.Index}(new {OneOfEmptyCase}())" : $"static _ => {oneOfName}.FromT{caseData.Index}(_)");
 
         Builder.Append($@"
     ///<summary>Converts a {Name} to a {oneOfNameShort}</summary>

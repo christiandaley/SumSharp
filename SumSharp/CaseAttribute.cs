@@ -5,6 +5,11 @@ namespace SumSharp;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
 public class CaseAttribute : Attribute
 {
+    public CaseAttribute(string Name)
+    {
+
+    }
+
     public CaseAttribute(string Name, Type Type, StorageMode StorageMode = StorageMode.Default)
     {
 
@@ -16,11 +21,6 @@ public class CaseAttribute : Attribute
         StorageMode StorageMode = StorageMode.Default, 
         GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType, 
         bool IsInterface = false)
-    {
-
-    }
-
-    public CaseAttribute(string Name)
     {
 
     }

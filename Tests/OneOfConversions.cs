@@ -43,6 +43,18 @@ public partial class OneOfConversions
     {
 
     }
+    struct CustomEmpty
+    {
+
+    }
+
+    [Case("Case0", typeof(int))]
+    [Case("Case1")]
+    [EnableOneOfConversions(typeof(CustomEmpty))]
+    partial class HasCustomEmptyCases
+    {
+
+    }
 
     [Fact]
     public void FromOneOf()
@@ -119,5 +131,17 @@ public partial class OneOfConversions
 
         Assert.Equal(HasEmptyCases.Case4, (HasEmptyCases)value3);
         Assert.Equal(value3, (OneOf<int, string, None, double, None>)HasEmptyCases.Case4);
+    }
+
+    public void CustomEmptyCase()
+    {
+        OneOf<int, CustomEmpty> value1 = 5;
+        OneOf<int, CustomEmpty> value2 = new CustomEmpty();
+
+        Assert.Equal(HasCustomEmptyCases.Case0(5), (HasCustomEmptyCases)value1);
+        Assert.Equal(value1, (OneOf<int, CustomEmpty>)HasCustomEmptyCases.Case0(5));
+
+        Assert.Equal(HasCustomEmptyCases.Case1, (HasCustomEmptyCases)value2);
+        Assert.Equal(value2, (OneOf<int, CustomEmpty>)HasCustomEmptyCases.Case1);
     }
 }
