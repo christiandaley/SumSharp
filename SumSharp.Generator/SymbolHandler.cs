@@ -141,10 +141,6 @@ internal class SymbolHandler
                 UsePrimitiveStorage ? PrimitiveStorageTypeName :
                 StoreAsObject ? "object" :
                 TypeInfo.Name;
-
-            Access =
-                UsePrimitiveStorage ? $"{PrimitiveStorageFieldName}._{TypeInfo.UnderlyingTypeName ?? TypeInfo.Name}" :
-                FieldName;
         }
 
         public const string PrimitiveStorageTypeName = "global::SumSharp.Internal.PrimitiveStorage";
@@ -164,8 +160,6 @@ internal class SymbolHandler
         public string? FieldName { get; }
 
         public string? FieldType { get; }
-
-        public string? Access { get; }
     }
 
     public StringBuilder Builder { get; }
@@ -704,33 +698,35 @@ internal class SymbolHandler
                 Builder.AppendLine($@"
     ///<summary>The singleton {Name} that holds a {caseData.Name}</summary>
     public static readonly {Name} {caseData.Name} = new({caseData.Index});");
+
+                continue;
             }
-            else if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
-            {
-                Builder.AppendLine($@"
+
+            Builder.AppendLine($@"
     ///<summary>A static factory function that returns a {Name} that holds a {caseData.Name}</summary>
     public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
     {{
-        var ret = new {Name}({caseData.Index});
-        
-        ret.{caseData.Access} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);
+        var ret = new {Name}({caseData.Index});");
 
-        return ret;
-    }}");
+            if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
+            {
+                Builder.AppendLine($@"        
+        ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
+            }
+            else if (caseData.UsePrimitiveStorage)
+            {
+                Builder.AppendLine($@"
+        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{caseData.FieldName}) = value;");
             }
             else
             {
                 Builder.AppendLine($@"
-    ///<summary>Factory function that returns a {Name} holding the {caseData.Name} case</summary>
-    public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
-    {{
-        var ret = new {Name}({caseData.Index});
-        
-        ret.{caseData.Access} = {(caseData.TypeInfo.IsEnum ? $"({caseData.TypeInfo.UnderlyingTypeName})" : "")}value;
-
-        return ret;
-    }}");
+        ret.{caseData.FieldName} = value;");
             }
+
+            Builder.AppendLine(@"
+        return ret;
+    }");
         }
     }
 
@@ -755,25 +751,32 @@ internal class SymbolHandler
                 if (caseData.TypeInfo.IsAlwaysValueType)
                 {
                     Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.Access}).Value;");
+            return System.Runtime.CompilerServices.Unsafe.As<global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.FieldName}).Value;");
                 }
                 else if (caseData.TypeInfo.IsAlwaysRefType)
                 {
                     Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({caseData.Access});");
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}>({caseData.FieldName});");
                 }
                 else
                 {
                     Builder.Append($@"
-            return ({caseData.TypeInfo.Name}){caseData.Access};");
+            return ({caseData.TypeInfo.Name}){caseData.FieldName};");
                 }
+            }
+            else if (caseData.UsePrimitiveStorage)
+            {
+                Builder.Append($@"
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});");
+
             }
             else
             {
                 Builder.Append($@"
-            return {(caseData.TypeInfo.IsEnum ? $"({caseData.TypeInfo.Name})" : "")}{caseData.Access};");
+            return {caseData.FieldName};");
 
             }
+
             Builder.AppendLine(@"
         }
     }");
