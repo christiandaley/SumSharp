@@ -49,9 +49,9 @@ public partial class Storage
     [Case("Case11", typeof(short))]
     [Case("Case12", typeof(ushort))]
     [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(InnerStruct), UnmanagedStorageSize: 24)]
+    [Case("Case14", typeof(InnerStruct), UnmanagedTypeSize: 24)]
     [Case("Case15", typeof(ulong))]
-    [Case("Case16", typeof(InnerStruct), UnmanagedStorageSize: 24)]
+    [Case("Case16", typeof(InnerStruct), UnmanagedTypeSize: 24)]
     [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
@@ -119,7 +119,7 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, UnmanagedStorageSize: 24)]
+    [Case("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, UnmanagedTypeSize: 24)]
     [Case("Case1")]
     partial class InsufficientStorage
     {
@@ -129,6 +129,21 @@ public partial class Storage
             public long Value2;
             public long Value3;
             public long Value4;
+        }
+    }
+
+
+    [Case("Case0", "InnerStruct<(T, T)>", UnmanagedTypeSize: 1)]
+    [Case("Case1", typeof(TypeCode))]
+    [Case("Case2", "T", UnmanagedTypeSize: 1)]
+    [Case("Case3")]
+    [Storage(StorageStrategy.InlineValueTypes)]
+    partial class GenericUnmanagedType<T> where T : unmanaged
+    {
+        public struct InnerStruct<U>
+        {
+            public U Value1;
+            public U Value2;
         }
     }
 
@@ -229,5 +244,15 @@ public partial class Storage
     public void InsufficientStorageThrows()
     {
         Assert.Throws<TypeInitializationException>(() => InsufficientStorage.Case1);
+    }
+
+    [Fact]
+    public void GenericUnmanagedTypeStorage()
+    {
+        Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<double>.Case3);
+        Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<int>.Case3);
+        Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<short>.Case3);
+
+        Assert.True(GenericUnmanagedType<byte>.UnmanagedStorageSize == 4);
     }
 }
