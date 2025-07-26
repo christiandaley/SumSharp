@@ -49,17 +49,17 @@ public partial class Storage
     [Case("Case11", typeof(short))]
     [Case("Case12", typeof(ushort))]
     [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(InnerStruct))]
+    [Case("Case14", typeof(InnerStruct), UnmanagedStorageSize: 100)]
     [Case("Case15", typeof(ulong))]
-    [Case("Case16", typeof(InnerStruct))]
+    [Case("Case16", typeof(InnerStruct), UnmanagedStorageSize: 100)]
     [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
-    internal partial class InlineValueTypes
+    partial class InlineValueTypes
     {
-        public struct InnerStruct
+        internal struct InnerStruct
         {
-            public int X;
-            public int Y;
+            public long X;
+            public long Y;
         }
 
         public enum InnerEnum : sbyte

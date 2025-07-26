@@ -15,6 +15,10 @@ internal class SymbolHandler
 
         public abstract bool IsUnmanaged { get; }
 
+        public abstract int ExplicitUnmanagedStorageSize { get; }
+
+        public abstract bool IsGeneric { get; }
+
         public abstract bool IsAlwaysValueType { get; }
 
         public abstract bool IsAlwaysRefType { get; }
@@ -23,8 +27,30 @@ internal class SymbolHandler
 
         public virtual bool IsAccessibleFromCompilationAssembly => true;
 
-        public class NonArray(INamedTypeSymbol symbol, Compilation compilation) : TypeInfo
+        public class NonArray(INamedTypeSymbol symbol, Compilation compilation, int explicitUnmanagedStorageSize) : TypeInfo
         {
+            private static int UnmanagedTypeSize(INamedTypeSymbol symbol)
+            {
+                return (symbol.EnumUnderlyingType ?? symbol).SpecialType switch
+                {
+                    SpecialType.System_Boolean => sizeof(bool),
+                    SpecialType.System_Byte => sizeof(byte),
+                    SpecialType.System_SByte => sizeof(sbyte),
+                    SpecialType.System_Int16 => sizeof(Int16),
+                    SpecialType.System_UInt16 => sizeof(UInt16),
+                    SpecialType.System_Int32 => sizeof(Int32),
+                    SpecialType.System_UInt32 => sizeof(UInt32),
+                    SpecialType.System_Int64 => sizeof(Int64),
+                    SpecialType.System_UInt64 => sizeof(UInt64),
+                    SpecialType.System_IntPtr => IntPtr.Size,
+                    SpecialType.System_UIntPtr => UIntPtr.Size,
+                    SpecialType.System_Char => sizeof(char),
+                    SpecialType.System_Single => sizeof(Single),
+                    SpecialType.System_Double => sizeof(double),
+                    _ => -1
+                };
+            }
+
             private static bool IsUnmanagedType(ITypeSymbol symbol, IAssemblySymbol compilationAssembly)
             {
                 if (symbol.SpecialType is 
@@ -86,6 +112,18 @@ internal class SymbolHandler
 
             public override bool IsUnmanaged { get; } = IsUnmanagedType(symbol, compilation.Assembly);
 
+            public override int ExplicitUnmanagedStorageSize
+            {
+                get
+                {
+                    var unmanagedTypeSize = UnmanagedTypeSize(symbol);
+
+                    return unmanagedTypeSize > 0 ? unmanagedTypeSize : explicitUnmanagedStorageSize;
+                }
+            }
+
+            public override bool IsGeneric => false;
+
             public override bool IsAccessibleFromCompilationAssembly => compilation.IsSymbolAccessibleWithin(symbol, compilation.Assembly);
 
             public override bool IsAlwaysValueType => symbol.IsValueType;
@@ -101,6 +139,10 @@ internal class SymbolHandler
 
             public override bool IsUnmanaged => false;
 
+            public override int ExplicitUnmanagedStorageSize => -1;
+
+            public override bool IsGeneric => false;
+
             public override bool IsAlwaysValueType => false;
 
             public override bool IsAlwaysRefType => true;
@@ -108,11 +150,15 @@ internal class SymbolHandler
             public override bool IsInterface => false;
         }
 
-        public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol) : TypeInfo
+        public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, int explicitUnmanagedStorageSize) : TypeInfo
         {
             public override string Name => symbol.Name;
 
-            public override bool IsUnmanaged => false;
+            public override bool IsUnmanaged => symbol.HasUnmanagedTypeConstraint;
+
+            public override int ExplicitUnmanagedStorageSize => explicitUnmanagedStorageSize;
+
+            public override bool IsGeneric => true;
 
             public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint;
 
@@ -121,11 +167,15 @@ internal class SymbolHandler
             public override bool IsInterface => false;
         }
 
-        public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface) : TypeInfo
+        public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface, int explicitUnmanagedStorageSize) : TypeInfo
         {
             public override string Name => name;
 
-            public override bool IsUnmanaged => false;
+            public override bool IsUnmanaged => explicitUnmanagedStorageSize > 0;
+
+            public override int ExplicitUnmanagedStorageSize => explicitUnmanagedStorageSize;
+
+            public override bool IsGeneric => true;
 
             public override bool IsAlwaysValueType => (genericTypeInfo & 1) == 0 && !isInterface;
 
@@ -170,11 +220,11 @@ internal class SymbolHandler
 
         public bool StoreAsObject { get; }
 
-        public bool UseUnmanagedStorage => 
-            !StoreAsObject && 
-            TypeInfo != null && 
-            TypeInfo.IsUnmanaged && 
-            TypeInfo.IsAccessibleFromCompilationAssembly;
+        public bool UseUnmanagedStorage =>
+            !StoreAsObject &&
+            TypeInfo != null &&
+            TypeInfo.IsUnmanaged &&
+            ((!TypeInfo.IsGeneric && TypeInfo.IsAccessibleFromCompilationAssembly) || TypeInfo.ExplicitUnmanagedStorageSize > 0);
 
         public string? FieldName { get; }
 
@@ -299,21 +349,23 @@ internal class SymbolHandler
 
                 var caseStorageMode = (int)attr.ConstructorArguments[2].Value!;
 
+                int unmanagedStorageSize = (int)attr.ConstructorArguments[3].Value!;
+
                 int genericTypeInfo =
-                    attr.ConstructorArguments.Length > 3 ?
-                    (int)attr.ConstructorArguments[3].Value! :
+                    attr.ConstructorArguments.Length > 4 ?
+                    (int)attr.ConstructorArguments[4].Value! :
                     -1;
 
                 bool isGenericInterface =
-                    attr.ConstructorArguments.Length > 3 ?
-                    (bool)attr.ConstructorArguments[4].Value! :
+                    attr.ConstructorArguments.Length > 4 ?
+                    (bool)attr.ConstructorArguments[5].Value! :
                     false;
 
                 TypeInfo? typeInfo = null;
 
                 if (caseType is INamedTypeSymbol type)
                 {
-                    typeInfo = new TypeInfo.NonArray(type, compilation);
+                    typeInfo = new TypeInfo.NonArray(type, compilation, unmanagedStorageSize);
                 }
                 else if (caseType is IArrayTypeSymbol arrayType)
                 {
@@ -327,13 +379,13 @@ internal class SymbolHandler
                     {
                         if (genericType.Name == genericTypeName)
                         {
-                            typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType);
+                            typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType, unmanagedStorageSize);
 
                             break;
                         }
                     }
 
-                    typeInfo ??= new TypeInfo.GeneralGenericTypeArgument(genericTypeName, genericTypeInfo, isGenericInterface);
+                    typeInfo ??= new TypeInfo.GeneralGenericTypeArgument(genericTypeName, genericTypeInfo, isGenericInterface, unmanagedStorageSize);
                 }
 
                 var storeAsObject = GetStoreAsObject(storageStrategy, caseStorageMode, typeInfo.IsAlwaysValueType);
@@ -1428,13 +1480,11 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 
     private void EmitUnmanagedStorage()
     {
-        var unmanagedTypes =
+        var unmanagedTypeCases =
             Cases.Where(caseData => caseData.UseUnmanagedStorage)
-            .Select(caseData => caseData.TypeInfo!.Name)
-            .Distinct()
             .ToArray();
 
-        if (unmanagedTypes.Length == 0)
+        if (unmanagedTypeCases.Length == 0)
         {
             return;
         }
@@ -1446,10 +1496,58 @@ namespace SumSharp.Internal.Generated
     internal readonly struct {UnmanagedStorageTypeName}
     {{");
 
-        for (int i = 0; i < unmanagedTypes.Length; ++i)
+        var seenTypes = new HashSet<string>();
+
+        int i = 0;
+
+        foreach (var caseData in unmanagedTypeCases)
         {
-            Builder.Append($@"
-        [System.Runtime.InteropServices.FieldOffset(0)] private readonly {unmanagedTypes[i]} _field{i};");
+            if (!seenTypes.Add(caseData.TypeInfo!.Name))
+            {
+                continue;
+            }
+
+            if (caseData.TypeInfo!.IsAccessibleFromCompilationAssembly)
+            {
+                Builder.Append($@"
+        [System.Runtime.InteropServices.FieldOffset(0)] private readonly {caseData.TypeInfo!.Name} _field{++i};");
+            }
+            else
+            {
+                int storageSize = caseData.TypeInfo!.ExplicitUnmanagedStorageSize;
+
+                for (; storageSize >= sizeof(ulong); storageSize -= sizeof(ulong))
+                {
+                    Builder.Append($@"
+        [System.Runtime.InteropServices.FieldOffset({caseData.TypeInfo!.ExplicitUnmanagedStorageSize - storageSize})] private readonly ulong _field{++i};");
+                }
+                if (storageSize >= sizeof(uint))
+                {
+                    Builder.Append($@"
+        [System.Runtime.InteropServices.FieldOffset({caseData.TypeInfo!.ExplicitUnmanagedStorageSize - storageSize})] private readonly uint _field{++i};");
+
+                    storageSize -= sizeof(uint);
+                }
+                if (storageSize >= sizeof(ushort))
+                {
+                    Builder.Append($@"
+        [System.Runtime.InteropServices.FieldOffset({caseData.TypeInfo!.ExplicitUnmanagedStorageSize - storageSize})] private readonly ushort _field{++i};");
+
+                    storageSize -= sizeof(ushort);
+                }
+                if (storageSize >= sizeof(byte))
+                {
+                    Builder.Append($@"
+        [System.Runtime.InteropServices.FieldOffset({caseData.TypeInfo!.ExplicitUnmanagedStorageSize - storageSize})] private readonly byte _field{++i};");
+
+                    storageSize -= sizeof(byte);
+                }
+
+                if (storageSize != 0)
+                {
+                    throw new InvalidOperationException();
+                }
+            }
         }
 
         Builder.Append(@"    

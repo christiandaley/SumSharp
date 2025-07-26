@@ -21,7 +21,11 @@ public class CaseAttribute : Attribute
     /// <param name="Name">The name that uniquely identifies the case</param>
     /// <param name="Type">The type of value associated with the case</param>
     /// <param name="StorageMode">The storage mode to use</param>
-    public CaseAttribute(string Name, Type Type, StorageMode StorageMode = StorageMode.Default)
+    public CaseAttribute(
+        string Name, 
+        Type Type, 
+        StorageMode StorageMode = StorageMode.Default,
+        int UnmanagedStorageSize = 0)
     {
 
     }
@@ -40,7 +44,8 @@ public class CaseAttribute : Attribute
     public CaseAttribute(
         string Name, 
         string GenericTypeName, 
-        StorageMode StorageMode = StorageMode.Default, 
+        StorageMode StorageMode = StorageMode.Default,
+        int UnmanagedStorageSize = 0,
         GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType, 
         bool IsInterface = false)
     {
