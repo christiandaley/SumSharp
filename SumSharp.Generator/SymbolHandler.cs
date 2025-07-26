@@ -21,9 +21,11 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
-        public class NonArray(INamedTypeSymbol symbol) : TypeInfo
+        public virtual bool IsAccessibleFromCompilationAssembly => true;
+
+        public class NonArray(INamedTypeSymbol symbol, Compilation compilation) : TypeInfo
         {
-            private static bool IsUnmanagedType(ITypeSymbol symbol)
+            private static bool IsUnmanagedType(ITypeSymbol symbol, IAssemblySymbol compilationAssembly)
             {
                 if (symbol.SpecialType is 
                         SpecialType.System_SByte or
@@ -54,37 +56,37 @@ internal class SymbolHandler
                     return true;
                 }
 
-                if (symbol is ITypeParameterSymbol t && t.HasUnmanagedTypeConstraint)
+                if (!SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, compilationAssembly))
                 {
-                    return true;
+                    return false;
                 }
 
-                /*foreach (var member in symbol.GetMembers())
+                if (!symbol.IsValueType)
                 {
-                    // Only consider instance fields
-                    if (member is not IFieldSymbol field || field.IsStatic)
-                        continue;
+                    return false;
+                }
 
-                    // Cannot analyze private/internal fields from other assemblies
-                    if (field.DeclaredAccessibility is not Microsoft.CodeAnalysis.Accessibility.Public &&
-                        !SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, field.ContainingAssembly))
+                foreach (var member in symbol.GetMembers())
+                {
+                    if (member is not IFieldSymbol field || field.IsStatic)
                     {
-                        return false; // Conservative: can't prove it's safe
+                        continue;
                     }
 
-                    // Recurse into field type
-                    if (!IsUnmanaged(field.Type))
+                    if (!IsUnmanagedType(field.Type, compilationAssembly))
+                    {
                         return false;
-                }*/
+                    }
+                }
 
-                return false;
+                return true;
             }
-
-            private readonly bool _isUnmanaged = IsUnmanagedType(symbol);
 
             public override string Name => symbol.ToDisplayString();
 
-            public override bool IsUnmanaged => _isUnmanaged;
+            public override bool IsUnmanaged { get; } = IsUnmanagedType(symbol, compilation.Assembly);
+
+            public override bool IsAccessibleFromCompilationAssembly => compilation.IsSymbolAccessibleWithin(symbol, compilation.Assembly);
 
             public override bool IsAlwaysValueType => symbol.IsValueType;
 
@@ -135,9 +137,7 @@ internal class SymbolHandler
 
     public class CaseData
     {
-        private static readonly Regex _fieldNameRegex = new("[.<>]");
-
-        public CaseData(int index, string name, TypeInfo? typeInfo, bool storeAsObject)
+        public CaseData(string unmanagedStorageTypeName, int index, string name, TypeInfo? typeInfo, bool storeAsObject)
         {
             Index = index;
             Name = name;
@@ -150,19 +150,17 @@ internal class SymbolHandler
             }
 
             FieldName =
-                UseUnmanagedStorage ? PrimitiveStorageFieldName :
+                UseUnmanagedStorage ? UnmanagedStorageFieldName :
                 StoreAsObject ? "_object" :
                 $"_{_fieldNameRegex.Replace(TypeInfo.Name, "_")}";
 
             FieldType =
-                UseUnmanagedStorage ? PrimitiveStorageTypeName :
+                UseUnmanagedStorage ? $"global::SumSharp.Internal.Generated.{unmanagedStorageTypeName}" :
                 StoreAsObject ? "object" :
                 TypeInfo.Name;
         }
 
-        public const string PrimitiveStorageTypeName = "global::SumSharp.Internal.PrimitiveStorage";
-
-        public const string PrimitiveStorageFieldName = "_primitiveStorage";
+        public const string UnmanagedStorageFieldName = "_unmanagedStorage";
 
         public int Index { get; }
 
@@ -172,12 +170,18 @@ internal class SymbolHandler
 
         public bool StoreAsObject { get; }
 
-        public bool UseUnmanagedStorage => !StoreAsObject && TypeInfo != null && TypeInfo.IsUnmanaged;
+        public bool UseUnmanagedStorage => 
+            !StoreAsObject && 
+            TypeInfo != null && 
+            TypeInfo.IsUnmanaged && 
+            TypeInfo.IsAccessibleFromCompilationAssembly;
 
         public string? FieldName { get; }
 
         public string? FieldType { get; }
     }
+
+    private static readonly Regex _fieldNameRegex = new("[.<>]");
 
     public StringBuilder Builder { get; }
 
@@ -223,8 +227,11 @@ internal class SymbolHandler
 
     public string OneOfEmptyCase { get; } = "global::OneOf.Types.None";
 
+    public string UnmanagedStorageTypeName { get; }
+
     public SymbolHandler(
         StringBuilder builder,
+        Compilation compilation,
         INamedTypeSymbol symbol,
         INamedTypeSymbol caseAttrSymbol,
         INamedTypeSymbol enableJsonSerializationAttrSymbol,
@@ -263,6 +270,8 @@ internal class SymbolHandler
 
         ContainingTypes = [.. containingTypes];
 
+        UnmanagedStorageTypeName = _fieldNameRegex.Replace(symbol.ToDisplayString(), "_");
+
         ITypeSymbol[] allGenericTypeArguments =
             [.. symbol.TypeArguments, ..ContainingTypes.SelectMany(t => t.TypeArguments)];
 
@@ -283,7 +292,7 @@ internal class SymbolHandler
 
                 if (attr.ConstructorArguments.Length == 1)
                 {
-                    return new CaseData(i, caseName, null, true);
+                    return new CaseData(UnmanagedStorageTypeName, i, caseName, null, true);
                 }
 
                 var caseType = attr.ConstructorArguments[1].Value!;
@@ -304,7 +313,7 @@ internal class SymbolHandler
 
                 if (caseType is INamedTypeSymbol type)
                 {
-                    typeInfo = new TypeInfo.NonArray(type);
+                    typeInfo = new TypeInfo.NonArray(type, compilation);
                 }
                 else if (caseType is IArrayTypeSymbol arrayType)
                 {
@@ -329,7 +338,7 @@ internal class SymbolHandler
 
                 var storeAsObject = GetStoreAsObject(storageStrategy, caseStorageMode, typeInfo.IsAlwaysValueType);
 
-                return new CaseData(i, caseName, typeInfo, storeAsObject);
+                return new CaseData(UnmanagedStorageTypeName, i, caseName, typeInfo, storeAsObject);
             })
             .ToArray();
 
@@ -341,7 +350,7 @@ internal class SymbolHandler
 
         if (distinctTypes.Count() == 1)
         {
-            Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false))];
+            Cases = [.. Cases.Select(caseData => new CaseData(UnmanagedStorageTypeName, caseData.Index, caseData.Name, caseData.TypeInfo, false))];
         }
 
         UniqueCases =
@@ -557,6 +566,8 @@ internal class SymbolHandler
         EmitEndContainingTypes();
 
         EmitEndNamespace();
+
+        EmitUnmanagedStorage();
 
         return Builder.ToString();
     }
@@ -1413,5 +1424,36 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
         {
             Builder.AppendLine("}");
         }
+    }
+
+    private void EmitUnmanagedStorage()
+    {
+        var unmanagedTypes =
+            Cases.Where(caseData => caseData.UseUnmanagedStorage)
+            .Select(caseData => caseData.TypeInfo!.Name)
+            .Distinct()
+            .ToArray();
+
+        if (unmanagedTypes.Length == 0)
+        {
+            return;
+        }
+
+        Builder.AppendLine($@"
+namespace SumSharp.Internal.Generated
+{{
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
+    internal readonly struct {UnmanagedStorageTypeName}
+    {{");
+
+        for (int i = 0; i < unmanagedTypes.Length; ++i)
+        {
+            Builder.Append($@"
+        [System.Runtime.InteropServices.FieldOffset(0)] private readonly {unmanagedTypes[i]} _field{i};");
+        }
+
+        Builder.Append(@"    
+    }
+}");
     }
 }

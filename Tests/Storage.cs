@@ -54,7 +54,7 @@ public partial class Storage
     [Case("Case16", typeof(InnerStruct))]
     [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
-    partial class InlineValueTypes
+    internal partial class InlineValueTypes
     {
         public struct InnerStruct
         {
@@ -127,14 +127,14 @@ public partial class Storage
     [Fact]
     public void SingleUniqueTypeProperties()
     {
-        Assert.NotNull(typeof(SingleUniqueType).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(SingleUniqueType).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]
     public void VariousStorageModesProperties()
     {
         Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_string", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(SumSharp.Internal.PrimitiveStorage), typeof(VariousStorageModes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(VariousStorageModes).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(4, typeof(VariousStorageModes).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
@@ -142,9 +142,9 @@ public partial class Storage
     [Fact]
     public void InlineValueTypesProperties()
     {
-        Assert.Equal(typeof(InlineValueTypes.InnerStruct), typeof(InlineValueTypes).GetField("_Tests_Storage_InlineValueTypes_InnerStruct", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(object), typeof(InlineValueTypes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(SumSharp.Internal.PrimitiveStorage), typeof(InlineValueTypes).GetField("_primitiveStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(InlineValueTypes).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(3, typeof(InlineValueTypes).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
 
     [Fact]

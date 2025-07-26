@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace SumSharp.Internal;
 
 [StructLayout(LayoutKind.Explicit)]
-public struct PrimitiveStorage
+public struct PrimitiveStorage<T>
 {
     [FieldOffset(0)] public bool _bool;
     [FieldOffset(0)] public byte _byte;

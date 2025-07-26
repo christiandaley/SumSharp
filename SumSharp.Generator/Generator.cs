@@ -65,7 +65,8 @@ public class Generator : IIncrementalGenerator
 
             builder.Clear();
 
-            var symbolHandler = new SymbolHandler(builder, 
+            var symbolHandler = new SymbolHandler(builder,
+                                                compilation,
                                                 (INamedTypeSymbol)symbol, 
                                                 caseAttrSymbol, 
                                                 enableJsonSymbol,
