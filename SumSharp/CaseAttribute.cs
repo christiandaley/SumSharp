@@ -21,6 +21,7 @@ public class CaseAttribute : Attribute
     /// <param name="Name">The name that uniquely identifies the case</param>
     /// <param name="Type">The type of value associated with the case</param>
     /// <param name="StorageMode">The storage mode to use</param>
+    /// <param name="UnmanagedStorageSize">The minimum number of bytes needed to store the unmanaged type (i.e the type's size). It is an error to set this value for a case type that does not meet the unmanaged constraint</param>
     public CaseAttribute(
         string Name, 
         Type Type, 
@@ -39,6 +40,7 @@ public class CaseAttribute : Attribute
     /// <param name="Name">The name that uniquely identifies the case</param>
     /// <param name="GenericTypeName">A string that represents the name of the generic type associated with the case</param>
     /// <param name="StorageMode">The storage mode to use</param>
+    /// <param name="UnmanagedStorageSize">The minimum number of bytes needed to store the unmanaged type (i.e the type's size). It is an error to set this value for a case type that does not meet the unmanaged constraint</param>
     /// <param name="GenericTypeInfo">Info about whether the generic type is a value type, reference type, or potentially both</param>
     /// <param name="IsInterface">Whether or not the generic type is an interface</param>
     public CaseAttribute(

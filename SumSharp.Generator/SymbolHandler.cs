@@ -25,13 +25,15 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
+        public virtual bool IsEnum => false;
+
         public virtual bool IsAccessibleFromCompilationAssembly => true;
 
         public class NonArray(INamedTypeSymbol symbol, Compilation compilation, int explicitUnmanagedStorageSize) : TypeInfo
         {
             private static int UnmanagedTypeSize(INamedTypeSymbol symbol)
             {
-                return (symbol.EnumUnderlyingType ?? symbol).SpecialType switch
+                return symbol.SpecialType switch
                 {
                     SpecialType.System_Boolean => sizeof(bool),
                     SpecialType.System_Byte => sizeof(byte),
@@ -112,15 +114,7 @@ internal class SymbolHandler
 
             public override bool IsUnmanaged { get; } = IsUnmanagedType(symbol, compilation.Assembly);
 
-            public override int ExplicitUnmanagedStorageSize
-            {
-                get
-                {
-                    var unmanagedTypeSize = UnmanagedTypeSize(symbol);
-
-                    return unmanagedTypeSize > 0 ? unmanagedTypeSize : explicitUnmanagedStorageSize;
-                }
-            }
+            public override int ExplicitUnmanagedStorageSize => IsEnum ? UnmanagedTypeSize(symbol.EnumUnderlyingType!) : explicitUnmanagedStorageSize;
 
             public override bool IsGeneric => false;
 
@@ -131,6 +125,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => symbol.IsReferenceType;
 
             public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
+
+            public override bool IsEnum => symbol.TypeKind == TypeKind.Enum;
         }
 
         public class Array(string name) : TypeInfo
@@ -278,6 +274,8 @@ internal class SymbolHandler
     public string OneOfEmptyCase { get; } = "global::OneOf.Types.None";
 
     public string UnmanagedStorageTypeName { get; }
+
+    public CaseData[] ExplicitUnmanagedStorageCases { get; }
 
     public SymbolHandler(
         StringBuilder builder,
@@ -463,6 +461,9 @@ internal class SymbolHandler
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableNullableSymbol))
             .Any();
+
+        ExplicitUnmanagedStorageCases =
+            [.. Cases.Where(caseData => caseData.TypeInfo != null && caseData.TypeInfo.ExplicitUnmanagedStorageSize > 0 && !caseData.TypeInfo.IsEnum)];
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, bool isAlwaysValueType)
@@ -557,6 +558,11 @@ internal class SymbolHandler
         }
 
         EmitFieldsAndConstructor();
+
+        if (ExplicitUnmanagedStorageCases.Length > 0)
+        {
+            EmitUnmanagedStorageRuntimeCheck();
+        }
 
         if (!DisableValueEquality)
         {
@@ -685,7 +691,11 @@ internal class SymbolHandler
     private {NameWithoutTypeArguments}(int index)
     {{
         System.Diagnostics.Debug.Assert(index >= 0 && index < {Cases.Length});
-
+        {(ExplicitUnmanagedStorageCases.Length > 0 ? @"
+#if DEBUG
+        CheckUnmanagedStorage();
+#endif
+" : "")}
         Index = index;
     }}");
 
@@ -699,6 +709,30 @@ internal class SymbolHandler
         }
     }
 
+    public void EmitUnmanagedStorageRuntimeCheck()
+    {
+        Builder.AppendLine($@"
+    private static void CheckUnmanagedStorage()
+    {{");
+
+        foreach (var caseData in ExplicitUnmanagedStorageCases)
+        {
+            Builder.AppendLine($@"
+        global::SumSharp.Internal.UnmanagedChecker<{caseData.TypeInfo!.Name}>.Check({caseData.TypeInfo!.ExplicitUnmanagedStorageSize});
+");
+        }
+
+        Builder.AppendLine($@"
+    }}
+
+#if !DEBUG
+    static {NameWithoutTypeArguments}()
+    {{
+        CheckUnmanagedStorage();
+    }}
+#endif
+");
+    }
     public void EmitEquals()
     { 
         Builder.Append($@"
