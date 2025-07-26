@@ -49,9 +49,9 @@ public partial class Storage
     [Case("Case11", typeof(short))]
     [Case("Case12", typeof(ushort))]
     [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(InnerStruct), UnmanagedStorageSize: 100)]
+    [Case("Case14", typeof(InnerStruct), UnmanagedStorageSize: 16)]
     [Case("Case15", typeof(ulong))]
-    [Case("Case16", typeof(InnerStruct), UnmanagedStorageSize: 100)]
+    [Case("Case16", typeof(InnerStruct), UnmanagedStorageSize: 16)]
     [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes

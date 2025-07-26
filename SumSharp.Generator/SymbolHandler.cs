@@ -691,11 +691,7 @@ internal class SymbolHandler
     private {NameWithoutTypeArguments}(int index)
     {{
         System.Diagnostics.Debug.Assert(index >= 0 && index < {Cases.Length});
-        {(ExplicitUnmanagedStorageCases.Length > 0 ? @"
-#if DEBUG
-        CheckUnmanagedStorage();
-#endif
-" : "")}
+
         Index = index;
     }}");
 
@@ -725,12 +721,10 @@ internal class SymbolHandler
         Builder.AppendLine($@"
     }}
 
-#if !DEBUG
     static {NameWithoutTypeArguments}()
     {{
         CheckUnmanagedStorage();
     }}
-#endif
 ");
     }
     public void EmitEquals()
