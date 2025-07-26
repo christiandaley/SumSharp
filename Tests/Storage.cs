@@ -49,9 +49,9 @@ public partial class Storage
     [Case("Case11", typeof(short))]
     [Case("Case12", typeof(ushort))]
     [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(InnerStruct), UnmanagedStorageSize: 16)]
+    [Case("Case14", typeof(InnerStruct), UnmanagedStorageSize: 24)]
     [Case("Case15", typeof(ulong))]
-    [Case("Case16", typeof(InnerStruct), UnmanagedStorageSize: 16)]
+    [Case("Case16", typeof(InnerStruct), UnmanagedStorageSize: 24)]
     [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
@@ -60,6 +60,7 @@ public partial class Storage
         {
             public long X;
             public long Y;
+            public InnerEnum InnerEnum;
         }
 
         public enum InnerEnum : sbyte
@@ -115,6 +116,19 @@ public partial class Storage
         public class InnerClass<W>
         {
 
+        }
+    }
+
+    [Case("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, UnmanagedStorageSize: 24)]
+    [Case("Case1")]
+    partial class InsufficientStorage
+    {
+        public struct InnerStruct
+        {
+            public long Value1;
+            public long Value2;
+            public long Value3;
+            public long Value4;
         }
     }
 
@@ -209,5 +223,11 @@ public partial class Storage
         Assert.Equal(typeof(object), typeof(GenericWithTypeInfo<int, float, double>).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(GenericWithTypeInfo<int, float, double>.InnerStruct<float>), typeof(GenericWithTypeInfo<int, float, double>).GetField("_InnerStruct_U_", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
         Assert.Equal(typeof(GenericWithTypeInfo<int, float, double>.InnerStruct<double>), typeof(GenericWithTypeInfo<int, float, double>).GetField("_InnerStruct_V_", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+    }
+
+    [Fact]
+    public void InsufficientStorageThrows()
+    {
+        Assert.Throws<TypeInitializationException>(() => InsufficientStorage.Case1);
     }
 }
