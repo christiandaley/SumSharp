@@ -13,11 +13,7 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
-        public abstract string? UnderlyingTypeName { get; }
-
-        public abstract int PrimitiveTypeSize { get; }
-
-        public bool IsPrimitiveType => PrimitiveTypeSize > 0;
+        public abstract bool IsUnmanaged { get; }
 
         public abstract bool IsAlwaysValueType { get; }
 
@@ -25,43 +21,70 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
-        public bool IsEnum => UnderlyingTypeName != null;
-
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
-            public override string Name => symbol.ToDisplayString();
-
-            public override string? UnderlyingTypeName => symbol.EnumUnderlyingType?.ToDisplayString();
-
-            public override int PrimitiveTypeSize
+            private static bool IsUnmanagedType(ITypeSymbol symbol)
             {
-                get
+                if (symbol.SpecialType is 
+                        SpecialType.System_SByte or
+                        SpecialType.System_Byte or
+                        SpecialType.System_Int16 or
+                        SpecialType.System_UInt16 or
+                        SpecialType.System_Int32 or
+                        SpecialType.System_UInt32 or
+                        SpecialType.System_Int64 or
+                        SpecialType.System_UInt64 or
+                        SpecialType.System_IntPtr or
+                        SpecialType.System_UIntPtr or
+                        SpecialType.System_Char or
+                        SpecialType.System_Single or
+                        SpecialType.System_Double or
+                        SpecialType.System_Boolean)
                 {
-                    if (!symbol.IsValueType)
+                        return true;
+                }
+
+                if (symbol is IPointerTypeSymbol)
+                {
+                    return true;
+                }
+
+                if (symbol.TypeKind == TypeKind.Enum)
+                {
+                    return true;
+                }
+
+                if (symbol is ITypeParameterSymbol t && t.HasUnmanagedTypeConstraint)
+                {
+                    return true;
+                }
+
+                /*foreach (var member in symbol.GetMembers())
+                {
+                    // Only consider instance fields
+                    if (member is not IFieldSymbol field || field.IsStatic)
+                        continue;
+
+                    // Cannot analyze private/internal fields from other assemblies
+                    if (field.DeclaredAccessibility is not Microsoft.CodeAnalysis.Accessibility.Public &&
+                        !SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, field.ContainingAssembly))
                     {
-                        return -1;
+                        return false; // Conservative: can't prove it's safe
                     }
 
-                    return (symbol.EnumUnderlyingType ?? symbol).SpecialType switch
-                    {
-                        SpecialType.System_Boolean => sizeof(bool),
-                        SpecialType.System_Byte => sizeof(byte),
-                        SpecialType.System_SByte => sizeof(sbyte),
-                        SpecialType.System_Int16 => sizeof(Int16),
-                        SpecialType.System_UInt16 => sizeof(UInt16),
-                        SpecialType.System_Int32 => sizeof(Int32),
-                        SpecialType.System_UInt32 => sizeof(UInt32),
-                        SpecialType.System_Int64 => sizeof(Int64),
-                        SpecialType.System_UInt64 => sizeof(UInt64),
-                        SpecialType.System_IntPtr => IntPtr.Size,
-                        SpecialType.System_UIntPtr => UIntPtr.Size,
-                        SpecialType.System_Char => sizeof(char),
-                        SpecialType.System_Single => sizeof(Single),
-                        SpecialType.System_Double => sizeof(double),
-                        _ => -1
-                    };
-                }
+                    // Recurse into field type
+                    if (!IsUnmanaged(field.Type))
+                        return false;
+                }*/
+
+                return false;
             }
+
+            private readonly bool _isUnmanaged = IsUnmanagedType(symbol);
+
+            public override string Name => symbol.ToDisplayString();
+
+            public override bool IsUnmanaged => _isUnmanaged;
 
             public override bool IsAlwaysValueType => symbol.IsValueType;
 
@@ -74,9 +97,7 @@ internal class SymbolHandler
         {
             public override string Name => name;
 
-            public override string? UnderlyingTypeName => null;
-
-            public override int PrimitiveTypeSize => -1;
+            public override bool IsUnmanaged => false;
 
             public override bool IsAlwaysValueType => false;
 
@@ -89,9 +110,7 @@ internal class SymbolHandler
         {
             public override string Name => symbol.Name;
 
-            public override string? UnderlyingTypeName => null;
-
-            public override int PrimitiveTypeSize => -1;
+            public override bool IsUnmanaged => false;
 
             public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint;
 
@@ -104,9 +123,7 @@ internal class SymbolHandler
         {
             public override string Name => name;
 
-            public override string? UnderlyingTypeName => null;
-
-            public override int PrimitiveTypeSize => -1;
+            public override bool IsUnmanaged => false;
 
             public override bool IsAlwaysValueType => (genericTypeInfo & 1) == 0 && !isInterface;
 
@@ -133,12 +150,12 @@ internal class SymbolHandler
             }
 
             FieldName =
-                UsePrimitiveStorage ? PrimitiveStorageFieldName :
+                UseUnmanagedStorage ? PrimitiveStorageFieldName :
                 StoreAsObject ? "_object" :
                 $"_{_fieldNameRegex.Replace(TypeInfo.Name, "_")}";
 
             FieldType =
-                UsePrimitiveStorage ? PrimitiveStorageTypeName :
+                UseUnmanagedStorage ? PrimitiveStorageTypeName :
                 StoreAsObject ? "object" :
                 TypeInfo.Name;
         }
@@ -155,7 +172,7 @@ internal class SymbolHandler
 
         public bool StoreAsObject { get; }
 
-        public bool UsePrimitiveStorage => !StoreAsObject && TypeInfo != null && TypeInfo.IsPrimitiveType;
+        public bool UseUnmanagedStorage => !StoreAsObject && TypeInfo != null && TypeInfo.IsUnmanaged;
 
         public string? FieldName { get; }
 
@@ -713,7 +730,7 @@ internal class SymbolHandler
                 Builder.AppendLine($@"        
         ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
             }
-            else if (caseData.UsePrimitiveStorage)
+            else if (caseData.UseUnmanagedStorage)
             {
                 Builder.AppendLine($@"
         System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{caseData.FieldName}) = value;");
@@ -764,7 +781,7 @@ internal class SymbolHandler
             return ({caseData.TypeInfo.Name}){caseData.FieldName};");
                 }
             }
-            else if (caseData.UsePrimitiveStorage)
+            else if (caseData.UseUnmanagedStorage)
             {
                 Builder.Append($@"
             return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});");
