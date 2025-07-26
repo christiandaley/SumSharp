@@ -52,6 +52,7 @@ public partial class Storage
     [Case("Case14", typeof(InnerStruct))]
     [Case("Case15", typeof(ulong))]
     [Case("Case16", typeof(InnerStruct))]
+    [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
     {
@@ -59,6 +60,12 @@ public partial class Storage
         {
             public int X;
             public int Y;
+        }
+
+        public enum InnerEnum : ushort
+        {
+            Value1,
+            Value2
         }
     }
 
@@ -176,6 +183,8 @@ public partial class Storage
         Assert.Equal(123456789ul, InlineValueTypes.Case15(123456789).AsCase15);
 
         Assert.Equal(new InlineValueTypes.InnerStruct { X = 100, Y = -200 }, InlineValueTypes.Case16(new InlineValueTypes.InnerStruct { X = 100, Y = -200 }).AsCase16);
+
+        Assert.Equal(InlineValueTypes.InnerEnum.Value2, InlineValueTypes.Case17(InlineValueTypes.InnerEnum.Value2).AsCase17);
     }
 
     [Fact]
