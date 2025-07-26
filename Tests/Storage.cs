@@ -62,10 +62,10 @@ public partial class Storage
             public int Y;
         }
 
-        public enum InnerEnum : ushort
+        public enum InnerEnum : sbyte
         {
-            Value1,
-            Value2
+            Value1 = -2,
+            Value2 = -1,
         }
     }
 

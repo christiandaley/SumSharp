@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static SumSharp.Generator.SymbolHandler;
 
 namespace SumSharp.Generator;
 
@@ -13,6 +12,8 @@ internal class SymbolHandler
     public abstract class TypeInfo
     {
         public abstract string Name { get; }
+
+        public abstract string? UnderlyingTypeName { get; }
 
         public abstract int PrimitiveTypeSize { get; }
 
@@ -24,9 +25,13 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
+        public bool IsEnum => UnderlyingTypeName != null;
+
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name => symbol.ToDisplayString();
+
+            public override string? UnderlyingTypeName => symbol.EnumUnderlyingType?.ToDisplayString();
 
             public override int PrimitiveTypeSize
             {
@@ -37,7 +42,7 @@ internal class SymbolHandler
                         return -1;
                     }
 
-                    return symbol.SpecialType switch
+                    return (symbol.EnumUnderlyingType ?? symbol).SpecialType switch
                     {
                         SpecialType.System_Boolean => sizeof(bool),
                         SpecialType.System_Byte => sizeof(byte),
@@ -69,6 +74,8 @@ internal class SymbolHandler
         {
             public override string Name => name;
 
+            public override string? UnderlyingTypeName => null;
+
             public override int PrimitiveTypeSize => -1;
 
             public override bool IsAlwaysValueType => false;
@@ -82,6 +89,8 @@ internal class SymbolHandler
         {
             public override string Name => symbol.Name;
 
+            public override string? UnderlyingTypeName => null;
+
             public override int PrimitiveTypeSize => -1;
 
             public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint;
@@ -94,6 +103,8 @@ internal class SymbolHandler
         public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface) : TypeInfo
         {
             public override string Name => name;
+
+            public override string? UnderlyingTypeName => null;
 
             public override int PrimitiveTypeSize => -1;
 
@@ -132,7 +143,7 @@ internal class SymbolHandler
                 TypeInfo.Name;
 
             Access =
-                UsePrimitiveStorage ? $"{PrimitiveStorageFieldName}._{TypeInfo.Name}" :
+                UsePrimitiveStorage ? $"{PrimitiveStorageFieldName}._{TypeInfo.UnderlyingTypeName ?? TypeInfo.Name}" :
                 FieldName;
         }
 
@@ -715,7 +726,7 @@ internal class SymbolHandler
     {{
         var ret = new {Name}({caseData.Index});
         
-        ret.{caseData.Access} = value;
+        ret.{caseData.Access} = {(caseData.TypeInfo.IsEnum ? $"({caseData.TypeInfo.UnderlyingTypeName})" : "")}value;
 
         return ret;
     }}");
@@ -760,7 +771,7 @@ internal class SymbolHandler
             else
             {
                 Builder.Append($@"
-            return {caseData.Access};");
+            return {(caseData.TypeInfo.IsEnum ? $"({caseData.TypeInfo.Name})" : "")}{caseData.Access};");
 
             }
             Builder.AppendLine(@"
