@@ -18,6 +18,12 @@ partial class GenericUnion<T, U>
 
 }
 
+[Case("Case0", "T", UnmanagedTypeSize: 100)]
+partial class GenericUnmanagedStorage<T> where T : unmanaged
+{
+
+}
+
 static partial class GenericUnion
 {
     public partial class StandardJsonConverter : JsonConverterFactory
