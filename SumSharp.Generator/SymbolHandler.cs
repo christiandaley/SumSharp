@@ -28,7 +28,7 @@ internal class SymbolHandler
 
         public virtual bool IsAccessibleFromCompilationAssembly => true;
 
-        public class NonArray(INamedTypeSymbol symbol, Compilation compilation, int userProvidedUnmanagedTypeSize) : TypeInfo
+        public class NonArray(INamedTypeSymbol symbol, Compilation compilation, bool userProvidedIsUnmanaged, int userProvidedUnmanagedTypeSize) : TypeInfo
         {
             private static int UnmanagedTypeSize(INamedTypeSymbol? symbol)
             {
@@ -97,7 +97,10 @@ internal class SymbolHandler
 
             public override string Name => symbol.ToDisplayString();
 
-            public override bool IsUnmanaged { get; } = IsUnmanagedType(symbol, compilation.Assembly);
+            public override bool IsUnmanaged { get; } = 
+                IsUnmanagedType(symbol, compilation.Assembly) || 
+                userProvidedIsUnmanaged || 
+                userProvidedUnmanagedTypeSize > 0;
 
             public override int KnownTypeSize
             {
@@ -105,7 +108,7 @@ internal class SymbolHandler
                 {
                     var knownSize = UnmanagedTypeSize(symbol);
 
-                    return knownSize == -1 ? userProvidedUnmanagedTypeSize : knownSize; 
+                    return knownSize > 0 ? knownSize : userProvidedUnmanagedTypeSize; 
                 }
             }
 
@@ -340,23 +343,25 @@ internal class SymbolHandler
 
                 var caseStorageMode = (int)attr.ConstructorArguments[2].Value!;
 
-                int userProvidedUnmanagedTypeSize = (int)attr.ConstructorArguments[3].Value!;
+                var userProvidedIsUnmanaged = (bool)attr.ConstructorArguments[3].Value!;
+
+                var userProvidedUnmanagedTypeSize = (int)attr.ConstructorArguments[4].Value!;
 
                 int genericTypeInfo =
-                    attr.ConstructorArguments.Length > 4 ?
-                    (int)attr.ConstructorArguments[4].Value! :
+                    attr.ConstructorArguments.Length > 5 ?
+                    (int)attr.ConstructorArguments[5].Value! :
                     -1;
 
                 bool isGenericInterface =
-                    attr.ConstructorArguments.Length > 4 ?
-                    (bool)attr.ConstructorArguments[5].Value! :
+                    attr.ConstructorArguments.Length > 5 ?
+                    (bool)attr.ConstructorArguments[6].Value! :
                     false;
 
                 TypeInfo? typeInfo = null;
 
                 if (caseType is INamedTypeSymbol type)
                 {
-                    typeInfo = new TypeInfo.NonArray(type, compilation, userProvidedUnmanagedTypeSize);
+                    typeInfo = new TypeInfo.NonArray(type, compilation, userProvidedIsUnmanaged, userProvidedUnmanagedTypeSize);
                 }
                 else if (caseType is IArrayTypeSymbol arrayType)
                 {
@@ -700,8 +705,11 @@ internal class SymbolHandler
 
     public void EmitUnmanagedStorageRuntimeCheck()
     {
+        Builder.AppendLine($@"
+    public static readonly int UnmanagedStorageSize = System.Runtime.CompilerServices.Unsafe.SizeOf<{FullUnmanagedStorageTypeName}>();");
+
         var knownSizeTypes =
-            Cases.Where(caseData => caseData.UseUnmanagedStorage && caseData.TypeInfo!.KnownTypeSize > 0)
+            Cases.Where(caseData => caseData.UseUnmanagedStorage)
             .Select(caseData => caseData.TypeInfo!.Name)
             .ToImmutableHashSet();
 
@@ -731,9 +739,7 @@ internal class SymbolHandler
         }
 
         Builder.AppendLine($@"
-    }}
-
-    public static readonly int UnmanagedStorageSize = System.Runtime.CompilerServices.Unsafe.SizeOf<{FullUnmanagedStorageTypeName}>();");
+    }}");
     }
     public void EmitEquals()
     { 

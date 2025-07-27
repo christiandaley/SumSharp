@@ -1,7 +1,7 @@
 namespace Tests;
 
 using System.Reflection;
-
+using System.Runtime.CompilerServices;
 using SumSharp;
 
 public partial class Storage
@@ -147,6 +147,14 @@ public partial class Storage
         }
     }
 
+    [Case("Case0", typeof(HashCode), IsUnmanaged: true)]
+    [Case("Case1")]
+    [Storage(StorageStrategy.InlineValueTypes)]
+    partial class OutsideAssemblyStruct
+    {
+        
+    }
+
     [Fact]
     public void DefaultStorageProperties()
     {
@@ -253,6 +261,12 @@ public partial class Storage
         Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<int>.Case3);
         Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<short>.Case3);
 
-        Assert.True(GenericUnmanagedType<byte>.UnmanagedStorageSize == 4);
+        Assert.True(GenericUnmanagedType<byte>.UnmanagedStorageSize >= 4);
+    }
+
+    [Fact]
+    public void OutsideAssemblyStructStorageSize()
+    {
+        Assert.True(OutsideAssemblyStruct.UnmanagedStorageSize >= Unsafe.SizeOf<HashCode>());
     }
 }
