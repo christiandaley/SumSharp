@@ -343,19 +343,28 @@ internal class SymbolHandler
 
                 var caseStorageMode = (int)attr.ConstructorArguments[2].Value!;
 
-                var userProvidedIsUnmanaged = (bool)attr.ConstructorArguments[3].Value!;
+                bool userProvidedIsUnmanaged = false;
 
-                var userProvidedUnmanagedTypeSize = (int)attr.ConstructorArguments[4].Value!;
+                int userProvidedUnmanagedTypeSize = -1;
 
-                int genericTypeInfo =
-                    attr.ConstructorArguments.Length > 5 ?
-                    (int)attr.ConstructorArguments[5].Value! :
-                    -1;
+                int genericTypeInfo = -1;
 
-                bool isGenericInterface =
-                    attr.ConstructorArguments.Length > 5 ?
-                    (bool)attr.ConstructorArguments[6].Value! :
-                    false;
+                bool isGenericInterface = false;
+
+                if (attr.ConstructorArguments.Length == 5)
+                {
+                    userProvidedIsUnmanaged = (bool)attr.ConstructorArguments[3].Value!;
+
+                    userProvidedUnmanagedTypeSize = (int)attr.ConstructorArguments[4].Value!;
+                }
+                else
+                {
+                    genericTypeInfo = (int)attr.ConstructorArguments[3].Value!;
+
+                    isGenericInterface = (bool)attr.ConstructorArguments[4].Value!;
+
+                    userProvidedUnmanagedTypeSize = (int)attr.ConstructorArguments[5].Value!;
+                }
 
                 TypeInfo? typeInfo = null;
 

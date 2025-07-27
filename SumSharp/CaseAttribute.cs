@@ -44,19 +44,16 @@ public class CaseAttribute : Attribute
     /// <param name="Name">The name that uniquely identifies the case</param>
     /// <param name="GenericTypeName">A string that represents the name of the generic type associated with the case</param>
     /// <param name="StorageMode">The storage mode to use</param>
-    /// <param name="IsUnmanaged">If true, indicates that the type meets the unmanaged constraint. If false, SumSharp will assume that the type is not
-    /// unmanaged unless <paramref name="UnmanagedTypeSize"/> is greater than 0</param>
-    /// <param name="UnmanagedTypeSize">The minimum number of bytes needed to store the unmanaged type (i.e the type's size). Setting this parameter implies <paramref name="IsUnmanaged"/> == true</param>
+    /// <param name="UnmanagedTypeSize">The minimum number of bytes needed to store the unmanaged type (i.e the type's size)</param>
     /// <param name="GenericTypeInfo">Info about whether the generic type is a value type, reference type, or potentially both</param>
     /// <param name="IsInterface">Whether or not the generic type is an interface</param>
     public CaseAttribute(
         string Name, 
         string GenericTypeName, 
         StorageMode StorageMode = StorageMode.Default,
-        bool IsUnmanaged = false,
-        int UnmanagedTypeSize = 0,
-        GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType, 
-        bool IsInterface = false)
+        GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType,
+        bool IsInterface = false,
+        int UnmanagedTypeSize = 0)
     {
 
     }
