@@ -1,4 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿#pragma warning disable CS0649
 
 using SumSharp;
 
@@ -18,18 +18,28 @@ partial class GenericUnion<T, U>
 
 }
 
-[Case("Case0", "T", UnmanagedTypeSize: 100)]
-partial class GenericUnmanagedStorage<T> where T : unmanaged
-{
-
-}
-
 static partial class GenericUnion
 {
     public partial class StandardJsonConverter : JsonConverterFactory
     {
 
     }
+}
+
+struct GenericStruct<T>
+{
+    public T Value1;
+    public T Value2;
+}
+
+
+[Case("Case0", "(GenericStruct<T>, GenericStruct<U>)", ForceUnmanagedStorage: true)]
+[Storage(StorageStrategy.InlineValueTypes, UnmanagedStorageSize: 16)]
+partial class GenericUnmanagedStorage<T, U> 
+    where T : unmanaged
+    where U : unmanaged
+{
+
 }
 
 [JsonSerializable(typeof(GenericUnion<string, double>))]
@@ -44,7 +54,7 @@ partial class JsonSerializerContext : System.Text.Json.Serialization.JsonSeriali
 
 public class Program
 {
-    static void Test1()
+    static void JsonSerializationTest1()
     {
         var value = GenericUnion<string, double>.Case1(4.567);
 
@@ -68,7 +78,7 @@ public class Program
         }
     }
 
-    static void Test2()
+    static void JsonSerializationTest2()
     {
         var value = GenericUnion<Dictionary<int, string[]>, byte>.Case0(new ()
         {
@@ -103,10 +113,55 @@ public class Program
         }
     }
 
+    public static void UnmanagedStorageTest1()
+    {
+
+        try
+        {
+            var _ = GenericUnmanagedStorage<double, ulong>.Case0(default);
+        }
+        catch (TypeInitializationException ex)
+        {
+            //Console.WriteLine(ex);
+
+            return;
+        }
+
+        throw new Exception("UnmanagedStorageTest1 failed");
+    }
+
+    public static void UnmanagedStorageTest2()
+    {
+
+        try
+        {
+            var _ = GenericUnmanagedStorage<float, ulong>.Case0(default);
+        }
+        catch (TypeInitializationException ex)
+        {
+            //Console.WriteLine(ex);
+
+            return;
+        }
+
+        throw new Exception("UnmanagedStorageTest2 failed");
+    }
+
+    public static void UnmanagedStorageTest3()
+    {
+        var _ = GenericUnmanagedStorage<int, float>.Case0(default);
+    }
+
     public static void Main()
     {
-        Test1();
+        JsonSerializationTest1();
 
-        Test2();
+        JsonSerializationTest2();
+
+        UnmanagedStorageTest1();
+
+        UnmanagedStorageTest2();
+
+        UnmanagedStorageTest3();
     }
 }

@@ -29,8 +29,7 @@ public class CaseAttribute : Attribute
         string Name, 
         Type Type, 
         StorageMode StorageMode = StorageMode.Default,
-        bool IsUnmanaged = false,
-        int UnmanagedTypeSize = 0)
+        bool ForceUnmanagedStorage = false)
     {
 
     }
@@ -51,9 +50,9 @@ public class CaseAttribute : Attribute
         string Name, 
         string GenericTypeName, 
         StorageMode StorageMode = StorageMode.Default,
+        bool ForceUnmanagedStorage = false,
         GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType,
-        bool IsInterface = false,
-        int UnmanagedTypeSize = 0)
+        bool IsInterface = false)
     {
 
     }

@@ -1,3 +1,5 @@
+#pragma warning disable CS0183
+
 namespace Tests;
 
 using SumSharp;

@@ -1,3 +1,5 @@
+#pragma warning disable CS0649
+
 namespace Tests;
 
 using System.Reflection;
@@ -49,9 +51,9 @@ public partial class Storage
     [Case("Case11", typeof(short))]
     [Case("Case12", typeof(ushort))]
     [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(InnerStruct), UnmanagedTypeSize: 24)]
+    [Case("Case14", typeof(InnerStruct), ForceUnmanagedStorage: true)]
     [Case("Case15", typeof(ulong))]
-    [Case("Case16", typeof(InnerStruct), UnmanagedTypeSize: 24)]
+    [Case("Case16", typeof(InnerStruct), ForceUnmanagedStorage: true)]
     [Case("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
@@ -119,8 +121,9 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, UnmanagedTypeSize: 24)]
+    [Case("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, ForceUnmanagedStorage: true)]
     [Case("Case1")]
+    [Storage(UnmanagedStorageSize: 1)]
     partial class InsufficientStorage
     {
         public struct InnerStruct
@@ -133,11 +136,11 @@ public partial class Storage
     }
 
 
-    [Case("Case0", "InnerStruct<(T, T)>", UnmanagedTypeSize: 1)]
+    [Case("Case0", "InnerStruct<(T, T)>", ForceUnmanagedStorage: true)]
     [Case("Case1", typeof(TypeCode))]
-    [Case("Case2", "T", UnmanagedTypeSize: 1)]
+    [Case("Case2", "T", ForceUnmanagedStorage: true)]
     [Case("Case3")]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(StorageStrategy.InlineValueTypes, UnmanagedStorageSize: 4)]
     partial class GenericUnmanagedType<T> where T : unmanaged
     {
         public struct InnerStruct<U>
@@ -147,7 +150,19 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", typeof(HashCode), IsUnmanaged: true)]
+    [Case("Case0", typeof(InnerStruct))]
+    [Case("Case1")]
+    [Storage(StorageStrategy.InlineValueTypes)]
+    partial class InsideAssemblyStruct
+    {
+        public struct InnerStruct
+        {
+            public double Value1;
+            public double Value2;
+        }
+    }
+
+    [Case("Case0", typeof(HashCode), ForceUnmanagedStorage: true)]
     [Case("Case1")]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class OutsideAssemblyStruct
@@ -255,13 +270,28 @@ public partial class Storage
     }
 
     [Fact]
-    public void GenericUnmanagedTypeStorage()
+    public void GenericUnmanagedTypeProperties()
+    {
+        Assert.Equal(typeof(SumSharp.Internal.Generated.Tests_Storage_GenericUnmanagedType_T_.UnmanagedStorage), typeof(GenericUnmanagedType<byte>).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(2, typeof(GenericUnmanagedType<byte>).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
+    }
+
+    [Fact]
+    public void GenericUnmanagedTypeThrows()
     {
         Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<double>.Case3);
         Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<int>.Case3);
         Assert.Throws<TypeInitializationException>(() => GenericUnmanagedType<short>.Case3);
 
         Assert.True(GenericUnmanagedType<byte>.UnmanagedStorageSize >= 4);
+    }
+
+
+    [Fact]
+    public void InsideAssemblyStructProperties()
+    {
+        Assert.NotNull(typeof(InsideAssemblyStruct).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(2, typeof(InsideAssemblyStruct).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
 
     [Fact]

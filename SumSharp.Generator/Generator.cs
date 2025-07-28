@@ -67,8 +67,8 @@ public class Generator : IIncrementalGenerator
 
             var symbolHandler = new SymbolHandler(builder,
                                                 compilation,
-                                                (INamedTypeSymbol)symbol, 
-                                                caseAttrSymbol, 
+                                                (INamedTypeSymbol)symbol,
+                                                caseAttrSymbol,
                                                 enableJsonSymbol,
                                                 storageSymbol,
                                                 disableValueEqualitySymbol,
@@ -77,7 +77,7 @@ public class Generator : IIncrementalGenerator
 
             symbolHandler.Emit();
 
-            var fileName = $"{symbolHandler.Namespace}_{string.Join("_", symbolHandler.ContainingTypes.Select(symbol => symbol.Name))}_{symbolHandler.NameWithoutTypeArguments}.g.cs";
+            var fileName = $"{symbolHandler.FileFriendlyName}.g.cs";
 
             context.AddSource(fileName, SourceText.From(builder.ToString(), Encoding.UTF8));
         }

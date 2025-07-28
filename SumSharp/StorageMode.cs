@@ -19,7 +19,7 @@ public enum StorageMode
     /// <summary>
     /// The case's value is stored "inline". Primitive types (<see cref="int"/>, <see cref="double"/>, etc.) and 
     /// <see cref="Enum"/> types share a single field for their storage. Other cases are given a dedicated field of their corresponding 
-    /// type. Prevents heap allocation for value type cases.
+    /// type. Prevents boxing of value type cases.
     /// </summary>
     Inline = 2,
 }
