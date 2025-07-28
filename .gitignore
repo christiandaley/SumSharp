@@ -3,3 +3,4 @@ obj/
 bin/
 Generated/
 *.csproj.user
+publish/

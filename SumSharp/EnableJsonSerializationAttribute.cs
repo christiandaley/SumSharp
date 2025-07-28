@@ -10,7 +10,7 @@ namespace SumSharp;
 /// <param name="AddJsonConverterAttribute">If true, adds a JsonConverter attribute to the generated type.
 /// This parameter is ignored if the generated type is nested inside a generic type.</param>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-public class EnableJsonSerializationAttribute(JsonSerializationSupport Support = JsonSerializationSupport.Standard, bool AddJsonConverterAttribute = true) : Attribute
+public class EnableJsonSerializationAttribute(JsonSerializationSupport Support = JsonSerializationSupport.Standard, bool AddJsonConverterAttribute = true, bool UsingAOTCompilation = false) : Attribute
 {
 
 }

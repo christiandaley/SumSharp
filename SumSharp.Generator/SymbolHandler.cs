@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static SumSharp.Generator.SymbolHandler;
 
 namespace SumSharp.Generator;
 
@@ -246,6 +245,8 @@ internal class SymbolHandler
 
     public bool AddJsonConverterAttribute { get; } = false;
 
+    public bool UsingAOTCompilation { get; }
+
     public bool DisableValueEquality { get; } = false;
 
     public bool IsRecord { get; }
@@ -418,8 +419,11 @@ internal class SymbolHandler
 
             EnableNewtonsoftJsonSerialization = (support & 2) != 0;
 
+            UsingAOTCompilation = enableJsonSerializationData.ConstructorArguments[2].Value as bool? ?? false;
+
             AddJsonConverterAttribute =
                 !HasGenericContainingTypes &&
+                !UsingAOTCompilation &&
                 (enableJsonSerializationData.ConstructorArguments[1].Value as bool? ?? false);
         }
 
@@ -549,9 +553,14 @@ internal class SymbolHandler
 
         EmitFieldsAndConstructor();
 
-        if (HasUnmanagedStorage)
+        if (HasUnmanagedStorage || UsingAOTCompilation)
         {
-            EmitUnmanagedStorageRuntimeCheck();
+            EmitStaticConstructor();
+
+            if (HasUnmanagedStorage)
+            {
+                EmitUnmanagedStorageSize();
+            }
         }
 
         if (!DisableValueEquality)
@@ -703,23 +712,41 @@ internal class SymbolHandler
         }
     }
 
-    public void EmitUnmanagedStorageRuntimeCheck()
+    public void EmitStaticConstructor()
     {
-        Builder.AppendLine($@"
-    public static readonly int UnmanagedStorageSize = System.Runtime.CompilerServices.Unsafe.SizeOf<{FullUnmanagedStorageTypeName}>();");
+        Builder.Append($@"
+    static {NameWithoutTypeArguments}()
+    {{");
 
-        var knownSizeTypes =
-            Cases.Where(caseData => caseData.UseUnmanagedStorage)
-            .Select(caseData => caseData.TypeInfo!.Name)
-            .ToImmutableHashSet();
-
-        if (knownSizeTypes.Count == 0)
+        if (HasUnmanagedStorage)
         {
-            return;
+
+            var unmanagedTypes =
+                Cases.Where(caseData => caseData.UseUnmanagedStorage)
+                .Select(caseData => caseData.TypeInfo!.Name)
+                .ToImmutableHashSet();
+
+            foreach (var type in unmanagedTypes)
+            {
+                Builder.Append($@"
+        CheckUnmanagedStorage<{type}>();");
+            }
         }
 
+        if (UsingAOTCompilation && EnableStandardJsonSerialization)
+        {
+            Builder.AppendLine(@"
+        var _ = new StandardJsonConverter();");
+        }
+
+            Builder.AppendLine(@"
+    }");
+    }
+
+    public void EmitUnmanagedStorageSize()
+    {
         Builder.Append($@"
-    private static void CheckUnmanagedStorage<TUnmanaged__>() where TUnmanaged__ : unmanaged
+    static void CheckUnmanagedStorage<TUnmanaged__>() where TUnmanaged__ : unmanaged
     {{
         var requiredStorage = System.Runtime.CompilerServices.Unsafe.SizeOf<TUnmanaged__>();
 
@@ -727,19 +754,10 @@ internal class SymbolHandler
         {{
             throw new ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
         }}
-    }}
-
-    static {NameWithoutTypeArguments}()
-    {{");
-
-        foreach (var type in knownSizeTypes)
-        {
-            Builder.Append($@"
-        CheckUnmanagedStorage<{type}>();");
-        }
+    }}");
 
         Builder.AppendLine($@"
-    }}");
+    public static readonly int UnmanagedStorageSize = System.Runtime.CompilerServices.Unsafe.SizeOf<{FullUnmanagedStorageTypeName}>();");
     }
     public void EmitEquals()
     { 

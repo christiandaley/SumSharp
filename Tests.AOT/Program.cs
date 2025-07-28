@@ -12,7 +12,7 @@ namespace Tests.AOT;
 [Case("Case0", "T")]
 [Case("Case1", "U")]
 [JsonConverter(typeof(GenericUnion.StandardJsonConverter))]
-[EnableJsonSerialization(AddJsonConverterAttribute: false)]
+[EnableJsonSerialization(UsingAOTCompilation: true)]
 partial class GenericUnion<T, U>
 {
 
