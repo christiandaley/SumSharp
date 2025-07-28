@@ -707,7 +707,7 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     ///<summary>Default constructor that ensures System.Text.Json generated source code will compile. Will always throw.</summary>
     ///<exception cref=""InvalidOperationException"">Always thrown when the default constructor is invoked</exception>
-    public {NameWithoutTypeArguments}() => throw new System.InvalidOperationException(""The default constructor for {Name} exists only to ensure that System.Text.Json generated source code will compile. It is an error to invoke the default constructor. You must use the generated JsonConverter to serialize/deserialize an instance of {Name}."");
+    public {NameWithoutTypeArguments}() => throw new System.InvalidOperationException(""The default constructor for {Name} exists only to ensure that System.Text.Json generated source code will compile. It is an error to invoke the default constructor. You must use the generated StnadardJsonConverter to serialize/deserialize an instance of {Name}."");
 ");
         }
     }
@@ -735,7 +735,7 @@ internal class SymbolHandler
 
         if (UsingAOTCompilation && EnableStandardJsonSerialization)
         {
-            Builder.AppendLine(@"
+            Builder.Append(@"
         var _ = new StandardJsonConverter();");
         }
 
