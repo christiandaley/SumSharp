@@ -27,13 +27,13 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore -r win-x64
 
       - name: Run unit tests
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-restore
 
       - name: Build AOT tests
-        run: dotnet publish ./Tests.AOT/Tests.AOT.csproj --configuration Release -o ./Tests.AOT/publish
+        run: dotnet publish ./Tests.AOT/Tests.AOT.csproj --configuration Release --no-restore -o ./Tests.AOT/publish
 
       - name: Run AOT test executable
         run: ./Tests.AOT/publish/Tests.AOT.exe
