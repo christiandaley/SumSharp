@@ -133,6 +133,7 @@ public partial class OneOfConversions
         Assert.Equal(value3, (OneOf<int, string, None, double, None>)HasEmptyCases.Case4);
     }
 
+    [Fact]
     public void CustomEmptyCase()
     {
         OneOf<int, CustomEmpty> value1 = 5;
