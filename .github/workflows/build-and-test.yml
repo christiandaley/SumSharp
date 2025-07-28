@@ -29,9 +29,6 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore
-
       - name: Run unit tests
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --verbosity normal
 
