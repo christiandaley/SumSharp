@@ -70,7 +70,7 @@ public class Program
             throw new Exception($"Invalid json: {json}");
         }
 
-        var deserializedValue = JsonSerializer.Deserialize(json, JsonSerializerContext.Default.GenericUnionStringDouble);
+        var deserializedValue = JsonSerializer.Deserialize(json, JsonSerializerContext.Default.GenericUnionStringDouble)!;
 
         if (value != deserializedValue)
         {
@@ -101,7 +101,7 @@ public class Program
             throw new Exception($"Invalid json: {json}");
         }
 
-        var deserializedValue = JsonSerializer.Deserialize(json, JsonSerializerContext.Default.GenericUnionDictionaryInt32StringArrayByte);
+        var deserializedValue = JsonSerializer.Deserialize(json, JsonSerializerContext.Default.GenericUnionDictionaryInt32StringArrayByte)!;
 
         if (value.AsCase0[0].Single() != "0")
         {
@@ -120,10 +120,8 @@ public class Program
         {
             var _ = GenericUnmanagedStorage<double, ulong>.Case0(default);
         }
-        catch (TypeInitializationException ex)
+        catch (TypeInitializationException)
         {
-            //Console.WriteLine(ex);
-
             return;
         }
 
@@ -137,10 +135,8 @@ public class Program
         {
             var _ = GenericUnmanagedStorage<float, ulong>.Case0(default);
         }
-        catch (TypeInitializationException ex)
+        catch (TypeInitializationException)
         {
-            //Console.WriteLine(ex);
-
             return;
         }
 
