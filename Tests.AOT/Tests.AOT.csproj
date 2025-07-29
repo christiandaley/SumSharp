@@ -8,8 +8,8 @@
     <PublishAot>true</PublishAot>
     <TrimMode>full</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <PlatformTarget>x64</PlatformTarget>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
