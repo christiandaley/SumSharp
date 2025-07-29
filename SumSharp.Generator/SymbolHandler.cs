@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -722,9 +722,9 @@ internal class SymbolHandler
         {
 
             var unmanagedTypes =
-                new HashSet<string>(
-                    Cases.Where(caseData => caseData.UseUnmanagedStorage)
-                    .Select(caseData => caseData.TypeInfo!.Name));
+                Cases.Where(caseData => caseData.UseUnmanagedStorage)
+                .Select(caseData => caseData.TypeInfo!.Name)
+                .ToImmutableHashSet();
 
             foreach (var type in unmanagedTypes)
             {
