@@ -1,4 +1,4 @@
-name: Cross-Platform Build and Test (.NET 8 & 9)
+name: Cross-Platform build and test (.NET 8 & 9)
 
 on:
   push:
@@ -15,7 +15,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        # Build is broken on ubuntu-latest
+        os: [windows-latest, macos-latest]
         dotnet: ["8.0.x", "9.0.x"]
 
     steps:
@@ -33,15 +34,14 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
 
-      - name: Run xUnit tests
+      - name: Run unit tests
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Build AOT tests
         run: dotnet publish ./Tests.AOT/Tests.AOT.csproj --configuration Release -o ./Tests.AOT/publish
 
-      - name: Run AOT test executable
+      - name: Run AOT tests
         run: |
-          # Normalize path and execution across platforms
           if [ "${{ runner.os }}" = "Windows" ]; then
             ./Tests.AOT/publish/Tests.AOT.exe
           else

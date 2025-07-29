@@ -731,6 +731,17 @@ internal class SymbolHandler
                 Builder.Append($@"
         CheckUnmanagedStorage<{type}>();");
             }
+
+            Builder.Append($@"
+        static void CheckUnmanagedStorage<TUnmanaged__>() where TUnmanaged__ : unmanaged
+        {{
+            var requiredStorage = System.Runtime.CompilerServices.Unsafe.SizeOf<TUnmanaged__>();
+
+            if (UnmanagedStorageSize < requiredStorage)
+            {{
+                throw new ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
+            }}
+        }}");
         }
 
         if (UsingAOTCompilation && EnableStandardJsonSerialization)
@@ -745,17 +756,6 @@ internal class SymbolHandler
 
     public void EmitUnmanagedStorageSize()
     {
-        Builder.Append($@"
-    static void CheckUnmanagedStorage<TUnmanaged__>() where TUnmanaged__ : unmanaged
-    {{
-        var requiredStorage = System.Runtime.CompilerServices.Unsafe.SizeOf<TUnmanaged__>();
-
-        if (UnmanagedStorageSize < requiredStorage)
-        {{
-            throw new ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
-        }}
-    }}");
-
         Builder.AppendLine($@"
     public static readonly int UnmanagedStorageSize = System.Runtime.CompilerServices.Unsafe.SizeOf<{FullUnmanagedStorageTypeName}>();");
     }
