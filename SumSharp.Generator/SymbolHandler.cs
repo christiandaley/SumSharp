@@ -722,9 +722,9 @@ internal class SymbolHandler
         {
 
             var unmanagedTypes =
-                Cases.Where(caseData => caseData.UseUnmanagedStorage)
-                .Select(caseData => caseData.TypeInfo!.Name)
-                .ToImmutableHashSet();
+                new HashSet<string>(
+                    Cases.Where(caseData => caseData.UseUnmanagedStorage)
+                    .Select(caseData => caseData.TypeInfo!.Name));
 
             foreach (var type in unmanagedTypes)
             {
