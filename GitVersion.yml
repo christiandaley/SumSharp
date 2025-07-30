@@ -5,7 +5,7 @@ branches:
   main:
     increment: Minor
     prevent-increment-of-merged-branch-version: true
-    tag: alpha
+    tag: rc
 
   release:
     regex: ^release[/-]
