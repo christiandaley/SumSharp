@@ -3,13 +3,13 @@
 namespace SumSharp;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
-public class CaseAttribute : Attribute
+public class UnionCaseAttribute : Attribute
 {
     /// <summary>
     /// An empty case with name <paramref name="Name"/>
     /// </summary>
     /// <param name="Name">The name that uniquely identifies the case</param>
-    public CaseAttribute(string Name)
+    public UnionCaseAttribute(string Name)
     {
 
     }
@@ -23,7 +23,7 @@ public class CaseAttribute : Attribute
     /// <param name="StorageMode">The storage mode to use</param>
     /// <param name="ForceUnmanagedStorage">If true, indicates that the type meets the unmanaged constraint and may share storage with other unmanaged types. If false, SumSharp will attempt to determine on its own if the type meets the unmanaged constraint.
     /// See the README for details on when SumSharp can automatically recognize a type as unmanaged.</param>
-    public CaseAttribute(
+    public UnionCaseAttribute(
         string Name, 
         Type Type, 
         StorageMode StorageMode = StorageMode.Default,
@@ -47,7 +47,7 @@ public class CaseAttribute : Attribute
     /// <param name="GenericTypeInfo">Info about whether the generic type is a value type, reference type, or potentially both. Providing this is never required
     /// but can help SumSharp emit more efficient code</param>
     /// <param name="IsInterface">Whether or not the generic type is an interface</param>
-    public CaseAttribute(
+    public UnionCaseAttribute(
         string Name, 
         string GenericTypeName, 
         StorageMode StorageMode = StorageMode.Default,

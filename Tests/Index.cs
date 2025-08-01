@@ -5,29 +5,29 @@ using SumSharp;
 public partial class Index
 {
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1")]
     partial class IntOrNone
     {
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1", typeof(string))]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1", typeof(string))]
     partial class IntOrString
     {
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1")]
     partial struct IntOrNoneStruct
     {
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1", typeof(string))]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1", typeof(string))]
     partial struct IntOrStringStruct
     {
 

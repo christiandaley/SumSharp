@@ -5,8 +5,8 @@ using SumSharp;
 public partial class If
 {
 
-    [Case("Case0", typeof(double))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(double))]
+    [UnionCase("Case1")]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class DoubleOrNone
     {

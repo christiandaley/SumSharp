@@ -5,15 +5,15 @@ using SumSharp;
 public partial class As
 {
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1")]
     partial class StringOrNone
     {
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1")]
     partial class IntOrNone
     {
 

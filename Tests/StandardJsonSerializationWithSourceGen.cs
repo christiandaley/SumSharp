@@ -22,11 +22,11 @@ internal partial class StandardJsonSerializationWithSourceGenJsonContext : JsonS
 
 public partial class StandardJsonSerializationWithSourceGen
 {
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(NestedRecord1))]
-    [Case("Case2")]
-    [Case("Case3", typeof(int))]
-    [Case("Case4", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(NestedRecord1))]
+    [UnionCase("Case2")]
+    [UnionCase("Case3", typeof(int))]
+    [UnionCase("Case4", typeof(double))]
     [Storage(StorageStrategy.InlineValueTypes)]
     [EnableJsonSerialization(AddJsonConverterAttribute: false)]
     [JsonConverter(typeof(StandardJsonConverter))]
@@ -43,9 +43,9 @@ public partial class StandardJsonSerializationWithSourceGen
         }
     }
 
-    [Case("Case0", "T")]
-    [Case("Case1", "U[]")]
-    [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", "U[]")]
+    [UnionCase("Case2", "GenericType<V, Dictionary<T, T>, U>")]
     [EnableJsonSerialization(AddJsonConverterAttribute: false)]
     [JsonConverter(typeof(GenericType.StandardJsonConverter))]
     internal partial class GenericType<T, U, V>
@@ -68,9 +68,9 @@ public partial class StandardJsonSerializationWithSourceGen
     {
         public partial class Nested1<U>
         {
-            [Case("Case0", "T")]
-            [Case("Case1", "U")]
-            [Case("Case2", "V")]
+            [UnionCase("Case0", "T")]
+            [UnionCase("Case1", "U")]
+            [UnionCase("Case2", "V")]
             [EnableJsonSerialization]
             public partial class Nested2<V>
             {

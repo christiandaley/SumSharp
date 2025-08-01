@@ -6,11 +6,11 @@ using Newtonsoft.Json.Linq;
 
 public partial class NewtonsoftJsonSerialization
 {
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(NestedRecord1))]
-    [Case("Case2")]
-    [Case("Case3", typeof(int))]
-    [Case("Case4", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(NestedRecord1))]
+    [UnionCase("Case2")]
+    [UnionCase("Case3", typeof(int))]
+    [UnionCase("Case4", typeof(double))]
     [Storage(StorageStrategy.InlineValueTypes)]
     [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
     partial class NonGenericType
@@ -21,9 +21,9 @@ public partial class NewtonsoftJsonSerialization
         }
     }
 
-    [Case("Case0", "T")]
-    [Case("Case1", "U[]")]
-    [Case("Case2", "GenericType<V, Dictionary<T, T>, U>")]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", "U[]")]
+    [UnionCase("Case2", "GenericType<V, Dictionary<T, T>, U>")]
     [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
     partial struct GenericType<T, U, V>
         where T : notnull
@@ -33,9 +33,9 @@ public partial class NewtonsoftJsonSerialization
 
     }
 
-    [Case("Case0", "T")]
-    [Case("Case1", "InnerStruct<T>")]
-    [Case("Case2", "(StandardAndNewtonsoft<U, T>, StandardAndNewtonsoft<T, U>)")]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", "InnerStruct<T>")]
+    [UnionCase("Case2", "(StandardAndNewtonsoft<U, T>, StandardAndNewtonsoft<T, U>)")]
     [EnableJsonSerialization(JsonSerializationSupport.Standard | JsonSerializationSupport.Newtonsoft)]
     partial class StandardAndNewtonsoft<T, U>
     {
@@ -49,9 +49,9 @@ public partial class NewtonsoftJsonSerialization
     {
         public partial class Nested1<U>
         {
-            [Case("Case0", "T")]
-            [Case("Case1", "U")]
-            [Case("Case2", "V")]
+            [UnionCase("Case0", "T")]
+            [UnionCase("Case1", "U")]
+            [UnionCase("Case2", "V")]
             [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
             public partial class Nested2<V>
             {
@@ -61,14 +61,14 @@ public partial class NewtonsoftJsonSerialization
     }
     partial record struct Container()
     {
-        [Case("Case0", typeof(int))]
+        [UnionCase("Case0", typeof(int))]
         [EnableJsonSerialization]
         public partial class ReferenceType
         {
 
         }
 
-        [Case("Case0", typeof(int))]
+        [UnionCase("Case0", typeof(int))]
         [EnableJsonSerialization]
         public partial struct ValueType
         {

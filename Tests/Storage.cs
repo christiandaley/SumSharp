@@ -8,28 +8,28 @@ using SumSharp;
 
 public partial class Storage
 {
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(bool))]
-    [Case("Case2", typeof(byte[]))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(bool))]
+    [UnionCase("Case2", typeof(byte[]))]
     partial struct DefaultStorage
     {
 
     }
 
-    [Case("Case0", typeof(double))]
-    [Case("Case1", typeof(double))]
+    [UnionCase("Case0", typeof(double))]
+    [UnionCase("Case1", typeof(double))]
     partial class SingleUniqueType
     {
 
     }
 
-    [Case("Case0", typeof(string), StorageMode.Inline)]
-    [Case("Case1", typeof(bool))]
-    [Case("Case2", typeof(byte[]))]
-    [Case("Case3", typeof(int), StorageMode.AsObject)]
-    [Case("Case4", typeof(float))]
-    [Case("Case5", typeof(IntPtr))]
-    [Case("Case6", typeof(UIntPtr))]
+    [UnionCase("Case0", typeof(string), StorageMode.Inline)]
+    [UnionCase("Case1", typeof(bool))]
+    [UnionCase("Case2", typeof(byte[]))]
+    [UnionCase("Case3", typeof(int), StorageMode.AsObject)]
+    [UnionCase("Case4", typeof(float))]
+    [UnionCase("Case5", typeof(IntPtr))]
+    [UnionCase("Case6", typeof(UIntPtr))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class VariousStorageModes
     {
@@ -37,24 +37,24 @@ public partial class Storage
     }
 
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1", typeof(float))]
-    [Case("Case2", typeof(double))]
-    [Case("Case3", typeof(string))]
-    [Case("Case4", typeof(int[]))]
-    [Case("Case5", typeof(int))]
-    [Case("Case6", typeof(Single))]
-    [Case("Case7", typeof(long))]
-    [Case("Case8", typeof(double))]
-    [Case("Case9", typeof(long))]
-    [Case("Case10", typeof(ushort))]
-    [Case("Case11", typeof(short))]
-    [Case("Case12", typeof(ushort))]
-    [Case("Case13", typeof(short))]
-    [Case("Case14", typeof(InnerStruct), ForceUnmanagedStorage: true)]
-    [Case("Case15", typeof(ulong))]
-    [Case("Case16", typeof(InnerStruct), ForceUnmanagedStorage: true)]
-    [Case("Case17", typeof(InnerEnum))]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1", typeof(float))]
+    [UnionCase("Case2", typeof(double))]
+    [UnionCase("Case3", typeof(string))]
+    [UnionCase("Case4", typeof(int[]))]
+    [UnionCase("Case5", typeof(int))]
+    [UnionCase("Case6", typeof(Single))]
+    [UnionCase("Case7", typeof(long))]
+    [UnionCase("Case8", typeof(double))]
+    [UnionCase("Case9", typeof(long))]
+    [UnionCase("Case10", typeof(ushort))]
+    [UnionCase("Case11", typeof(short))]
+    [UnionCase("Case12", typeof(ushort))]
+    [UnionCase("Case13", typeof(short))]
+    [UnionCase("Case14", typeof(InnerStruct), ForceUnmanagedStorage: true)]
+    [UnionCase("Case15", typeof(ulong))]
+    [UnionCase("Case16", typeof(InnerStruct), ForceUnmanagedStorage: true)]
+    [UnionCase("Case17", typeof(InnerEnum))]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
     {
@@ -73,9 +73,9 @@ public partial class Storage
     }
 
 
-    [Case("Case0", "T")]
-    [Case("Case1", "U")]
-    [Case("Case2", "V")]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", "U")]
+    [UnionCase("Case2", "V")]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InlineValueTypesGeneric<T, U, V> where U : struct
     {
@@ -89,10 +89,10 @@ public partial class Storage
         public static partial class Generic2<V> where V : struct
         {
 
-            [Case("Case0", "T")]
-            [Case("Case1", "U")]
-            [Case("Case2", "V")]
-            [Case("Case3", "W")]
+            [UnionCase("Case0", "T")]
+            [UnionCase("Case1", "U")]
+            [UnionCase("Case2", "V")]
+            [UnionCase("Case3", "W")]
             [Storage(StorageStrategy.InlineValueTypes)]
 
             public partial struct NestedGeneric<W> where W : class
@@ -102,11 +102,11 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", "Dictionary<int, T>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
-    [Case("Case1", "InnerStruct<U>", GenericTypeInfo: GenericTypeInfo.ValueType)]
-    [Case("Case2", "IEnumerable<V>", IsInterface: true)]
-    [Case("Case3", "InnerStruct<V>", GenericTypeInfo: GenericTypeInfo.ValueType)]
-    [Case("Case4", "InnerClass<V>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
+    [UnionCase("Case0", "Dictionary<int, T>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
+    [UnionCase("Case1", "InnerStruct<U>", GenericTypeInfo: GenericTypeInfo.ValueType)]
+    [UnionCase("Case2", "IEnumerable<V>", IsInterface: true)]
+    [UnionCase("Case3", "InnerStruct<V>", GenericTypeInfo: GenericTypeInfo.ValueType)]
+    [UnionCase("Case4", "InnerClass<V>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class GenericWithTypeInfo<T, U, V>
     {
@@ -121,8 +121,8 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, ForceUnmanagedStorage: true)]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, ForceUnmanagedStorage: true)]
+    [UnionCase("Case1")]
     [Storage(UnmanagedStorageSize: 1)]
     partial class InsufficientStorage
     {
@@ -136,10 +136,10 @@ public partial class Storage
     }
 
 
-    [Case("Case0", "InnerStruct<(T, T)>", ForceUnmanagedStorage: true)]
-    [Case("Case1", typeof(TypeCode))]
-    [Case("Case2", "T", ForceUnmanagedStorage: true)]
-    [Case("Case3")]
+    [UnionCase("Case0", "InnerStruct<(T, T)>", ForceUnmanagedStorage: true)]
+    [UnionCase("Case1", typeof(TypeCode))]
+    [UnionCase("Case2", "T", ForceUnmanagedStorage: true)]
+    [UnionCase("Case3")]
     [Storage(StorageStrategy.InlineValueTypes, UnmanagedStorageSize: 4)]
     partial class GenericUnmanagedType<T> where T : unmanaged
     {
@@ -150,8 +150,8 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", typeof(InnerStruct))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(InnerStruct))]
+    [UnionCase("Case1")]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class InsideAssemblyStruct
     {
@@ -162,8 +162,8 @@ public partial class Storage
         }
     }
 
-    [Case("Case0", typeof(HashCode), ForceUnmanagedStorage: true)]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(HashCode), ForceUnmanagedStorage: true)]
+    [UnionCase("Case1")]
     [Storage(StorageStrategy.InlineValueTypes)]
     partial class OutsideAssemblyStruct
     {

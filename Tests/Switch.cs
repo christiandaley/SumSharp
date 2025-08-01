@@ -5,8 +5,8 @@ using SumSharp;
 public partial class Switch
 {
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1")]
     partial class IntOrNone
     {
 
