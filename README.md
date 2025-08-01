@@ -21,6 +21,7 @@ A highly configurable C# discriminated union library
    - [SumSharp's approach](#sumsharps-approach)
 5. [Usage Guide](#usage-guide)
    - [Controlling the memory layout](#controlling-the-memory-layout)
+   - [ValueTuple cases][#tuple-cases]
    - [Struct union types](#struct-union-types)
    - [Generic interface types](#generic-interface-types)
    - [JSON serialization](#json-serialization)
@@ -364,6 +365,31 @@ StructUnionType x = default;
 x.IfDouble(value =>
 {
   Console.WriteLine(value);
+});
+```
+
+### ValueTuple cases
+
+If a case holds a `System.ValueTuple` (not `System.Tuple`), special overloads of the case constructors and if functions are generated that make it easier to construct and work with the tuple values.
+
+```csharp
+[UnionCase("Case0", (int, string))]
+partial class UnionWithTuple
+{
+
+}
+
+// ...
+
+// You can either pass a tuple or pass each tuple value as a separate argument
+var x = UnionWithTuple.Case0(5, "abc");
+
+// "If" handler functions can accept either the tuple itself or break apart the tuple
+// into individual arguments.
+x.IfCase0((i, s) =>
+{
+  Console.WriteLine(i);
+  Console.WriteLine(s);
 });
 ```
 
