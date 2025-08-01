@@ -145,7 +145,7 @@ public partial class If
         }, () => false));
     }
 
-    /*[Fact]
+    [Fact]
     public async Task TupleIfAsync()
     {
         await ContainsTuple<bool, long>.Case0(1, 5.0).IfCase0((i, d) =>
@@ -165,6 +165,8 @@ public partial class If
         }, () =>
         {
             Assert.True(false);
+
+            return Task.CompletedTask;
         });
 
         Assert.True(await ContainsTuple<bool, long>.Case2(true, 100).IfCase2Else((b, l) =>
@@ -180,7 +182,7 @@ public partial class If
 
         Assert.True(await ContainsTuple<bool, long>.Case3(dict, (false, 5)).IfCase3Else((d, t) =>
         {
-            return Task.FromResult(d.Count == 2 && !t.Item1 && t.Item2 == 5);
-        }, _ => Task.FromResult(false)));
-    }*/
+            return Task.FromResult(d[true].Single() == 1 && d[false].Single() == 2 && !t.Item1 && t.Item2 == 5);
+        }, () => Task.FromResult(false)));
+    }
 }
