@@ -190,13 +190,13 @@ Additionally, developers can choose to have their union types be either a class 
 
 ### Controlling the memory layout
 
-The memory layout of a union can be controlled on a case-by-case basis using the `UnionCaseStorage` argument to the `UnionCase` attribute, and on a union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
+The memory layout of a union can be controlled on a case-by-case basis using the `Storage` argument to the `UnionCase` attribute, and on a union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
 
 #### UnionCaseStorage
 
 ```csharp
-[UnionCase("String", typeof(string), UnionCaseStorage: UnionCaseStorage.AsObject)]
-[UnionCase("Double", typeof(double), UnionCaseStorage: UnionCaseStorage.Inline)]
+[UnionCase("String", typeof(string), Storage: UnionCaseStorage.AsObject)]
+[UnionCase("Double", typeof(double), Storage: UnionCaseStorage.Inline)]
 partial class StringOrDouble
 {
 
