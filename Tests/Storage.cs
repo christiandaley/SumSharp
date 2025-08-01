@@ -16,9 +16,25 @@ public partial class Storage
 
     }
 
-    [UnionCase("Case0", typeof(double))]
-    [UnionCase("Case1", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(bool))]
+    [UnionCase("Case2", typeof(byte[]))]
+    [UnionStorage(UnionStorageStrategy.OneObject)]
+    partial struct AsOneObject
+    {
+
+    }
+
+    [UnionCase("Case0", typeof(string[]))]
+    [UnionCase("Case1", typeof(string[]))]
     partial class SingleUniqueType
+    {
+
+    }
+
+    [UnionCase("Case0", typeof(int[][]), Storage: UnionCaseStorage.Inline)]
+    [UnionCase("Case1", typeof(int[]), Storage: UnionCaseStorage.Inline)]
+    partial class ArrayAndNestedArray
     {
 
     }
@@ -30,7 +46,6 @@ public partial class Storage
     [UnionCase("Case4", typeof(float))]
     [UnionCase("Case5", typeof(IntPtr))]
     [UnionCase("Case6", typeof(UIntPtr))]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class VariousStorageTypes
     {
 
@@ -55,7 +70,6 @@ public partial class Storage
     [UnionCase("Case15", typeof(ulong))]
     [UnionCase("Case16", typeof(InnerStruct), ForceUnmanagedStorage: true)]
     [UnionCase("Case17", typeof(InnerEnum))]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
     {
         internal struct InnerStruct
@@ -76,7 +90,6 @@ public partial class Storage
     [UnionCase("Case0", "T")]
     [UnionCase("Case1", "U")]
     [UnionCase("Case2", "V")]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class InlineValueTypesGeneric<T, U, V> where U : struct
     {
 
@@ -93,7 +106,6 @@ public partial class Storage
             [UnionCase("Case1", "U")]
             [UnionCase("Case2", "V")]
             [UnionCase("Case3", "W")]
-            [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
 
             public partial struct NestedGeneric<W> where W : class
             {
@@ -107,7 +119,6 @@ public partial class Storage
     [UnionCase("Case2", "IEnumerable<V>", IsInterface: true)]
     [UnionCase("Case3", "InnerStruct<V>", GenericTypeInfo: GenericTypeInfo.ValueType)]
     [UnionCase("Case4", "InnerClass<V>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class GenericWithTypeInfo<T, U, V>
     {
         public struct InnerStruct<W>
@@ -140,7 +151,7 @@ public partial class Storage
     [UnionCase("Case1", typeof(TypeCode))]
     [UnionCase("Case2", "T", ForceUnmanagedStorage: true)]
     [UnionCase("Case3")]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes, UnmanagedStorageSize: 4)]
+    [UnionStorage(UnmanagedStorageSize: 4)]
     partial class GenericUnmanagedType<T> where T : unmanaged
     {
         public struct InnerStruct<U>
@@ -152,7 +163,6 @@ public partial class Storage
 
     [UnionCase("Case0", typeof(InnerStruct))]
     [UnionCase("Case1")]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class InsideAssemblyStruct
     {
         public struct InnerStruct
@@ -164,7 +174,6 @@ public partial class Storage
 
     [UnionCase("Case0", typeof(HashCode), ForceUnmanagedStorage: true)]
     [UnionCase("Case1")]
-    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class OutsideAssemblyStruct
     {
         
@@ -174,12 +183,21 @@ public partial class Storage
     public void DefaultStorageProperties()
     {
         Assert.Equal(typeof(object), typeof(DefaultStorage).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(DefaultStorage).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(3, typeof(DefaultStorage).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
+    }
+
+    [Fact]
+    public void AsOneObjectProperties()
+    {
+        Assert.Equal(typeof(object), typeof(AsOneObject).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(2, typeof(AsOneObject).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
 
     [Fact]
     public void SingleUniqueTypeProperties()
     {
-        Assert.NotNull(typeof(SingleUniqueType).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(SingleUniqueType).GetField("_string_", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
     }
 
     [Fact]

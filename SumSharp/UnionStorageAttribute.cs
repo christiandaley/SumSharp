@@ -11,7 +11,7 @@ namespace SumSharp;
 /// the size of the largest unmanaged type that will be stored. Providing this value is only neccessary if you want to
 /// used shared storage for generic unmanaged types</param>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-public class UnionStorageAttribute(UnionStorageStrategy Strategy = UnionStorageStrategy.Default, int UnmanagedStorageSize = 0) : Attribute
+public class UnionStorageAttribute(UnionStorageStrategy Strategy = UnionStorageStrategy.InlineValueTypes, int UnmanagedStorageSize = 0) : Attribute
 {
 
 }

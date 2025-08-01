@@ -217,7 +217,7 @@ partial class StringOrDouble
 }
 ```
 
-Using the `InlineValueTypes` storage strategy results in all value type cases being stored "inline". It is equivalent to specifying `UnionCaseStorage.Inline` for all value type cases. The other possible strategies are `OneObject` (uses a single object field to store all cases) and `Default` (explained below).
+Using the `InlineValueTypes` storage strategy results in all value type cases being stored "inline". It is equivalent to specifying `UnionCaseStorage.Inline` for all value type cases. The other possible strategy is `OneObject`, which uses a single object field to store all cases. _`InlineValueTypes` is the default storage strategy and could have been omitted in the above example._
 
 **Note that the `UnionCaseStorage` of an individual case takes precedent over the `UnionStorageStrategy` of a union, so if we had specified `UnionCaseStorage.AsObject` for the `Double` case then the double value would end up being boxed and use the same `object` field that the `String` case uses.**
 
@@ -232,9 +232,9 @@ The rules for determining how cases store their values are:
    - `Default`: The overall `UnionStorageStrategy` is used to determine the storage for the case.
 
 2. If the `UnionStorageStrategy` for the union is:
-   - `OneObject`: Cases with `Default` storage have their values stored in an `object` field shared with all other cases that are stored as an object.
    - `InlineValueTypes`: Cases with `Default` storage have their values stored inline if `SumSharp` detects that the type is a value type, otherwise in an `object` field shared with all other cases that are stored as an object
-   - `Default`: All cases are stored as an object _unless there is exactly one unique type across all cases and none of the cases have `AsObject` storage, in which case inline storage is used for that type._
+   - `OneObject`: Cases with `Default` storage have their values stored in an `object` field shared with all other cases that are stored as an object.
+3. Single type optimization: If there is exactly one unique type across all cases, none of the cases use `AsObject` storage, and the storage strategy for the union is `InlineValueTypes`, inline storage will be used for that unique type even if it's a reference type or unconstrained generic type. For non-generic reference types this has no effect other than the member field being the same type as the stored value rather than being an `object`. For unconstrained generic types this has the effect of preventing boxing whenever the substituted type ends up being a value type.
 
 #### What exactly is inline storage?
 
@@ -264,7 +264,6 @@ struct UnmanagedStruct
 [UnionCase("Case1", typeof(UnmanagedStruct))]
 [UnionCase("Case2", typeof(System.HashCode))]
 [UnionCase("Case3", "T")]
-[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class Example<T> where T : unmanaged
 {
 
@@ -282,7 +281,7 @@ To force `SumSharp` to use unmanaged storage for all four types, we can pass `Fo
 [UnionCase("Case1", typeof(UnmanagedStruct))]
 [UnionCase("Case2", typeof(System.HashCode), ForceUnmanagedStorage: true)]
 [UnionCase("Case3", "T", ForceUnmanagedStorage: true)]
-[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes, UnmanagedStorageSize: 32)]
+[UnionStorage(UnmanagedStorageSize: 32)]
 partial class Example<T> where T : unmanaged
 {
 
@@ -310,7 +309,6 @@ For generic cases where the type is a type argument to the union type (or one of
 ```csharp
 [UnionCase("Case0", "T")]
 [UnionCase("Case1", "U")]
-[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class GenericUnion<T, U>
   where T : struct
 {
@@ -318,7 +316,7 @@ partial class GenericUnion<T, U>
 }
 ```
 
-Because `T` has a `struct` constraint and the storage strategy is `InlineValueTypes`, `T` will be stored inline. `U` will be stored as an `object` because it is not constrained to be a value type.
+Because `T` has a `struct` constraint and the storage strategy is by default `InlineValueTypes`, `T` will be stored inline. `U` will be stored as an `object` because it is not constrained to be a value type.
 
 `SumSharp` is not able to determine constraints for more general generic cases.
 
@@ -330,18 +328,16 @@ struct GenericStruct<T>
 
 
 [UnionCase("Case0", "GenericStruct<T>")]
-[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class GenericUnion<T>
 {
 
 }
 ```
 
-Here, `GenericStruct<T>` is always a value type but `SumSharp` cannot determine that, so even with the `InlineValueTypes` storage strategy it will end up being stored on the heap as an object. To avoid this pass `GenericTypeInfo: GenericTypeInfo.ValueType` to the case constructor.
+Here, `GenericStruct<T>` is always a value type but `SumSharp` cannot determine that, so even with the default `InlineValueTypes` storage strategy it will end up being stored on the heap as an object. To avoid this pass `GenericTypeInfo: GenericTypeInfo.ValueType` to the case constructor.
 
 ```csharp
 [UnionCase("Case0", "GenericStruct<T>", GenericTypeInfo: GenericTypeInfo.ValueType)]
-[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class GenericUnion<T>
 {
 
