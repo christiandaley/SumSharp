@@ -8,36 +8,36 @@ using OneOf.Types;
 public partial class OneOfConversions
 {
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1", typeof(string))]
-    [Case("Case2", typeof(double))]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1", typeof(string))]
+    [UnionCase("Case2", typeof(double))]
     [EnableOneOfConversions]
     partial class IntOrStringOrDouble
     {
 
     }
 
-    [Case("Case0", typeof(IEnumerable<int>))]
-    [Case("Case1", typeof(float))]
+    [UnionCase("Case0", typeof(IEnumerable<int>))]
+    [UnionCase("Case1", typeof(float))]
     [EnableOneOfConversions]
     partial class ContainsInterface
     {
 
     }
 
-    [Case("Case0", "T")]
-    [Case("Case1", typeof(float))]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", typeof(float))]
     [EnableOneOfConversions]
     partial class Wrapper<T>
     {
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1", typeof(string))]
-    [Case("Case2")]
-    [Case("Case3", typeof(double))]
-    [Case("Case4")]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1", typeof(string))]
+    [UnionCase("Case2")]
+    [UnionCase("Case3", typeof(double))]
+    [UnionCase("Case4")]
     [EnableOneOfConversions]
     partial class HasEmptyCases
     {
@@ -48,8 +48,8 @@ public partial class OneOfConversions
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1")]
     [EnableOneOfConversions(typeof(CustomEmpty))]
     partial class HasCustomEmptyCases
     {
@@ -134,7 +134,7 @@ public partial class OneOfConversions
     }
 
     [Fact]
-    public void CustomEmptyCase()
+    public void CustomEmptyUnionCase()
     {
         OneOf<int, CustomEmpty> value1 = 5;
         OneOf<int, CustomEmpty> value2 = new CustomEmpty();

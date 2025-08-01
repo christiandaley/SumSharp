@@ -7,30 +7,30 @@ using SumSharp;
 public partial class Equals
 {
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(double))]
     partial class StringOrDouble
     {
 
     }
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(double))]
     [DisableValueEquality]
     partial class StringOrDoubleNoValueEquality
     {
 
     }
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(double))]
     partial record StringOrDoubleRecord
     {
 
     }
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1", typeof(double))]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(double))]
     partial record struct StringOrDoubleRecordStruct
     {
 

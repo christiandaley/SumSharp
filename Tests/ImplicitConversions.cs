@@ -5,33 +5,33 @@ using SumSharp;
 public partial class Conversions
 {
 
-    [Case("Case0", typeof(double))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(double))]
+    [UnionCase("Case1")]
     partial class DoubleOrNone
     {
 
     }
 
-    [Case("Case0", "T")]
-    [Case("Case1", typeof(int))]
-    [Case("Case2", typeof(string))]
-    [Case("Case3", typeof(double))]
-    [Case("Case4", typeof(int))]
-    [Case("Case5")]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", typeof(int))]
+    [UnionCase("Case2", typeof(string))]
+    [UnionCase("Case3", typeof(double))]
+    [UnionCase("Case4", typeof(int))]
+    [UnionCase("Case5")]
     partial class GenericType<T>
     {
 
     }
 
-    [Case("Case0", typeof(int))]
-    [Case("Case1", typeof(IEnumerable<int>))]
+    [UnionCase("Case0", typeof(int))]
+    [UnionCase("Case1", typeof(IEnumerable<int>))]
     partial class IntOrIntEnumerable
     {
 
     }
 
-    [Case("Case0", "T")]
-    [Case("Case1")]
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1")]
     partial class Wrapper<T>
     {
 

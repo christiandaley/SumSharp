@@ -55,13 +55,13 @@ dotnet add package SumSharp
 
 ### Creating a DU type
 
-To create a discriminted union type, simply declare a partial class/struct and add `Case` attributes that describe the different cases.
+To create a discriminted union type, simply declare a partial class/struct and add `UnionCase` attributes that describe the different cases.
 
 ```csharp
 using SumSharp;
 
-[Case("String", typeof(string))]
-[Case("Double", typeof(double))]
+[UnionCase("String", typeof(string))]
+[UnionCase("Double", typeof(double))]
 partial class StringOrDouble
 {
 
@@ -106,8 +106,8 @@ Console.WriteLine(y.AsDouble);
 `SumSharp` supports empty cases that carry no value. An empty case requires only a name to be supplied.
 
 ```csharp
-[Case("String", typeof(string))]
-[Case("Empty")]
+[UnionCase("String", typeof(string))]
+[UnionCase("Empty")]
 partial class StringOrEmpty
 {
 
@@ -121,8 +121,8 @@ Instead of a static function, empty case constructors are a static, get-only pro
 Case types can be generic. To define a generic case you must supply the **name** of the generic type rather than the type itself because C\# does not allow for generic types to be used as arguments to attributes.
 
 ```csharp
-[Case("Some", "T")]
-[Case("Empty")]
+[UnionCase("Some", "T")]
+[UnionCase("Empty")]
 partial class Optional<T>
 {
 
@@ -190,51 +190,51 @@ Additionally, developers can choose to have their union types be either a class 
 
 ### Controlling the memory layout
 
-The memory layout of a union can be controlled on a case-by-case basis using the `StorageMode` argument to the `Case` attribute, and on union-wide basis using the `StorageStrategy` argument to the `Storage` attribute.
+The memory layout of a union can be controlled on a case-by-case basis using the `UnionCaseStorage` argument to the `UnionCase` attribute, and on a union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
 
-#### StorageMode
+#### UnionCaseStorage
 
 ```csharp
-[Case("String", typeof(string), StorageMode: StorageMode.AsObject)]
-[Case("Double", typeof(double), StorageMode: StorageMode.Inline)]
+[UnionCase("String", typeof(string), UnionCaseStorage: UnionCaseStorage.AsObject)]
+[UnionCase("Double", typeof(double), UnionCaseStorage: UnionCaseStorage.Inline)]
 partial class StringOrDouble
 {
 
 }
 ```
 
-The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-exactly-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `StorageMode.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
+The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-exactly-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `UnionCaseStorage.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
 
-#### StorageStrategy
+#### UnionStorageStrategy
 
 ```csharp
-[Case("String", typeof(string))]
-[Case("Double", typeof(double))]
-[Storage(Strategy: StorageStrategy.InlineValueTypes)]
+[UnionCase("String", typeof(string))]
+[UnionCase("Double", typeof(double))]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class StringOrDouble
 {
 
 }
 ```
 
-Using the `InlineValueTypes` storage strategy results in all value type cases being stored "inline". It is equivalent to specifying `StorageMode.Inline` for all value type cases. The other possible values for `StorageStrategy` are `OneObject` (uses a single object field to store all cases) and `Default` (explained below).
+Using the `InlineValueTypes` storage strategy results in all value type cases being stored "inline". It is equivalent to specifying `UnionCaseStorage.Inline` for all value type cases. The other possible strategy is `OneObject`, which uses a single object field to store all cases. _`InlineValueTypes` is the default storage strategy and could have been omitted in the above example._
 
-**Note that the `StorageMode` of an individual case takes precedent over the `StorageStrategy` for the whole union, so if we had specified `StorageMode.AsObject` for the `Double` case then the double value would end up being boxed and use the same `object` field that the `String` case uses.**
+**Note that the `UnionCaseStorage` of an individual case takes precedent over the `UnionStorageStrategy` of a union, so if we had specified `UnionCaseStorage.AsObject` for the `Double` case then the double value would end up being boxed and use the same `object` field that the `String` case uses.**
 
 #### Rules for how storage is determined
 
 The rules for determining how cases store their values are:
 
-1. If the `StorageMode` for an individual case is:
+1. If the `UnionCaseStorage` for an individual case is:
 
    - `AsObject`: The value is stored in an `object` field shared with all other cases that are stored as an object.
    - `Inline`: The value is stored inline.
-   - `Default`: The overall `StorageStrategy` of the union is used to determine the storage for the case.
+   - `Default`: The overall `UnionStorageStrategy` is used to determine the storage for the case.
 
-2. If the `StorageStrategy` for the union is:
-   - `OneObject`: Cases with a `Default` storage mode have their values stored in an `object` field shared with all other cases that are stored as an object.
-   - `InlineValueTypes`: Cases with a `Default` storage mode have their values stored inline if `SumSharp` detects that the type is a value type, otherwise in an `object` field shared with all other cases that are stored as an object
-   - `Default`: All cases are stored as an object _unless there is exactly one unique type across all cases and none of the cases have an `AsObject` storage mode, in which case inline storage is used for that type._
+2. If the `UnionStorageStrategy` for the union is:
+   - `InlineValueTypes`: Cases with `Default` storage have their values stored inline if `SumSharp` detects that the type is a value type, otherwise in an `object` field shared with all other cases that are stored as an object
+   - `OneObject`: Cases with `Default` storage have their values stored in an `object` field shared with all other cases that are stored as an object.
+3. Single type optimization: If there is exactly one unique type across all cases, none of the cases use `AsObject` storage, and the storage strategy for the union is `InlineValueTypes`, inline storage will be used for that unique type even if it's a reference type or unconstrained generic type. For non-generic reference types this has no effect other than the member field being the same type as the stored value rather than being an `object`. For unconstrained generic types this has the effect of preventing boxing whenever the substituted type ends up being a value type.
 
 #### What exactly is inline storage?
 
@@ -260,11 +260,10 @@ struct UnmanagedStruct
   public byte Value;
 }
 
-[Case("Case0", typeof(int))]
-[Case("Case1", typeof(UnmanagedStruct))]
-[Case("Case2", typeof(System.HashCode))]
-[Case("Case3", "T")]
-[Storage(Strategy: StorageStrategy.InlineValueTypes)]
+[UnionCase("Case0", typeof(int))]
+[UnionCase("Case1", typeof(UnmanagedStruct))]
+[UnionCase("Case2", typeof(System.HashCode))]
+[UnionCase("Case3", "T")]
 partial class Example<T> where T : unmanaged
 {
 
@@ -275,14 +274,14 @@ Here we have four possible types: `int`, `UnmanagedStruct`, `System.HashCode`, a
 
 #### Forcing unmanaged storage
 
-To force `SumSharp` to use unmanaged storage for all four types, we can pass `ForceUnmanagedStorage: true` to `Case2` and `Case3`. Additionally, because `T` has unknown size we must also pass the `UnmanagedStorageSize` argument to the `Storage` attribute to explicitly define how many bytes of storage should be reserved for storing unmanaged types. The `UnmanagedStorageSize` overrides any determination that `SumSharp` makes about the size of unmanaged types.
+To force `SumSharp` to use unmanaged storage for all four types, we can pass `ForceUnmanagedStorage: true` to `Case2` and `Case3`. Additionally, because `T` has unknown size we must also pass the `UnmanagedStorageSize` argument to the `UnionStorage` attribute to explicitly define how many bytes of storage should be reserved for storing unmanaged types. The `UnmanagedStorageSize` overrides any determination that `SumSharp` makes about the size of unmanaged types.
 
 ```csharp
-[Case("Case0", typeof(int))]
-[Case("Case1", typeof(UnmanagedStruct))]
-[Case("Case2", typeof(System.HashCode), ForceUnmanagedStorage: true)]
-[Case("Case3", "T", ForceUnmanagedStorage: true)]
-[Storage(Strategy: StorageStrategy.InlineValueTypes, UnmanagedStorageSize: 32)]
+[UnionCase("Case0", typeof(int))]
+[UnionCase("Case1", typeof(UnmanagedStruct))]
+[UnionCase("Case2", typeof(System.HashCode), ForceUnmanagedStorage: true)]
+[UnionCase("Case3", "T", ForceUnmanagedStorage: true)]
+[UnionStorage(UnmanagedStorageSize: 32)]
 partial class Example<T> where T : unmanaged
 {
 
@@ -308,9 +307,8 @@ var y = Example<(double, double, long, long, ulong)>.Case0(4); // TypeInitializa
 For generic cases where the type is a type argument to the union type (or one of its containing types) `SumSharp` is able to detect `struct` and `class` constraints.
 
 ```csharp
-[Case("Case0", "T")]
-[Case("Case1", "U")]
-[Storage(Strategy: StorageStrategy.InlineValueTypes)]
+[UnionCase("Case0", "T")]
+[UnionCase("Case1", "U")]
 partial class GenericUnion<T, U>
   where T : struct
 {
@@ -318,7 +316,7 @@ partial class GenericUnion<T, U>
 }
 ```
 
-Because `T` has a `struct` constraint and the storage strategy is `InlineValueTypes`, `T` will be stored inline. `U` will be stored as an `object` because it is not constrained to be a value type.
+Because `T` has a `struct` constraint and the storage strategy is by default `InlineValueTypes`, `T` will be stored inline. `U` will be stored as an `object` because it is not constrained to be a value type.
 
 `SumSharp` is not able to determine constraints for more general generic cases.
 
@@ -329,19 +327,17 @@ struct GenericStruct<T>
 }
 
 
-[Case("Case0", "GenericStruct<T>")]
-[Storage(Strategy: StorageStrategy.InlineValueTypes)]
+[UnionCase("Case0", "GenericStruct<T>")]
 partial class GenericUnion<T>
 {
 
 }
 ```
 
-Here, `GenericStruct<T>` is always a value type but `SumSharp` cannot determine that, so even with the `InlineValueTypes` storage strategy it will end up being stored on the heap as an object. To avoid this pass `GenericTypeInfo: GenericTypeInfo.ValueType` to the case constructor.
+Here, `GenericStruct<T>` is always a value type but `SumSharp` cannot determine that, so even with the default `InlineValueTypes` storage strategy it will end up being stored on the heap as an object. To avoid this pass `GenericTypeInfo: GenericTypeInfo.ValueType` to the case constructor.
 
 ```csharp
-[Case("Case0", "GenericStruct<T>", GenericTypeInfo: GenericTypeInfo.ValueType)]
-[Storage(Strategy: StorageStrategy.InlineValueTypes)]
+[UnionCase("Case0", "GenericStruct<T>", GenericTypeInfo: GenericTypeInfo.ValueType)]
 partial class GenericUnion<T>
 {
 
@@ -355,8 +351,8 @@ You can also pass `GenericTypeInfo.ReferenceType` for generic types that you kno
 As mentioned before, `SumSharp` allows for struct and record struct union types. It's important to remember that **any struct union instance that is initialized to `default` is in an invalid state and its behavior is undefined**. The only valid way to create a `SumSharp` union is to use one of its case constructors or conversion operators. C\# allows for any struct instance to be initialized to a `default` value which involves initializing every instance member field to its default value. A `SumSharp` union initialized in such a way is in an invalid, undefined state. Using it may result in exceptions being thrown, or may silently work. **`SumSharp` makes no guarantees about the runtime behavior of default initialized struct unions.**
 
 ```csharp
-[Case("Case0", typeof(double))]
-[Case("Case1", typeof(int))]
+[UnionCase("Case0", typeof(double))]
+[UnionCase("Case1", typeof(int))]
 partial struct StructUnionType
 {
 
@@ -378,7 +374,7 @@ x.IfDouble(value =>
 As shown in the quickstart guide, `SumSharp` supports generic discriminated unions. If a generic union has a case with a generic interface type, you must add `IsInterface: true` to the case attribute so the generator knows that it is an interface type. This is neccessary because generic types are specified by name rather than a `typeof` expression, so `SumSharp` does not have access to detailed type information like it does for non-generic cases. C\# does not allow conversion operators to work on interface types. To prevent compile errors, `SumSharp` will not emit conversion operators on interface types.
 
 ```csharp
-[Case("Case0", "IEnumerable<T>", IsInterface: true)]
+[UnionCase("Case0", "IEnumerable<T>", IsInterface: true)]
 partial class GenericEnumerable<T>
 {
 
@@ -394,8 +390,8 @@ Failing to add `IsInterface: true` to the above union definition will result in 
 To enable support for JSON serialization/deserialization just add the `[EnableJsonSerialization]` attribute to your union type. For example:
 
 ```csharp
-[Case("Case0", typeof(double))]
-[Case("Case1", typeof(string))]
+[UnionCase("Case0", typeof(double))]
+[UnionCase("Case1", typeof(string))]
 [EnableJsonSerialization]
 partial class Serializable
 {
@@ -412,8 +408,8 @@ If you need support for `Newtonsoft.Json` serialization instead, you can use `[E
 In addition to a nested `JsonConverter` implementation, `SumSharp` will also emit a non-generic `static partial` class with the same name as your generic union type that contains a `JsonConverter` implementation capable of handling any instance of your generic type. This converter is what is used in the `JsonConverterAttribute` on the class.
 
 ```csharp
-[Case("Case0", "T")]
-[Case("Case1", "U")]
+[UnionCase("Case0", "T")]
+[UnionCase("Case1", "U")]
 [EnableJsonSerialization]
 partial class Serializable<T, U>
 {
@@ -432,8 +428,8 @@ If your union type is nested within a generic type, the `JsonConverter` attribut
 ```csharp
 partial class GenericClass<T>
 {
-  [Case("Case0", typeof(double))]
-  [Case("Case1", typeof(string))]
+  [UnionCase("Case0", typeof(double))]
+  [UnionCase("Case1", typeof(string))]
   [EnableJsonSerialization] // No JsonConverterAttribute will be added
   public partial class NestedSerializable
   {
@@ -449,8 +445,8 @@ In this case you must use a `JsonSerializerOptions` and manually create the conv
 When using `System.Text.Json` source generation there is some boilerplate code that the developer must write. The reason for this is that dotnet code generators cannot see code produced by other generators, meaning that `System.Text.Json` won't be able to see the automatically added `JsonConverter` attribute in the generated code. To get around this you must pass `AddJsonConverterAttribute: false` to the `EnableJsonSerialization` attribute and manually add the `JsonConverter` attribute. You must also redeclare the `StandardJsonConverter` class.
 
 ```csharp
-[Case("Case0", typeof(double))]
-[Case("Case1", typeof(string))]
+[UnionCase("Case0", typeof(double))]
+[UnionCase("Case1", typeof(string))]
 [EnableJsonSerialization(AddJsonConverterAttribute: false)]
 [System.Text.Json.Serialization.JsonConverter(Serializable.StandardJsonConverter)]
 partial class Serializable
@@ -465,8 +461,8 @@ partial class Serializable
 For generic union types the process is similar, except that you must redeclare the converter on the generated static class instead. The converter inherits from `System.Text.Json.Serialization.JsonConverterFactory`.
 
 ```csharp
-[Case("Case0", "T")]
-[Case("Case1", "U")]
+[UnionCase("Case0", "T")]
+[UnionCase("Case1", "U")]
 [EnableJsonSerialization(AddJsonConverterAttribute: false)]
 [System.Text.Json.Serialization.JsonConverter(Serializable.StandardJsonConverter)]
 partial class Serializable<T, U>
@@ -493,8 +489,8 @@ If you are using AOT compilation, pass `UsingAOTCompilation: true` to the `Enabl
 Interested in using `SumSharp` but already using `OneOf` in your codebase and don't want to completely refactor your code? Not a problem. Add the `[EnableOneOfConversions]` attribute to allow implicit conversions between `OneOf` instances and compatible `SumSharp` union types. You can use `SumSharp` in newer parts of your codebase and seemlessly interop with older code that uses `OneOf`.
 
 ```csharp
-[Case("String", typeof(string))]
-[Case("Double", typeof(double))]
+[UnionCase("String", typeof(string))]
+[UnionCase("Double", typeof(double))]
 [EnableOneOfConversions]
 partial class StringOrDouble
 {
@@ -513,8 +509,8 @@ StringOrDouble y = x;
 Empty `SumSharp` union cases are mapped to `OneOf.Types.None`
 
 ```csharp
-[Case("String", typeof(string))]
-[Case("Empty")]
+[UnionCase("String", typeof(string))]
+[UnionCase("Empty")]
 [EnableOneOfConversions]
 partial class StringOrEmpty
 {
@@ -539,8 +535,8 @@ struct CustomEmptyType
 
 }
 
-[Case("String", typeof(string))]
-[Case("Empty")]
+[UnionCase("String", typeof(string))]
+[UnionCase("Empty")]
 [EnableOneOfConversions(typeof(CustomEmptyType))]
 partial class StringOrEmpty
 {

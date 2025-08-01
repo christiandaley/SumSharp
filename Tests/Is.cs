@@ -5,8 +5,8 @@ using SumSharp;
 public partial class Is
 {
 
-    [Case("Case0", typeof(string))]
-    [Case("Case1")]
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1")]
     partial class StringOrNone
     {
 

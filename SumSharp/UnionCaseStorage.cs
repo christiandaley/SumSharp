@@ -3,12 +3,12 @@
 namespace SumSharp;
 
 /// <summary>
-/// The storage mode for an individual case
+/// The storage type for an individual case
 /// </summary>
-public enum StorageMode
+public enum UnionCaseStorage
 {
     /// <summary>
-    /// The storage mode is determined by the overall <see cref="StorageStrategy"/>
+    /// The storage is determined by the overall <see cref="UnionStorageStrategy"/>
     /// </summary>
     Default = 0,
     /// <summary>

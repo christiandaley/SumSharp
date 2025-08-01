@@ -18,7 +18,7 @@ public class Generator : IIncrementalGenerator
         var SumSharpClasses = 
             context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                fullyQualifiedMetadataName: "SumSharp.CaseAttribute",
+                fullyQualifiedMetadataName: "SumSharp.UnionCaseAttribute",
                 predicate: static (s, _) => IsSyntaxTargetForGeneration(s),
                 transform: static (ctx, _) => ctx.TargetSymbol as INamedTypeSymbol)
             .Where(static m => m is not null)
@@ -42,11 +42,11 @@ public class Generator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> targets, SourceProductionContext context)
     {
-        var caseAttrSymbol = compilation.GetTypeByMetadataName("SumSharp.CaseAttribute")!;
+        var caseAttrSymbol = compilation.GetTypeByMetadataName("SumSharp.UnionCaseAttribute")!;
 
         var enableJsonSymbol = compilation.GetTypeByMetadataName("SumSharp.EnableJsonSerializationAttribute")!;
 
-        var storageSymbol = compilation.GetTypeByMetadataName("SumSharp.StorageAttribute")!;
+        var storageSymbol = compilation.GetTypeByMetadataName("SumSharp.UnionStorageAttribute")!;
 
         var disableValueEqualitySymbol = compilation.GetTypeByMetadataName("SumSharp.DisableValueEqualityAttribute")!;
 

@@ -75,7 +75,7 @@ internal class SymbolHandler
         return true;
     }
 
-    private static readonly Regex _fieldNameRegex = new("[.<>,\\s]+");
+    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]");
 
     public abstract class TypeInfo
     {
@@ -395,7 +395,7 @@ internal class SymbolHandler
             .Select(caseData => caseData.TypeInfo!.Name)
             .Distinct();
 
-        if (distinctTypes.Count() == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
+        if (storageStrategy == 0 && distinctTypes.Count() == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
         {
             Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false, caseData.StorageMode, FullUnmanagedStorageTypeName))];
         }
@@ -465,23 +465,23 @@ internal class SymbolHandler
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, TypeInfo typeInfo)
     {
-        if (storageMode == 1) // StorageMode.AsObject
+        if (storageMode == 1) // UnionCaseStorage.AsObject
         {
             return true;
         }
-        if (storageMode == 2) // StorageMode.Inline
+        if (storageMode == 2) // UnionCaseStorage.Inline
         {
             return false;
         }
 
-        if (storageStrategy == 1) // StorageStrategy.OneObject
-        {
-            return true;
-        }
-
-        if (storageStrategy == 2) // StorageStrategy.InlineValueTypes
+        if (storageStrategy == 0) // UnionStorageStrategy.InlineValueTypes
         {
             return !typeInfo.IsAlwaysValueType;
+        }
+
+        if (storageStrategy == 1) // UnionStorageStrategy.OneObject
+        {
+            return true;
         }
 
         return true;

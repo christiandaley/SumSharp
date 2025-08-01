@@ -9,8 +9,8 @@ using System.Text.Json.Serialization;
 namespace Tests.AOT;
 
 
-[Case("Case0", "T")]
-[Case("Case1", "U")]
+[UnionCase("Case0", "T")]
+[UnionCase("Case1", "U")]
 [JsonConverter(typeof(GenericUnion.StandardJsonConverter))]
 [EnableJsonSerialization(UsingAOTCompilation: true)]
 partial class GenericUnion<T, U>
@@ -33,8 +33,8 @@ struct GenericStruct<T>
 }
 
 
-[Case("Case0", "(GenericStruct<T>, GenericStruct<U>)", ForceUnmanagedStorage: true)]
-[Storage(StorageStrategy.InlineValueTypes, UnmanagedStorageSize: 16)]
+[UnionCase("Case0", "(GenericStruct<T>, GenericStruct<U>)", ForceUnmanagedStorage: true)]
+[UnionStorage(UnmanagedStorageSize: 16)]
 partial class GenericUnmanagedStorage<T, U> 
     where T : unmanaged
     where U : unmanaged
