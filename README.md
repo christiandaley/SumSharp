@@ -236,7 +236,7 @@ The rules for determining how cases store their values are:
    - `OneObject`: Cases with `Default` storage have their values stored in an `object` field shared with all other cases that are stored as an object.
 3. Single type optimization: If there is exactly one unique type across all cases, none of the cases use `AsObject` storage, and the storage strategy for the union is `InlineValueTypes`, inline storage will be used for that unique type even if it's a reference type or unconstrained generic type. For non-generic reference types this has no effect other than the member field being the same type as the stored value rather than being an `object`. For unconstrained generic types this has the effect of preventing boxing whenever the substituted type ends up being a value type.
 
-#### What exactly is inline storage?
+#### What is inline storage?
 
 What it means for a type to be stored "inline" depends on whether that type meets the `unmanaged` constraint and if the type is generic or non-generic.
 
