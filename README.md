@@ -203,7 +203,7 @@ partial class StringOrDouble
 }
 ```
 
-The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-exactly-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `UnionCaseStorage.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
+The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `UnionCaseStorage.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
 
 #### UnionStorageStrategy
 
