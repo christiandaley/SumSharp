@@ -21,7 +21,7 @@ A highly configurable C# discriminated union library
    - [SumSharp's approach](#sumsharps-approach)
 5. [Usage Guide](#usage-guide)
    - [Controlling the memory layout](#controlling-the-memory-layout)
-   - [ValueTuple cases][#tuple-cases]
+   - [ValueTuple cases](#valuetuple-cases)
    - [Struct union types](#struct-union-types)
    - [Generic interface types](#generic-interface-types)
    - [JSON serialization](#json-serialization)
@@ -370,7 +370,7 @@ x.IfDouble(value =>
 
 ### ValueTuple cases
 
-If a case holds a `System.ValueTuple` (not `System.Tuple`), special overloads of the case constructors and if functions are generated that make it easier to construct and work with the tuple values.
+If a case holds a `System.ValueTuple`, special overloads of the case constructors and if functions are generated that make it easier to construct and work with the tuple values.
 
 ```csharp
 [UnionCase("Case0", (int, string))]
