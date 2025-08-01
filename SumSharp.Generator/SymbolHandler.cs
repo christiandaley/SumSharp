@@ -193,7 +193,7 @@ internal class SymbolHandler
 
     public bool HasUnmanagedStorage => Cases.Any(caseData => caseData.UseUnmanagedStorage);
 
-    public int UnmanagedStorageSize = 0;
+    public uint ExplicitUnmanagedStorageSize = 0;
 
     public bool HasExternalUnmanagedStorage => HasUnmanagedStorage && (IsGenericType || HasGenericContainingTypes);
 
@@ -259,7 +259,7 @@ internal class SymbolHandler
 
         var storageStrategy = (int?)storageData?.ConstructorArguments[0].Value ?? 0;
 
-        UnmanagedStorageSize = (int?)storageData?.ConstructorArguments[1].Value ?? 0;
+        ExplicitUnmanagedStorageSize = (uint?)storageData?.ConstructorArguments[1].Value ?? 0;
 
         Cases = symbol!
             .GetAttributes()
@@ -493,14 +493,14 @@ internal class SymbolHandler
 
         EmitFieldsAndConstructor();
 
-        if (HasUnmanagedStorage || UsingAOTCompilation)
+        if (ExplicitUnmanagedStorageSize > 0 || (UsingAOTCompilation && EnableStandardJsonSerialization))
         {
             EmitStaticConstructor();
+        }
 
-            if (HasUnmanagedStorage)
-            {
-                EmitUnmanagedStorageSize();
-            }
+        if (HasUnmanagedStorage)
+        {
+            EmitUnmanagedStorageSize();
         }
 
         if (!DisableValueEquality)
@@ -658,9 +658,8 @@ internal class SymbolHandler
     static {NameWithoutTypeArguments}()
     {{");
 
-        if (HasUnmanagedStorage)
+        if (ExplicitUnmanagedStorageSize > 0)
         {
-
             var unmanagedTypes =
                 Cases.Where(caseData => caseData.UseUnmanagedStorage)
                 .Select(caseData => caseData.TypeInfo!.Name)
@@ -1523,10 +1522,10 @@ namespace {UnmanagedStorageNamespace}
     {(HasExternalUnmanagedStorage ? "internal" : "private")} readonly struct UnmanagedStorage
     {{");
 
-        if (UnmanagedStorageSize > 0)
+        if (ExplicitUnmanagedStorageSize > 0)
         {
             Builder.Append($@"
-        [System.Runtime.InteropServices.FieldOffset({UnmanagedStorageSize - 1})] private readonly byte _;");
+        [System.Runtime.InteropServices.FieldOffset({ExplicitUnmanagedStorageSize - 1})] private readonly byte _;");
         }
         else
         {

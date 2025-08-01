@@ -268,7 +268,7 @@ partial class Example<T> where T : unmanaged
 }
 ```
 
-Here we have four possible types: `int`, `UnmanagedStruct`, `ManagedStruct`, and the generic `T`. Of these four types, only `int` and `UnmanagedStruct` will be recognized as unmanaged and thus have overlapping storage. `ManagedStruct` contains an `object`, so it does not meet the unmanaged constraint and cannot share storage with other types. `T` is a generic parameter that has the `unmanaged` constraint but because it does not have a known size at compile time `SumSharp` cannot determine how many bytes to reserve for its storage. `Case2` and `Case3` will end up using separates fields of type `ManagedStruct` and `T`.
+Here we have four possible types: `int`, `UnmanagedStruct`, `ManagedStruct`, and the generic `T`. Of these four types, only `int` and `UnmanagedStruct` will have overlapping storage. `ManagedStruct` contains an `object`, so it does not meet the unmanaged constraint and cannot share storage with other types. `T` is a generic parameter that has the `unmanaged` constraint but because it does not have a known size at compile time `SumSharp` cannot determine how many bytes to reserve for its storage. `Case2` and `Case3` will end up using separates fields of type `ManagedStruct` and `T`.
 
 #### Unmanaged storage for generic types
 
