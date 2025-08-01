@@ -10,7 +10,8 @@ namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
-    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]");
+    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]", RegexOptions.Compiled);
+    private static readonly Regex _tupleRegex = new(@"^(?:System\.)?ValueTuple<(?<types>.+)>$|^\((?<types>.+)\)$", RegexOptions.Compiled);
 
     public abstract class TypeInfo
     {
@@ -28,6 +29,10 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
+        public abstract string[] TupleTypeArgs { get; }
+
+        public bool IsTupleType => TupleTypeArgs.Length > 0;
+
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name => symbol.ToDisplayString();
@@ -43,6 +48,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => symbol.IsReferenceType;
 
             public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
+
+            public override string[] TupleTypeArgs => [.. symbol.TypeArguments.Select(t => t.ToDisplayString())];
         }
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
@@ -60,6 +67,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => true;
 
             public override bool IsInterface => false;
+
+            public override string[] TupleTypeArgs => [];
         }
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
@@ -77,10 +86,44 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => symbol.HasReferenceTypeConstraint;
 
             public override bool IsInterface => false;
+
+            public override string[] TupleTypeArgs => [];
         }
 
         public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface, bool useUnmanagedStorage) : TypeInfo
         {
+            private static string[] ParseTupleTypeArgs(string name)
+            {
+                var match = _tupleRegex.Match(name);
+
+                if (!match.Success)
+                {
+                    return [];
+                }
+
+                var typeArgs = match.Groups["types"].Value;
+
+                var result = new List<string>();
+                int depth = 0;
+                int start = 0;
+
+                for (int i = 0; i < typeArgs.Length; i++)
+                {
+                    char c = typeArgs[i];
+                    if (c == '<' || c == '(') depth++;
+                    else if (c == '>' || c == ')') depth--;
+                    else if (c == ',' && depth == 0)
+                    {
+                        result.Add(typeArgs.Substring(start, i - start).Trim());
+                        start = i + 1;
+                    }
+                }
+
+                result.Add(typeArgs.Substring(start).Trim());
+
+                return [.. result];
+            }
+
             public override string Name => name;
 
             public override bool IsUnmanaged => useUnmanagedStorage;
@@ -94,6 +137,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => ((genericTypeInfo & 2) == 0 || isInterface) && !IsUnmanaged;
 
             public override bool IsInterface => isInterface;
+
+            public override string[] TupleTypeArgs { get; } = ParseTupleTypeArgs(name);
         }
     }
 
@@ -809,6 +854,16 @@ internal class SymbolHandler
             Builder.AppendLine(@"
         return ret;
     }");
+
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                var args = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((arg, i) => $"{arg} arg{i}"));
+
+                Builder.AppendLine($@"
+    ///<summary>A static function that creates a {Name} that holds a {caseData.Name}</summary>
+    public static {Name} {caseData.Name}({args}) => throw new NotImplementedException();");
+            }
+
         }
     }
 

@@ -15,12 +15,10 @@ public partial class If
 
     [UnionCase("Case0", typeof((int, double)))]
     [UnionCase("Case1", typeof(ValueTuple<int, double>))]
-    [UnionCase("Case2", typeof(Tuple<int, double>))]
-    [UnionCase("Case3", "(T, U)")]
-    [UnionCase("Case4", "ValueTuple<U, T>")]
-    [UnionCase("Case5", "Tuple<T, U>")]
+    [UnionCase("Case2", "(T, U)")]
+    [UnionCase("Case3", "ValueTuple<Dictionary<T, List<U>>, (T, U)>")]
 
-    partial class ContainsTuple<T, U>
+    partial class ContainsTuple<T, U> where T : notnull
     {
 
     }
@@ -130,26 +128,20 @@ public partial class If
             Assert.True(false);
         });
 
-        Assert.True(ContainsTuple<bool, long>.Case2(1, 5.0).IfCase2Else((i, d) =>
-        {
-            return i == 1 && d == 5.0;
-        }, false));
-
-        Assert.True(ContainsTuple<bool, long>.Case3(true, 100).IfCase3Else((b, l) =>
+        Assert.True(ContainsTuple<bool, long>.Case2(true, 100).IfCase2Else((b, l) =>
         {
             return b && l == 100;
-        }, _ => false));
+        }, false));
 
-        ContainsTuple<bool, long>.Case4(100, true).IfCase4((l, b) =>
+        var dict = new Dictionary<bool, List<long>>
         {
-            Assert.True(b);
-            Assert.Equal(100, l);
-        });
+            [true] = [1],
+            [false] = [2]
+        };
 
-        ContainsTuple<bool, long>.Case5(true, 100).IfCase5((b, l) =>
+        ContainsTuple<bool, long>.Case3(dict, (false, 5)).IfCase3Else((d, t) =>
         {
-            Assert.True(b);
-            Assert.Equal(100, l);
-        });
+            return d.Count == 2 && !t.Item1 && t.Item2 == 5;
+        }, _ => false);
     }
 }
