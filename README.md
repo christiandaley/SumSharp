@@ -190,7 +190,7 @@ Additionally, developers can choose to have their union types be either a class 
 
 ### Controlling the memory layout
 
-The memory layout of a union can be controlled on a case-by-case basis using the `UnionCaseStorage` argument to the `UnionCase` attribute, and on union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
+The memory layout of a union can be controlled on a case-by-case basis using the `UnionCaseStorage` argument to the `UnionCase` attribute, and on a union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
 
 #### UnionCaseStorage
 
