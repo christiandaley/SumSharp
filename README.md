@@ -241,7 +241,7 @@ The rules for determining how cases store their values are:
 What it means for a type to be stored "inline" depends on whether that type meets the `unmanaged` constraint and if the type is generic or non-generic.
 
 - If a **non-generic** type meets the unmanaged constraint it will share storage with all other non-generic unmanaged types in the union. The total size of the storage is determined by the size of the largest unmanaged type across all cases. The storage itself is a struct member field in the union that requires no heap allocation.
-- If a **generic** type meets the unmanaged constraint and the case has `UseManagedStorage` set to true, the unmanaged generic type will use shared storage. The `UnmanagedStorageSize` argument to the `UnionStorage` attribute must be explicitly set to a non-zero value or compilation will fail.
+- If a **generic** type meets the unmanaged constraint and the case has `UseManagedStorage` set to true, the unmanaged generic type will use share storage with non-generic unmanaged types. The `UnmanagedStorageSize` argument to the `UnionStorage` attribute must be explicitly set to a non-zero value or compilation will fail.
 - Otherwise, a dedicated member field is provided for that type. All cases holding that type will share the same field.
 
 Let's walk through an example:
