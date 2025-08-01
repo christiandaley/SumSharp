@@ -3,9 +3,9 @@
 namespace SumSharp;
 
 /// <summary>
-/// THe overall storage strategy for a type
+/// The overall storage strategy for a union type
 /// </summary>
-public enum StorageStrategy
+public enum UnionStorageStrategy
 {
     /// <summary>
     /// If there is a single unique type across all cases, <see cref="StorageMode.Inline">Inline</see> storage

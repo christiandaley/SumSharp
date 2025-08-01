@@ -8,7 +8,7 @@ namespace SumSharp;
 public enum StorageMode
 {
     /// <summary>
-    /// The storage mode is determined by the overall <see cref="StorageStrategy"/>
+    /// The storage mode is determined by the overall <see cref="UnionStorageStrategy"/>
     /// </summary>
     Default = 0,
     /// <summary>

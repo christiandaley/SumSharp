@@ -30,7 +30,7 @@ public partial class Storage
     [UnionCase("Case4", typeof(float))]
     [UnionCase("Case5", typeof(IntPtr))]
     [UnionCase("Case6", typeof(UIntPtr))]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(UnionStorageStrategy.InlineValueTypes)]
     partial class VariousStorageModes
     {
 
@@ -55,7 +55,7 @@ public partial class Storage
     [UnionCase("Case15", typeof(ulong))]
     [UnionCase("Case16", typeof(InnerStruct), ForceUnmanagedStorage: true)]
     [UnionCase("Case17", typeof(InnerEnum))]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(UnionStorageStrategy.InlineValueTypes)]
     partial class InlineValueTypes
     {
         internal struct InnerStruct
@@ -76,7 +76,7 @@ public partial class Storage
     [UnionCase("Case0", "T")]
     [UnionCase("Case1", "U")]
     [UnionCase("Case2", "V")]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(UnionStorageStrategy.InlineValueTypes)]
     partial class InlineValueTypesGeneric<T, U, V> where U : struct
     {
 
@@ -93,7 +93,7 @@ public partial class Storage
             [UnionCase("Case1", "U")]
             [UnionCase("Case2", "V")]
             [UnionCase("Case3", "W")]
-            [Storage(StorageStrategy.InlineValueTypes)]
+            [Storage(UnionStorageStrategy.InlineValueTypes)]
 
             public partial struct NestedGeneric<W> where W : class
             {
@@ -107,7 +107,7 @@ public partial class Storage
     [UnionCase("Case2", "IEnumerable<V>", IsInterface: true)]
     [UnionCase("Case3", "InnerStruct<V>", GenericTypeInfo: GenericTypeInfo.ValueType)]
     [UnionCase("Case4", "InnerClass<V>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(UnionStorageStrategy.InlineValueTypes)]
     partial class GenericWithTypeInfo<T, U, V>
     {
         public struct InnerStruct<W>
@@ -140,7 +140,7 @@ public partial class Storage
     [UnionCase("Case1", typeof(TypeCode))]
     [UnionCase("Case2", "T", ForceUnmanagedStorage: true)]
     [UnionCase("Case3")]
-    [Storage(StorageStrategy.InlineValueTypes, UnmanagedStorageSize: 4)]
+    [Storage(UnionStorageStrategy.InlineValueTypes, UnmanagedStorageSize: 4)]
     partial class GenericUnmanagedType<T> where T : unmanaged
     {
         public struct InnerStruct<U>
@@ -152,7 +152,7 @@ public partial class Storage
 
     [UnionCase("Case0", typeof(InnerStruct))]
     [UnionCase("Case1")]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(UnionStorageStrategy.InlineValueTypes)]
     partial class InsideAssemblyStruct
     {
         public struct InnerStruct
@@ -164,7 +164,7 @@ public partial class Storage
 
     [UnionCase("Case0", typeof(HashCode), ForceUnmanagedStorage: true)]
     [UnionCase("Case1")]
-    [Storage(StorageStrategy.InlineValueTypes)]
+    [Storage(UnionStorageStrategy.InlineValueTypes)]
     partial class OutsideAssemblyStruct
     {
         
