@@ -21,13 +21,10 @@ public class UnionCaseAttribute : Attribute
     /// <param name="Name">The name that uniquely identifies the case</param>
     /// <param name="Type">The type of value associated with the case</param>
     /// <param name="Storage">The type of storage to use</param>
-    /// <param name="ForceUnmanagedStorage">If true, indicates that the type meets the unmanaged constraint and may share storage with other unmanaged types. If false, SumSharp will attempt to determine on its own if the type meets the unmanaged constraint.
-    /// See the README for details on when SumSharp can automatically recognize a type as unmanaged.</param>
     public UnionCaseAttribute(
         string Name, 
         Type Type, 
-        UnionCaseStorage Storage = UnionCaseStorage.Default,
-        bool ForceUnmanagedStorage = false)
+        UnionCaseStorage Storage = UnionCaseStorage.Default)
     {
 
     }
@@ -41,8 +38,8 @@ public class UnionCaseAttribute : Attribute
     /// <param name="Name">The name that uniquely identifies the case</param>
     /// <param name="GenericTypeName">A string that represents the name of the generic type associated with the case</param>
     /// <param name="Storage">The type of storage to use</param>
-    /// <param name="ForceUnmanagedStorage">If true, indicates that the type meets the unmanaged constraint and may share storage with other unmanaged types.
-    /// SumSharp will never use unmanaged storage for a generic type unless <paramref name="ForceUnmanagedStorage"/> is true. The UnmanagedStorageSize must 
+    /// <param name="UseUnmanagedStorage">If true, indicates that the type meets the unmanaged constraint and may share storage with other unmanaged types.
+    /// SumSharp will never use unmanaged storage for a generic type unless <paramref name="UseUnmanagedStorage"/> is true. The UnmanagedStorageSize must 
     /// be explicitly set in the <see cref="UnionStorageAttribute"/> to use unmanaged storage for generic types.</param>
     /// <param name="GenericTypeInfo">Info about whether the generic type is a value type, reference type, or potentially both. Providing this is never required
     /// but can help SumSharp emit more efficient code</param>
@@ -51,7 +48,7 @@ public class UnionCaseAttribute : Attribute
         string Name, 
         string GenericTypeName, 
         UnionCaseStorage Storage = UnionCaseStorage.Default,
-        bool ForceUnmanagedStorage = false,
+        bool UseUnmanagedStorage = false,
         GenericTypeInfo GenericTypeInfo = GenericTypeInfo.ReferenceType | GenericTypeInfo.ValueType,
         bool IsInterface = false)
     {
