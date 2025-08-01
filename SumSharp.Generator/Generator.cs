@@ -46,7 +46,7 @@ public class Generator : IIncrementalGenerator
 
         var enableJsonSymbol = compilation.GetTypeByMetadataName("SumSharp.EnableJsonSerializationAttribute")!;
 
-        var storageSymbol = compilation.GetTypeByMetadataName("SumSharp.StorageAttribute")!;
+        var storageSymbol = compilation.GetTypeByMetadataName("SumSharp.UnionStorageAttribute")!;
 
         var disableValueEqualitySymbol = compilation.GetTypeByMetadataName("SumSharp.DisableValueEqualityAttribute")!;
 

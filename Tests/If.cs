@@ -7,7 +7,7 @@ public partial class If
 
     [UnionCase("Case0", typeof(double))]
     [UnionCase("Case1")]
-    [Storage(UnionStorageStrategy.InlineValueTypes)]
+    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     partial class DoubleOrNone
     {
 

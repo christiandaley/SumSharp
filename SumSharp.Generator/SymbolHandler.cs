@@ -474,12 +474,12 @@ internal class SymbolHandler
             return false;
         }
 
-        if (storageStrategy == 1) // StorageStrategy.OneObject
+        if (storageStrategy == 1) // UnionStorageStrategy.OneObject
         {
             return true;
         }
 
-        if (storageStrategy == 2) // StorageStrategy.InlineValueTypes
+        if (storageStrategy == 2) // UnionStorageStrategy.InlineValueTypes
         {
             return !typeInfo.IsAlwaysValueType;
         }

@@ -11,7 +11,7 @@ public partial class NewtonsoftJsonSerialization
     [UnionCase("Case2")]
     [UnionCase("Case3", typeof(int))]
     [UnionCase("Case4", typeof(double))]
-    [Storage(UnionStorageStrategy.InlineValueTypes)]
+    [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
     [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
     partial class NonGenericType
     {

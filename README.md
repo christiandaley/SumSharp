@@ -190,7 +190,7 @@ Additionally, developers can choose to have their union types be either a class 
 
 ### Controlling the memory layout
 
-The memory layout of a union can be controlled on a case-by-case basis using the `StorageMode` argument to the `UnionCase` attribute, and on union-wide basis using the `Strategy` argument to the `Storage` attribute.
+The memory layout of a union can be controlled on a case-by-case basis using the `StorageMode` argument to the `UnionCase` attribute, and on union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
 
 #### StorageMode
 
@@ -210,7 +210,7 @@ The `String` case will use an `object` field for its storage. The `Double` case 
 ```csharp
 [UnionCase("String", typeof(string))]
 [UnionCase("Double", typeof(double))]
-[Storage(Strategy: UnionStorageStrategy.InlineValueTypes)]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class StringOrDouble
 {
 
@@ -264,7 +264,7 @@ struct UnmanagedStruct
 [UnionCase("Case1", typeof(UnmanagedStruct))]
 [UnionCase("Case2", typeof(System.HashCode))]
 [UnionCase("Case3", "T")]
-[Storage(Strategy: UnionStorageStrategy.InlineValueTypes)]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class Example<T> where T : unmanaged
 {
 
@@ -275,14 +275,14 @@ Here we have four possible types: `int`, `UnmanagedStruct`, `System.HashCode`, a
 
 #### Forcing unmanaged storage
 
-To force `SumSharp` to use unmanaged storage for all four types, we can pass `ForceUnmanagedStorage: true` to `Case2` and `Case3`. Additionally, because `T` has unknown size we must also pass the `UnmanagedStorageSize` argument to the `Storage` attribute to explicitly define how many bytes of storage should be reserved for storing unmanaged types. The `UnmanagedStorageSize` overrides any determination that `SumSharp` makes about the size of unmanaged types.
+To force `SumSharp` to use unmanaged storage for all four types, we can pass `ForceUnmanagedStorage: true` to `Case2` and `Case3`. Additionally, because `T` has unknown size we must also pass the `UnmanagedStorageSize` argument to the `UnionStorage` attribute to explicitly define how many bytes of storage should be reserved for storing unmanaged types. The `UnmanagedStorageSize` overrides any determination that `SumSharp` makes about the size of unmanaged types.
 
 ```csharp
 [UnionCase("Case0", typeof(int))]
 [UnionCase("Case1", typeof(UnmanagedStruct))]
 [UnionCase("Case2", typeof(System.HashCode), ForceUnmanagedStorage: true)]
 [UnionCase("Case3", "T", ForceUnmanagedStorage: true)]
-[Storage(Strategy: UnionStorageStrategy.InlineValueTypes, UnmanagedStorageSize: 32)]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes, UnmanagedStorageSize: 32)]
 partial class Example<T> where T : unmanaged
 {
 
@@ -310,7 +310,7 @@ For generic cases where the type is a type argument to the union type (or one of
 ```csharp
 [UnionCase("Case0", "T")]
 [UnionCase("Case1", "U")]
-[Storage(Strategy: UnionStorageStrategy.InlineValueTypes)]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class GenericUnion<T, U>
   where T : struct
 {
@@ -330,7 +330,7 @@ struct GenericStruct<T>
 
 
 [UnionCase("Case0", "GenericStruct<T>")]
-[Storage(Strategy: UnionStorageStrategy.InlineValueTypes)]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class GenericUnion<T>
 {
 
@@ -341,7 +341,7 @@ Here, `GenericStruct<T>` is always a value type but `SumSharp` cannot determine 
 
 ```csharp
 [UnionCase("Case0", "GenericStruct<T>", GenericTypeInfo: GenericTypeInfo.ValueType)]
-[Storage(Strategy: UnionStorageStrategy.InlineValueTypes)]
+[UnionStorage(Strategy: UnionStorageStrategy.InlineValueTypes)]
 partial class GenericUnion<T>
 {
 
