@@ -10,7 +10,8 @@ namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
-    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]");
+    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]", RegexOptions.Compiled);
+    private static readonly Regex _tupleRegex = new(@"^(?:System\.)?ValueTuple<(?<types>.+)>$|^\((?<types>.+)\)$", RegexOptions.Compiled);
 
     public abstract class TypeInfo
     {
@@ -28,6 +29,10 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
+        public abstract string[] TupleTypeArgs { get; }
+
+        public bool IsTupleType => TupleTypeArgs.Length > 0;
+
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name => symbol.ToDisplayString();
@@ -43,6 +48,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => symbol.IsReferenceType;
 
             public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
+
+            public override string[] TupleTypeArgs { get; } = symbol.IsTupleType ? [.. symbol.TypeArguments.Select(t => t.ToDisplayString())] : [];
         }
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
@@ -60,6 +67,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => true;
 
             public override bool IsInterface => false;
+
+            public override string[] TupleTypeArgs => [];
         }
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
@@ -77,10 +86,44 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => symbol.HasReferenceTypeConstraint;
 
             public override bool IsInterface => false;
+
+            public override string[] TupleTypeArgs => [];
         }
 
         public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface, bool useUnmanagedStorage) : TypeInfo
         {
+            private static string[] ParseTupleTypeArgs(string name)
+            {
+                var match = _tupleRegex.Match(name);
+
+                if (!match.Success)
+                {
+                    return [];
+                }
+
+                var typeArgs = match.Groups["types"].Value;
+
+                var result = new List<string>();
+                int depth = 0;
+                int start = 0;
+
+                for (int i = 0; i < typeArgs.Length; i++)
+                {
+                    char c = typeArgs[i];
+                    if (c == '<' || c == '(') depth++;
+                    else if (c == '>' || c == ')') depth--;
+                    else if (c == ',' && depth == 0)
+                    {
+                        result.Add(typeArgs.Substring(start, i - start).Trim());
+                        start = i + 1;
+                    }
+                }
+
+                result.Add(typeArgs.Substring(start).Trim());
+
+                return [.. result];
+            }
+
             public override string Name => name;
 
             public override bool IsUnmanaged => useUnmanagedStorage;
@@ -94,6 +137,8 @@ internal class SymbolHandler
             public override bool IsAlwaysRefType => ((genericTypeInfo & 2) == 0 || isInterface) && !IsUnmanaged;
 
             public override bool IsInterface => isInterface;
+
+            public override string[] TupleTypeArgs { get; } = ParseTupleTypeArgs(name);
         }
     }
 
@@ -809,6 +854,18 @@ internal class SymbolHandler
             Builder.AppendLine(@"
         return ret;
     }");
+
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                var tupleArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((arg, i) => $"{arg} arg{i}"));
+
+                var passedArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"arg{i}"));
+
+                Builder.AppendLine($@"
+    ///<summary>A static function that creates a {Name} that holds a {caseData.Name}</summary>
+    public static {Name} {caseData.Name}({tupleArgs}) => {caseData.Name}(({passedArgs}));") ;
+            }
+
         }
     }
 
@@ -1024,11 +1081,15 @@ internal class SymbolHandler
 
             var funcArgType = $"Func<{caseData.TypeInfo.Name}, TRet__>";
 
-            var funcWithCtxArgType = $"Func<TContext__, {caseData.TypeInfo.Name}, TRet__>";
-
             var handlerName = $"handle{caseData.Name}";
 
             var arg = $"As{caseData.Name}Unsafe";
+
+            var actionTupleArgType = $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}>";
+
+            var funcTupleArgType = $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet__>";
+
+            var deconstructedTupleArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"tuple.Item{i + 1}"));
 
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
@@ -1041,8 +1102,17 @@ internal class SymbolHandler
             {handlerName}({arg});
         }}
     }}");
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
+    ///deconstructed {caseData.TypeInfo.Name}  value, otherwise does nothing.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.TypeInfo.Name} value, if it exists.</param>
+    public void If{caseData.Name}({actionTupleArgType} {handlerName}) => If{caseData.Name}(tuple => {handlerName}({deconstructedTupleArgs}));");
+            }
 
-            Builder.AppendLine($@"
+
+                Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
     ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
@@ -1059,6 +1129,17 @@ internal class SymbolHandler
         }}
     }}");
 
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
+    ///deconstructed {caseData.TypeInfo.Name} tuple value, otherwise invokes <paramref name=""orElse""/>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
+    public void If{caseData.Name}Else({actionTupleArgType} {handlerName}, Action orElse) => If{caseData.Name}Else(tuple => {handlerName}({deconstructedTupleArgs}), orElse);");
+            }
+
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
     ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue""/>.</summary>
@@ -1066,12 +1147,32 @@ internal class SymbolHandler
     ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, TRet__ elseValue) => Index == {caseData.Index} ? {handlerName}({arg}) : elseValue;");
 
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the deconstructed {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue""/>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public TRet__ If{caseData.Name}Else<TRet__>({funcTupleArgType} {handlerName}, TRet__ elseValue) => If{caseData.Name}Else<TRet__>(tuple => {handlerName}({deconstructedTupleArgs}), elseValue);");
+            }
+
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
     ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public TRet__ If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, Func<TRet__> elseFunc) => Index == {caseData.Index} ? {handlerName}({arg}) : elseFunc();");
+
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the deconstructed {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public TRet__ If{caseData.Name}Else<TRet__>({funcTupleArgType} {handlerName}, Func<TRet__> elseFunc) => If{caseData.Name}Else<TRet__>(tuple => {handlerName}({deconstructedTupleArgs}), elseFunc);");
+            }
         }
     }
 
@@ -1092,11 +1193,26 @@ internal class SymbolHandler
 
             var arg = $"As{caseData.Name}Unsafe";
 
+            var actionTupleArgType = $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task>";
+
+            var funcTupleArgType = $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task<TRet__>>";
+
+            var deconstructedTupleArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"tuple.Item{i + 1}"));
+
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
     ///{caseData.TypeInfo.Name} value, otherwise does nothing.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.TypeInfo.Name} value, if it exists.</param>
-    public ValueTask If{caseData.Name}({actionArgType} f) => Index == {caseData.Index} ? new ValueTask(f({arg})) : ValueTask.CompletedTask;");
+    public ValueTask If{caseData.Name}({actionArgType} {handlerName}) => Index == {caseData.Index} ? new ValueTask({handlerName}({arg})) : ValueTask.CompletedTask;");
+
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
+    ///deconstructed {caseData.TypeInfo.Name} value, otherwise does nothing.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.TypeInfo.Name} value, if it exists.</param>
+    public ValueTask If{caseData.Name}({actionTupleArgType} {handlerName}) => If{caseData.Name}(tuple => {handlerName}({deconstructedTupleArgs}));");
+            }
 
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
@@ -1105,6 +1221,16 @@ internal class SymbolHandler
     ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
     public Task If{caseData.Name}Else({actionArgType} {handlerName}, Func<Task> elseF) => Index == {caseData.Index} ? {handlerName}({arg}) : elseF();");
 
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, invokes the <paramref name=""{handlerName}""/> function with the
+    ///deconstructed {caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse"">orElse</paramref>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""orElse"">Function to be invoked if the {Name} does not hold a {caseData.Name}</param>
+    public Task If{caseData.Name}Else({actionTupleArgType} {handlerName}, Func<Task> elseF) => If{caseData.Name}Else(tuple => {handlerName}({deconstructedTupleArgs}), elseF);");
+            }
+
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
     ///function with the {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue""/> wrapped in a ValueTask.</summary>
@@ -1112,12 +1238,32 @@ internal class SymbolHandler
     ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, TRet__ elseValue) => Index == {caseData.Index} ? new ValueTask<TRet__>({handlerName}({arg})) : ValueTask.FromResult(elseValue);");
 
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the deconstructed {caseData.TypeInfo.Name} value, otherwise returns <paramref name=""elseValue""/> wrapped in a ValueTask.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseValue"">Value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public ValueTask<TRet__> If{caseData.Name}Else<TRet__>({funcTupleArgType} {handlerName}, TRet__ elseValue) => If{caseData.Name}Else<TRet__>(tuple => {handlerName}({deconstructedTupleArgs}), elseValue);");
+            }
+
             Builder.AppendLine($@"
     ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
     ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
     public Task<TRet__> If{caseData.Name}Else<TRet__>({funcArgType} {handlerName}, Func<Task<TRet__>> elseFunc) => Index == {caseData.Index} ? {handlerName}({arg}) : elseFunc();");
+
+            if (caseData.TypeInfo.IsTupleType)
+            {
+                Builder.AppendLine($@"
+    ///<summary>If the {Name} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
+    ///function with the deconstructed {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
+    ///<param name=""{handlerName}"">Function to be invoked with the deconstructed {caseData.Name} value, if it exists.</param>
+    ///<param name=""elseFunc"">Produces the value to be returned if the {Name} does not hold a {caseData.Name}</param>
+    public Task<TRet__> If{caseData.Name}Else<TRet__>({funcTupleArgType} {handlerName}, Func<Task<TRet__>> elseFunc) => If{caseData.Name}Else<TRet__>(tuple => {handlerName}({deconstructedTupleArgs}), elseFunc);");
+            }
         }
     }
 
