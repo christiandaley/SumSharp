@@ -13,6 +13,18 @@ public partial class If
 
     }
 
+    [UnionCase("Case0", typeof((int, double)))]
+    [UnionCase("Case1", typeof(ValueTuple<int, double>))]
+    [UnionCase("Case2", typeof(Tuple<int, double>))]
+    [UnionCase("Case3", "(T, U)")]
+    [UnionCase("Case4", "ValueTuple<U, T>")]
+    [UnionCase("Case5", "Tuple<T, U>")]
+
+    partial class ContainsTuple<T, U>
+    {
+
+    }
+
     [Fact]
     public void IfCase0()
     {
@@ -98,5 +110,46 @@ public partial class If
 
         Assert.Equal("0", await DoubleOrNone.Case1.IfCase0Else(value => Task.FromResult(value.ToString()), "0"));
         Assert.Equal("1", await DoubleOrNone.Case1.IfCase0Else(value => Task.FromResult(value.ToString()), static () => Task.FromResult("1")));
+    }
+
+    [Fact]
+    public void TupleIf()
+    {
+        ContainsTuple<bool, long>.Case0(1, 5.0).IfCase0((i, d) =>
+        {
+            Assert.Equal(1, i);
+            Assert.Equal(5.0, d);
+        });
+
+        ContainsTuple<bool, long>.Case1(1, 5.0).IfCase1Else((i, d) =>
+        {
+            Assert.Equal(1, i);
+            Assert.Equal(5.0, d);
+        }, () =>
+        {
+            Assert.True(false);
+        });
+
+        Assert.True(ContainsTuple<bool, long>.Case2(1, 5.0).IfCase2Else((i, d) =>
+        {
+            return i == 1 && d == 5.0;
+        }, false));
+
+        Assert.True(ContainsTuple<bool, long>.Case3(true, 100).IfCase3Else((b, l) =>
+        {
+            return b && l == 100;
+        }, _ => false));
+
+        ContainsTuple<bool, long>.Case4(100, true).IfCase4((l, b) =>
+        {
+            Assert.True(b);
+            Assert.Equal(100, l);
+        });
+
+        ContainsTuple<bool, long>.Case5(true, 100).IfCase5((b, l) =>
+        {
+            Assert.True(b);
+            Assert.Equal(100, l);
+        });
     }
 }
