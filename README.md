@@ -373,7 +373,7 @@ x.IfDouble(value =>
 If a case holds a `System.ValueTuple`, special overloads of the case constructors and if functions are generated that make it easier to construct and work with the tuple values.
 
 ```csharp
-[UnionCase("Case0", (int, string))]
+[UnionCase("Case0", typeof((int, string)))]
 partial class UnionWithTuple
 {
 
