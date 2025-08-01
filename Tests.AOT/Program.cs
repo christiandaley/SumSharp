@@ -33,7 +33,7 @@ struct GenericStruct<T>
 }
 
 
-[UnionCase("Case0", "(GenericStruct<T>, GenericStruct<U>)", ForceUnmanagedStorage: true)]
+[UnionCase("Case0", "(GenericStruct<T>, GenericStruct<U>)", UseUnmanagedStorage: true)]
 [UnionStorage(UnmanagedStorageSize: 16)]
 partial class GenericUnmanagedStorage<T, U> 
     where T : unmanaged

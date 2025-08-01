@@ -10,71 +10,6 @@ namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
-    private static int UnmanagedTypeSize(INamedTypeSymbol? symbol)
-    {
-        return (symbol?.EnumUnderlyingType ?? symbol)?.SpecialType switch
-        {
-            SpecialType.System_Boolean => sizeof(bool),
-            SpecialType.System_Byte => sizeof(byte),
-            SpecialType.System_SByte => sizeof(sbyte),
-            SpecialType.System_Int16 => sizeof(Int16),
-            SpecialType.System_UInt16 => sizeof(UInt16),
-            SpecialType.System_Int32 => sizeof(Int32),
-            SpecialType.System_UInt32 => sizeof(UInt32),
-            SpecialType.System_Int64 => sizeof(Int64),
-            SpecialType.System_UInt64 => sizeof(UInt64),
-            SpecialType.System_IntPtr => IntPtr.Size,
-            SpecialType.System_UIntPtr => UIntPtr.Size,
-            SpecialType.System_Char => sizeof(char),
-            SpecialType.System_Single => sizeof(Single),
-            SpecialType.System_Double => sizeof(double),
-            _ => -1
-        };
-    }
-
-    private static bool IsUnmanagedType(ITypeSymbol symbol, IAssemblySymbol compilationAssembly)
-    {
-        if (UnmanagedTypeSize(symbol as INamedTypeSymbol) > 0)
-        {
-            return true;
-        }
-
-        if (symbol is IPointerTypeSymbol)
-        {
-            return true;
-        }
-
-        if (symbol.TypeKind == TypeKind.Enum)
-        {
-            return true;
-        }
-
-        if (!SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, compilationAssembly))
-        {
-            return false;
-        }
-
-        if (!symbol.IsValueType)
-        {
-            return false;
-        }
-
-        foreach (var member in symbol.GetMembers())
-        {
-            if (member is not IFieldSymbol field || field.IsStatic)
-            {
-                continue;
-            }
-
-            if (!IsUnmanagedType(field.Type, compilationAssembly))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]");
 
     public abstract class TypeInfo
@@ -93,15 +28,13 @@ internal class SymbolHandler
 
         public abstract bool IsInterface { get; }
 
-        public class NonArray(INamedTypeSymbol symbol, Compilation compilation, bool forceUnmanagedStorage) : TypeInfo
+        public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name => symbol.ToDisplayString();
 
-            public override bool IsUnmanaged { get; } = 
-                IsUnmanagedType(symbol, compilation.Assembly) || 
-                forceUnmanagedStorage;
+            public override bool IsUnmanaged => symbol.IsUnmanagedType;
 
-            public override bool UseUnmanagedStorage => IsUnmanaged || forceUnmanagedStorage;
+            public override bool UseUnmanagedStorage => IsUnmanaged;
 
             public override bool IsGeneric => false;
 
@@ -129,13 +62,13 @@ internal class SymbolHandler
             public override bool IsInterface => false;
         }
 
-        public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool forceUnmanagedStorage) : TypeInfo
+        public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
         {
             public override string Name => symbol.Name;
 
-            public override bool IsUnmanaged => forceUnmanagedStorage;
+            public override bool IsUnmanaged => useUnmanagedStorage;
 
-            public override bool UseUnmanagedStorage => forceUnmanagedStorage;
+            public override bool UseUnmanagedStorage => useUnmanagedStorage;
 
             public override bool IsGeneric => true;
 
@@ -146,13 +79,13 @@ internal class SymbolHandler
             public override bool IsInterface => false;
         }
 
-        public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface, bool forceUnmanagedStorage) : TypeInfo
+        public class GeneralGenericTypeArgument(string name, int genericTypeInfo, bool isInterface, bool useUnmanagedStorage) : TypeInfo
         {
             public override string Name => name;
 
-            public override bool IsUnmanaged => forceUnmanagedStorage;
+            public override bool IsUnmanaged => useUnmanagedStorage;
 
-            public override bool UseUnmanagedStorage => forceUnmanagedStorage;
+            public override bool UseUnmanagedStorage => useUnmanagedStorage;
 
             public override bool IsGeneric => true;
 
@@ -260,7 +193,7 @@ internal class SymbolHandler
 
     public bool HasUnmanagedStorage => Cases.Any(caseData => caseData.UseUnmanagedStorage);
 
-    public int UnmanagedStorageSize = 0;
+    public uint ExplicitUnmanagedStorageSize = 0;
 
     public bool HasExternalUnmanagedStorage => HasUnmanagedStorage && (IsGenericType || HasGenericContainingTypes);
 
@@ -326,7 +259,7 @@ internal class SymbolHandler
 
         var storageStrategy = (int?)storageData?.ConstructorArguments[0].Value ?? 0;
 
-        UnmanagedStorageSize = (int?)storageData?.ConstructorArguments[1].Value ?? 0;
+        ExplicitUnmanagedStorageSize = (uint?)storageData?.ConstructorArguments[1].Value ?? 0;
 
         Cases = symbol!
             .GetAttributes()
@@ -344,15 +277,18 @@ internal class SymbolHandler
 
                 var caseStorageMode = (int)attr.ConstructorArguments[2].Value!;
 
-                bool forceUnmanagedStorage = (bool)attr.ConstructorArguments[3].Value!;
+                bool useUnmanagedStorage =
+                    attr.ConstructorArguments.Length > 3 ? 
+                    (bool)attr.ConstructorArguments[3].Value! :
+                    false;
 
                 var genericTypeInfo =
-                    attr.ConstructorArguments.Length > 4 ?
+                    attr.ConstructorArguments.Length > 3 ?
                     (int)attr.ConstructorArguments[4].Value! :
                     0;
 
                 var isGenericInterface =
-                    attr.ConstructorArguments.Length > 4 ?
+                    attr.ConstructorArguments.Length > 3 ?
                     (bool)attr.ConstructorArguments[5].Value! :
                     false;
 
@@ -360,7 +296,7 @@ internal class SymbolHandler
 
                 if (caseType is INamedTypeSymbol type)
                 {
-                    typeInfo = new TypeInfo.NonArray(type, compilation, forceUnmanagedStorage);
+                    typeInfo = new TypeInfo.NonArray(type);
                 }
                 else if (caseType is IArrayTypeSymbol arrayType)
                 {
@@ -374,13 +310,13 @@ internal class SymbolHandler
                     {
                         if (genericType.Name == genericTypeName)
                         {
-                            typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType, forceUnmanagedStorage);
+                            typeInfo = new TypeInfo.SimpleGenericTypeArgument((ITypeParameterSymbol)genericType, useUnmanagedStorage);
 
                             break;
                         }
                     }
 
-                    typeInfo ??= new TypeInfo.GeneralGenericTypeArgument(genericTypeName, genericTypeInfo, isGenericInterface, forceUnmanagedStorage);
+                    typeInfo ??= new TypeInfo.GeneralGenericTypeArgument(genericTypeName, genericTypeInfo, isGenericInterface, useUnmanagedStorage);
                 }
 
                 var storeAsObject = GetStoreAsObject(storageStrategy, caseStorageMode, typeInfo);
@@ -557,14 +493,14 @@ internal class SymbolHandler
 
         EmitFieldsAndConstructor();
 
-        if (HasUnmanagedStorage || UsingAOTCompilation)
+        if (ExplicitUnmanagedStorageSize > 0 || (UsingAOTCompilation && EnableStandardJsonSerialization))
         {
             EmitStaticConstructor();
+        }
 
-            if (HasUnmanagedStorage)
-            {
-                EmitUnmanagedStorageSize();
-            }
+        if (HasUnmanagedStorage)
+        {
+            EmitUnmanagedStorageSize();
         }
 
         if (!DisableValueEquality)
@@ -684,7 +620,7 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
-        Builder.AppendLine($@"
+        Builder.Append($@"
 {Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
 {{");
 
@@ -722,9 +658,8 @@ internal class SymbolHandler
     static {NameWithoutTypeArguments}()
     {{");
 
-        if (HasUnmanagedStorage)
+        if (ExplicitUnmanagedStorageSize > 0)
         {
-
             var unmanagedTypes =
                 Cases.Where(caseData => caseData.UseUnmanagedStorage)
                 .Select(caseData => caseData.TypeInfo!.Name)
@@ -732,7 +667,7 @@ internal class SymbolHandler
 
             foreach (var type in unmanagedTypes)
             {
-                Builder.Append($@"
+                Builder.AppendLine($@"
         CheckUnmanagedStorage<{type}>();");
             }
 
@@ -1587,10 +1522,10 @@ namespace {UnmanagedStorageNamespace}
     {(HasExternalUnmanagedStorage ? "internal" : "private")} readonly struct UnmanagedStorage
     {{");
 
-        if (UnmanagedStorageSize > 0)
+        if (ExplicitUnmanagedStorageSize > 0)
         {
             Builder.Append($@"
-        [System.Runtime.InteropServices.FieldOffset({UnmanagedStorageSize - 1})] private readonly byte _;");
+        [System.Runtime.InteropServices.FieldOffset({ExplicitUnmanagedStorageSize - 1})] private readonly byte _;");
         }
         else
         {

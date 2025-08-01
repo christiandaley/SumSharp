@@ -66,9 +66,9 @@ public partial class Storage
     [UnionCase("Case11", typeof(short))]
     [UnionCase("Case12", typeof(ushort))]
     [UnionCase("Case13", typeof(short))]
-    [UnionCase("Case14", typeof(InnerStruct), ForceUnmanagedStorage: true)]
+    [UnionCase("Case14", typeof(InnerStruct))]
     [UnionCase("Case15", typeof(ulong))]
-    [UnionCase("Case16", typeof(InnerStruct), ForceUnmanagedStorage: true)]
+    [UnionCase("Case16", typeof(InnerStruct))]
     [UnionCase("Case17", typeof(InnerEnum))]
     partial class InlineValueTypes
     {
@@ -132,7 +132,7 @@ public partial class Storage
         }
     }
 
-    [UnionCase("Case0", typeof(InnerStruct), Storage: UnionCaseStorage.Inline, ForceUnmanagedStorage: true)]
+    [UnionCase("Case0", typeof(InnerStruct), Storage: UnionCaseStorage.Inline)]
     [UnionCase("Case1")]
     [UnionStorage(UnmanagedStorageSize: 1)]
     partial class InsufficientStorage
@@ -147,9 +147,9 @@ public partial class Storage
     }
 
 
-    [UnionCase("Case0", "InnerStruct<(T, T)>", ForceUnmanagedStorage: true)]
+    [UnionCase("Case0", "InnerStruct<(T, T)>", UseUnmanagedStorage: true)]
     [UnionCase("Case1", typeof(TypeCode))]
-    [UnionCase("Case2", "T", ForceUnmanagedStorage: true)]
+    [UnionCase("Case2", "T", UseUnmanagedStorage: true)]
     [UnionCase("Case3")]
     [UnionStorage(UnmanagedStorageSize: 4)]
     partial class GenericUnmanagedType<T> where T : unmanaged
@@ -172,7 +172,7 @@ public partial class Storage
         }
     }
 
-    [UnionCase("Case0", typeof(HashCode), ForceUnmanagedStorage: true)]
+    [UnionCase("Case0", typeof(HashCode))]
     [UnionCase("Case1")]
     partial class OutsideAssemblyStruct
     {

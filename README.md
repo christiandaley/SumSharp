@@ -190,20 +190,20 @@ Additionally, developers can choose to have their union types be either a class 
 
 ### Controlling the memory layout
 
-The memory layout of a union can be controlled on a case-by-case basis using the `UnionCaseStorage` argument to the `UnionCase` attribute, and on a union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
+The memory layout of a union can be controlled on a case-by-case basis using the `Storage` argument to the `UnionCase` attribute, and on a union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
 
 #### UnionCaseStorage
 
 ```csharp
-[UnionCase("String", typeof(string), UnionCaseStorage: UnionCaseStorage.AsObject)]
-[UnionCase("Double", typeof(double), UnionCaseStorage: UnionCaseStorage.Inline)]
+[UnionCase("String", typeof(string), Storage: UnionCaseStorage.AsObject)]
+[UnionCase("Double", typeof(double), Storage: UnionCaseStorage.Inline)]
 partial class StringOrDouble
 {
 
 }
 ```
 
-The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-exactly-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `UnionCaseStorage.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
+The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `UnionCaseStorage.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
 
 #### UnionStorageStrategy
 
@@ -234,22 +234,15 @@ The rules for determining how cases store their values are:
 2. If the `UnionStorageStrategy` for the union is:
    - `InlineValueTypes`: Cases with `Default` storage have their values stored inline if `SumSharp` detects that the type is a value type, otherwise in an `object` field shared with all other cases that are stored as an object
    - `OneObject`: Cases with `Default` storage have their values stored in an `object` field shared with all other cases that are stored as an object.
-3. Single type optimization: If there is exactly one unique type across all cases, none of the cases use `AsObject` storage, and the storage strategy for the union is `InlineValueTypes`, inline storage will be used for that unique type even if it's a reference type or unconstrained generic type. For non-generic reference types this has no effect other than the member field being the same type as the stored value rather than being an `object`. For unconstrained generic types this has the effect of preventing boxing whenever the substituted type ends up being a value type.
+3. Single type optimization: If there is exactly one unique type across all cases, none of the cases use `AsObject` storage, and the storage strategy for the union is `InlineValueTypes`, inline storage will be used for that unique type even if it's a reference type or unconstrained generic type. For non-generic reference types this has no effect other than the member field being the same type as the stored value rather than being an `object`. For unconstrained generic types this prevents boxing whenever the type is a value type at runtime.
 
-#### What exactly is inline storage?
+#### What is inline storage?
 
-What it means for a type to be stored "inline" depends on whether `SumSharp` [recognizes that type as meeting the `unmanaged` constraint](#in-what-circumstances-does-sumsharp-know-if-a-type-is-unmanaged).
+What it means for a type to be stored "inline" depends on whether that type meets the `unmanaged` constraint and if the type is generic or non-generic.
 
-- If `SumSharp` detects that a type is unmanaged, it will share storage for that type along with all other types it detects as being unmanaged. The total size of the storage is determined by the size of the largest unmanaged type across all cases. The storage itself is a struct member field in the union type that requires no heap allocation.
-- If `SumSharp` cannot determine that a type is unmanaged it will provide a dedicated member field for that type. Any other cases with the same type will share the same field.
-
-#### In what circumstances does SumSharp know if a type is unmanaged?
-
-The circumstances in which `SumSharp` knows that a type meets the `unmanaged` constraint are:
-
-1. The type is a primitive type (double, int, bool, etc.) or an enum type
-2. The type is a non-generic struct that is declared in the same assembly as the union type, and recursively contains only primitive/enum types or other structs also defined in the same assmebly as the union type
-3. The `ForceUnmanagedStorage` argument is set to `true`
+- If a **non-generic** type meets the unmanaged constraint it will share storage with all other non-generic unmanaged types in the union. The total size of the storage is determined by the size of the largest unmanaged type across all cases. The storage itself is a struct member field in the union that requires no heap allocation.
+- If a **generic** type meets the unmanaged constraint and the case has `UseManagedStorage` set to true, the unmanaged generic type will share storage with the non-generic unmanaged types. The `UnmanagedStorageSize` argument to the `UnionStorage` attribute must be explicitly set to a non-zero value or compilation will fail.
+- Otherwise, a dedicated member field is provided for that type. All cases holding that type will share the same field.
 
 Let's walk through an example:
 
@@ -260,9 +253,14 @@ struct UnmanagedStruct
   public byte Value;
 }
 
+struct ManagedStruct
+{
+  public object Value;
+}
+
 [UnionCase("Case0", typeof(int))]
 [UnionCase("Case1", typeof(UnmanagedStruct))]
-[UnionCase("Case2", typeof(System.HashCode))]
+[UnionCase("Case2", typeof(ManagedStruct))]
 [UnionCase("Case3", "T")]
 partial class Example<T> where T : unmanaged
 {
@@ -270,17 +268,17 @@ partial class Example<T> where T : unmanaged
 }
 ```
 
-Here we have four possible types: `int`, `UnmanagedStruct`, `System.HashCode`, and the generic `T`. Of these four types, only `int` and `UnmanagedStruct` will be recognized as unmanaged and thus have overlapping storage. `System.HashCode` does meet the `unmanaged` constraint but is defined in a different assembly, so `SumSharp` is not able to confidently determine that it is an unmanaged type and will err on the side of caution. `T` is a generic parameter that has the `unmanaged` constraint but because it does not have a known size at compile time `SumSharp` cannot determine how many bytes to reserve for its storage. `Case2` and `Case3` will end up using separates fields of type `System.HashCode` and `T`.
+Here we have four possible types: `int`, `UnmanagedStruct`, `ManagedStruct`, and the generic `T`. Of these four types, only `int` and `UnmanagedStruct` will have overlapping storage. `ManagedStruct` contains an `object`, so it does not meet the unmanaged constraint and cannot share storage with other types. `T` is a generic type parameter that has the `unmanaged` constraint but because it does not have a known size at compile time `SumSharp` cannot determine how many bytes to reserve for its storage. `Case2` and `Case3` will end up using separate fields of type `ManagedStruct` and `T`.
 
-#### Forcing unmanaged storage
+#### Unmanaged storage for generic types
 
-To force `SumSharp` to use unmanaged storage for all four types, we can pass `ForceUnmanagedStorage: true` to `Case2` and `Case3`. Additionally, because `T` has unknown size we must also pass the `UnmanagedStorageSize` argument to the `UnionStorage` attribute to explicitly define how many bytes of storage should be reserved for storing unmanaged types. The `UnmanagedStorageSize` overrides any determination that `SumSharp` makes about the size of unmanaged types.
+To force `SumSharp` to use unmanaged storage for `T`, we can pass `UseUnmanagedStorage: true` to `Case3`. Because `T` has unknown size we must also pass the `UnmanagedStorageSize` argument to the `UnionStorage` attribute to explicitly define how many bytes of storage should be reserved for storing unmanaged types. The `UnmanagedStorageSize` overrides any determination that `SumSharp` makes about the size of unmanaged types.
 
 ```csharp
 [UnionCase("Case0", typeof(int))]
 [UnionCase("Case1", typeof(UnmanagedStruct))]
-[UnionCase("Case2", typeof(System.HashCode), ForceUnmanagedStorage: true)]
-[UnionCase("Case3", "T", ForceUnmanagedStorage: true)]
+[UnionCase("Case2", typeof(ManagedStruct))]
+[UnionCase("Case3", "T", UseUnmanagedStorage: true)]
 [UnionStorage(UnmanagedStorageSize: 32)]
 partial class Example<T> where T : unmanaged
 {
@@ -288,9 +286,9 @@ partial class Example<T> where T : unmanaged
 }
 ```
 
-The generated code for `Example<T>` will now have only a single field with a size of 32 bytes. **Note that if we had not forced `T` to use unmanaged storage we could have ommitted the `UnmanagedStorageSize` argument because the size of `System.HashCode` is fixed at compile time. Providing `UnmanagedStorageSize` is only neccessary for generic unmanaged types.**
+The generated code for `Example<T>` will now have only two fields: one to store a `ManagedStruct` and one to store an `int`, `UnmanagedStruct`, or `T`.
 
-Whenever unmanaged storage is used `SumSharp` will emit a static constructor for the union that performs a runtime check to ensure that the storage reserved for the unmanaged types is sufficient. If the storage is insufficient a `TypeInitializationException` will be thrown the first time the union is attempted to be used. The exception message will contain information about how much storage is required.
+Whenever `UnmanagedStorageSize` is explicitly set, `SumSharp` will emit a static constructor for the union that performs a runtime check to ensure that the storage reserved for the unmanaged types is sufficient. If the storage is insufficient a `TypeInitializationException` will be thrown the first time the union is attempted to be used. The exception message will contain information about how much storage is required.
 
 ```csharp
 
@@ -300,7 +298,7 @@ var y = Example<(double, double, long, long, ulong)>.Case0(4); // TypeInitializa
 
 ```
 
-**Using `ForceUnmanagedStorage: true` for types that do not meet the `unmanaged` constraint will result in a compilation error.**
+**Setting `UseUnmanagedStorage: true` for generic types that do not meet the `unmanaged` constraint will result in a compilation error.**
 
 #### Generic type constraints
 
