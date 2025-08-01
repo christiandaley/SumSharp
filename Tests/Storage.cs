@@ -23,15 +23,15 @@ public partial class Storage
 
     }
 
-    [UnionCase("Case0", typeof(string), StorageMode.Inline)]
+    [UnionCase("Case0", typeof(string), UnionCaseStorage.Inline)]
     [UnionCase("Case1", typeof(bool))]
     [UnionCase("Case2", typeof(byte[]))]
-    [UnionCase("Case3", typeof(int), StorageMode.AsObject)]
+    [UnionCase("Case3", typeof(int), UnionCaseStorage.AsObject)]
     [UnionCase("Case4", typeof(float))]
     [UnionCase("Case5", typeof(IntPtr))]
     [UnionCase("Case6", typeof(UIntPtr))]
     [UnionStorage(UnionStorageStrategy.InlineValueTypes)]
-    partial class VariousStorageModes
+    partial class VariousStorageTypes
     {
 
     }
@@ -121,7 +121,7 @@ public partial class Storage
         }
     }
 
-    [UnionCase("Case0", typeof(InnerStruct), StorageMode: StorageMode.Inline, ForceUnmanagedStorage: true)]
+    [UnionCase("Case0", typeof(InnerStruct), Storage: UnionCaseStorage.Inline, ForceUnmanagedStorage: true)]
     [UnionCase("Case1")]
     [UnionStorage(UnmanagedStorageSize: 1)]
     partial class InsufficientStorage
@@ -183,12 +183,12 @@ public partial class Storage
     }
 
     [Fact]
-    public void VariousStorageModesProperties()
+    public void VariousStorageTypesProperties()
     {
-        Assert.Equal(typeof(string), typeof(VariousStorageModes).GetField("_string", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.NotNull(typeof(VariousStorageModes).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(typeof(object), typeof(VariousStorageModes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(4, typeof(VariousStorageModes).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
+        Assert.Equal(typeof(string), typeof(VariousStorageTypes).GetField("_string", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.NotNull(typeof(VariousStorageTypes).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(typeof(object), typeof(VariousStorageTypes).GetField("_object", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
+        Assert.Equal(4, typeof(VariousStorageTypes).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
 
     [Fact]

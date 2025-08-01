@@ -190,20 +190,20 @@ Additionally, developers can choose to have their union types be either a class 
 
 ### Controlling the memory layout
 
-The memory layout of a union can be controlled on a case-by-case basis using the `StorageMode` argument to the `UnionCase` attribute, and on union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
+The memory layout of a union can be controlled on a case-by-case basis using the `UnionCaseStorage` argument to the `UnionCase` attribute, and on union-wide basis using the `Strategy` argument to the `UnionStorage` attribute.
 
-#### StorageMode
+#### UnionCaseStorage
 
 ```csharp
-[UnionCase("String", typeof(string), StorageMode: StorageMode.AsObject)]
-[UnionCase("Double", typeof(double), StorageMode: StorageMode.Inline)]
+[UnionCase("String", typeof(string), UnionCaseStorage: UnionCaseStorage.AsObject)]
+[UnionCase("Double", typeof(double), UnionCaseStorage: UnionCaseStorage.Inline)]
 partial class StringOrDouble
 {
 
 }
 ```
 
-The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-exactly-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `StorageMode.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
+The `String` case will use an `object` field for its storage. The `Double` case will store its value ["inline"](#what-exactly-is-inline-storage), meaning that the storage will be provided by the union type itself and will not require boxing the double as an object on the heap. So, the `StringOrDouble` class will contain exactly two fields to provide its storage. Note that the `UnionCaseStorage.AsObject` argument to the `String` case is redundant because reference types will be stored as an `object` by default.
 
 #### UnionStorageStrategy
 
@@ -217,24 +217,24 @@ partial class StringOrDouble
 }
 ```
 
-Using the `InlineValueTypes` storage strategy results in all value type cases being stored "inline". It is equivalent to specifying `StorageMode.Inline` for all value type cases. The other possible strategies are `OneObject` (uses a single object field to store all cases) and `Default` (explained below).
+Using the `InlineValueTypes` storage strategy results in all value type cases being stored "inline". It is equivalent to specifying `UnionCaseStorage.Inline` for all value type cases. The other possible strategies are `OneObject` (uses a single object field to store all cases) and `Default` (explained below).
 
-**Note that the `StorageMode` of an individual case takes precedent over the `UnionStorageStrategy` of a union, so if we had specified `StorageMode.AsObject` for the `Double` case then the double value would end up being boxed and use the same `object` field that the `String` case uses.**
+**Note that the `UnionCaseStorage` of an individual case takes precedent over the `UnionStorageStrategy` of a union, so if we had specified `UnionCaseStorage.AsObject` for the `Double` case then the double value would end up being boxed and use the same `object` field that the `String` case uses.**
 
 #### Rules for how storage is determined
 
 The rules for determining how cases store their values are:
 
-1. If the `StorageMode` for an individual case is:
+1. If the `UnionCaseStorage` for an individual case is:
 
    - `AsObject`: The value is stored in an `object` field shared with all other cases that are stored as an object.
    - `Inline`: The value is stored inline.
    - `Default`: The overall `UnionStorageStrategy` is used to determine the storage for the case.
 
 2. If the `UnionStorageStrategy` for the union is:
-   - `OneObject`: Cases with a `Default` storage mode have their values stored in an `object` field shared with all other cases that are stored as an object.
-   - `InlineValueTypes`: Cases with a `Default` storage mode have their values stored inline if `SumSharp` detects that the type is a value type, otherwise in an `object` field shared with all other cases that are stored as an object
-   - `Default`: All cases are stored as an object _unless there is exactly one unique type across all cases and none of the cases have an `AsObject` storage mode, in which case inline storage is used for that type._
+   - `OneObject`: Cases with `Default` storage have their values stored in an `object` field shared with all other cases that are stored as an object.
+   - `InlineValueTypes`: Cases with `Default` storage have their values stored inline if `SumSharp` detects that the type is a value type, otherwise in an `object` field shared with all other cases that are stored as an object
+   - `Default`: All cases are stored as an object _unless there is exactly one unique type across all cases and none of the cases have `AsObject` storage, in which case inline storage is used for that type._
 
 #### What exactly is inline storage?
 

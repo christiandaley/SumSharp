@@ -465,11 +465,11 @@ internal class SymbolHandler
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, TypeInfo typeInfo)
     {
-        if (storageMode == 1) // StorageMode.AsObject
+        if (storageMode == 1) // UnionCaseStorage.AsObject
         {
             return true;
         }
-        if (storageMode == 2) // StorageMode.Inline
+        if (storageMode == 2) // UnionCaseStorage.Inline
         {
             return false;
         }
