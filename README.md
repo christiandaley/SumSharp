@@ -372,7 +372,7 @@ x.Switch(
   (f) => {});
 
 var s = x.Match(
-  (i, s) => s + t.ToString(),
+  (i, s) => s + i.ToString(),
   (f) => f.ToString());
 
 Console.WriteLine(s);
