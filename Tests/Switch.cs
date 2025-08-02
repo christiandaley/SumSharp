@@ -80,8 +80,26 @@ public partial class Switch
         var passed = false;
 
         ContainsTuple<string>.Case0(true, 1).Switch(
-        (b, i) => passed = b && i == 1,
-        (_, _) => { });
+            (b, i) => passed = b && i == 1,
+            (_, _) => { });
+
+        Assert.True(passed);
+    }
+
+
+    [Fact]
+    public async Task TupleSwitchAsync()
+    {
+        var passed = false;
+
+        await ContainsTuple<string>.Case1("a", "b").Switch(
+            (_, _) => Task.CompletedTask,
+            (s1, s2) => 
+            {
+                passed = s1 == "a" && s2 == "b";
+
+                return Task.CompletedTask;
+            });
 
         Assert.True(passed);
     }
