@@ -1,0 +1,38 @@
+name: Create release tag
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create_tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to push a tag
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Ensure full history is available
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Install GitVersion
+        uses: GitTools/actions/gitversion/setup@v0.11.0
+
+      - name: Run GitVersion
+        id: gitversion
+        uses: GitTools/actions/gitversion/execute@v0.11.0
+
+      - name: Create Tag
+        run: |
+          VERSION=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+          echo "Tagging version v$VERSION"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag v$VERSION
+          git push origin v$VERSION
