@@ -1013,6 +1013,10 @@ internal class SymbolHandler
             {
                 return $"Func<Task> f{caseData.Index}";
             }
+            else if (caseData.TypeInfo.IsTupleType)
+            {
+                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task> f{caseData.Index}";
+            }
             else
             {
                 return $"Func<{caseData.TypeInfo.Name}, Task> f{caseData.Index}";
@@ -1028,7 +1032,11 @@ internal class SymbolHandler
 
         foreach (var caseData in Cases)
         {
-            var arg = caseData.TypeInfo == null ? "" : $"As{caseData.Name}Unsafe";
+            var arg =
+                caseData.TypeInfo == null ? "" :
+                caseData.TypeInfo.IsTupleType ?
+                string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"As{caseData.Name}Unsafe.Item{i + 1}")) :
+                $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
             {caseData.Index} => f{caseData.Index}({arg}),");
