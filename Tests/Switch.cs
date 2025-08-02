@@ -12,6 +12,14 @@ public partial class Switch
 
     }
 
+    [UnionCase("Case0", typeof(ValueTuple<bool, byte>))]
+    [UnionCase("Case1", "(T, T)")]
+
+    partial class ContainsTuple<T>
+    {
+
+    }
+
     [Fact]
     public void Case0()
     {
@@ -62,6 +70,18 @@ public partial class Switch
 
                 return Task.CompletedTask;
             });
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void TupleSwitch()
+    {
+        var passed = false;
+
+        ContainsTuple<string>.Case0(true, 1).Switch(
+        (b, i) => passed = b && i == 1,
+        (_, _) => { });
 
         Assert.True(passed);
     }

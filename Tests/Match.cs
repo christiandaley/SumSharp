@@ -74,13 +74,4 @@ public partial class Match
 
         Assert.True(passed);
     }
-
-    /*[Fact]
-    public async Task TupleMatchAsync()
-    {
-        var passed =
-            await ContainsTuple<double>.Case1(2.0, 3.0).Match(
-            (_, _) => Task.FromResult(false),
-            (d1, d2) => Task.FromResult(d1 == 2.0 && d2 == 3.0));
-    }*/
 }
