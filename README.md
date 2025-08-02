@@ -347,7 +347,7 @@ You can also pass `GenericTypeInfo.ReferenceType` for generic types that you kno
 
 ### ValueTuple cases
 
-If a case holds a `System.ValueTuple<...>`, an overload of the case constructor is generated that allows the individual tuple items to be passed as separate arguments. `Switch`, `Match`, and `If` function handlers also accept the items of the tuple as individual arguments rather than the tuple itself.
+If a case holds a `System.ValueTuple<...>`, an overload of the case constructor is generated that allows the individual tuple items to be passed as separate arguments. `Switch`, `Match`, and `If` function handlers accept the items of the tuple as individual arguments rather than the tuple itself.
 
 ```csharp
 [UnionCase("Case0", typeof((int, string)))]
