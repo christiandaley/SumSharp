@@ -10,7 +10,7 @@ namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
-    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s]+|\[\]", RegexOptions.Compiled);
+    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s\(\)]+|\[\]", RegexOptions.Compiled);
     private static readonly Regex _tupleRegex = new(@"^(?:System\.)?ValueTuple<(?<types>.+)>$|^\((?<types>.+)\)$", RegexOptions.Compiled);
 
     public abstract class TypeInfo
@@ -132,9 +132,9 @@ internal class SymbolHandler
 
             public override bool IsGeneric => true;
 
-            public override bool IsAlwaysValueType => ((genericTypeInfo & 1) == 0 && !isInterface) || IsUnmanaged;
+            public override bool IsAlwaysValueType => ((genericTypeInfo & 1) == 0 && !isInterface) || IsUnmanaged || IsTupleType;
 
-            public override bool IsAlwaysRefType => ((genericTypeInfo & 2) == 0 || isInterface) && !IsUnmanaged;
+            public override bool IsAlwaysRefType => ((genericTypeInfo & 2) == 0 || isInterface) && !IsUnmanaged && !IsTupleType;
 
             public override bool IsInterface => isInterface;
 
