@@ -17,6 +17,8 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
+        public virtual string SimplifiedName => Name;
+
         public abstract bool IsUnmanaged { get; }
 
         public abstract bool UseUnmanagedStorage { get; }
@@ -35,7 +37,12 @@ internal class SymbolHandler
 
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
-            public override string Name => symbol.ToDisplayString();
+            public override string Name { get; } = symbol.ToDisplayString();
+
+            public override string SimplifiedName =>
+                IsTupleType ?
+                $"({(string.Join(", ", TupleTypeArgs))})" : // Removes custom field names
+                Name;
 
             public override bool IsUnmanaged => symbol.IsUnmanagedType;
 
@@ -54,7 +61,7 @@ internal class SymbolHandler
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
         {
-            public override string Name => symbol.ToDisplayString();
+            public override string Name { get; } = symbol.ToDisplayString();
 
             public override bool IsUnmanaged => false;
 
@@ -73,7 +80,7 @@ internal class SymbolHandler
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
         {
-            public override string Name => symbol.Name;
+            public override string Name { get; } = symbol.Name;
 
             public override bool IsUnmanaged => useUnmanagedStorage;
 
@@ -384,7 +391,7 @@ internal class SymbolHandler
         UniqueCases =
             Cases
             .Where(caseData => caseData.TypeInfo is not null)
-            .GroupBy(caseData => caseData.TypeInfo!.Name)
+            .GroupBy(caseData => caseData.TypeInfo!.SimplifiedName)
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
