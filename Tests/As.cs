@@ -20,7 +20,7 @@ public partial class As
     }
 
     [UnionCase("Case0", typeof((int IntValue, double DoubleValue)))]
-    [UnionCase("Case1", "ValueTuple<Dictionary<T, List<U>> DictValue, (T, U) GenericTupleValue>")]
+    [UnionCase("Case1", "(Dictionary<T, List<U>> DictValue, (T, U) GenericTupleValue)")]
 
     partial class ContainsTuple<T, U> where T : notnull
     {
@@ -69,7 +69,7 @@ public partial class As
             }, 
             (2.5f, "b"));
 
-        Assert.Equal("a", value2.AsCase1.DictValue[1.5f]);
+        Assert.Equal("a", value2.AsCase1.DictValue[1.5f].Single());
         Assert.Equal((2.5f, "b"), value2.AsCase1.GenericTupleValue);
     }
 }

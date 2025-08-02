@@ -1,8 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using System;
-using System.Collections.Immutable;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -17,7 +19,10 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
-        public virtual string SimplifiedName => Name;
+        public string SimplifiedName =>
+            IsTupleType ?
+            $"({(string.Join(", ", TupleTypeArgs))})" : // Removes custom field names
+            Name;
 
         public abstract bool IsUnmanaged { get; }
 
@@ -38,11 +43,6 @@ internal class SymbolHandler
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name { get; } = symbol.ToDisplayString();
-
-            public override string SimplifiedName =>
-                IsTupleType ?
-                $"({(string.Join(", ", TupleTypeArgs))})" : // Removes custom field names
-                Name;
 
             public override bool IsUnmanaged => symbol.IsUnmanagedType;
 
@@ -117,18 +117,42 @@ internal class SymbolHandler
                 for (int i = 0; i < typeArgs.Length; i++)
                 {
                     char c = typeArgs[i];
-                    if (c == '<' || c == '(') depth++;
-                    else if (c == '>' || c == ')') depth--;
+
+                    if (c == '<' || c == '(')
+                    {
+                        ++depth;
+                    }
+                    else if (c == '>' || c == ')')
+                    {
+                        --depth;
+                    }
                     else if (c == ',' && depth == 0)
                     {
-                        result.Add(typeArgs.Substring(start, i - start).Trim());
+                        result.Add(RemoveFieldName(typeArgs.Substring(start, i - start).Trim()));
                         start = i + 1;
                     }
                 }
 
-                result.Add(typeArgs.Substring(start).Trim());
+                result.Add(RemoveFieldName(typeArgs.Substring(start).Trim()));
 
                 return [.. result];
+
+                static string RemoveFieldName(string input)
+                {
+                    for (int i = input.Length - 1; i >= 0; i--)
+                    {
+                        if (input[i] == ' ')
+                        {
+                            return input.Substring(0, i).Trim();
+                        }
+                        else if (input[i] == '>' || input[i] == ')')
+                        {
+                            break;
+                        }
+                    }
+
+                    return input;
+                }
             }
 
             public override string Name => name;
