@@ -19,11 +19,6 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
-        public string SimplifiedName =>
-            IsTupleType ?
-            $"({(string.Join(", ", TupleTypeArgs))})" : // Removes custom field names
-            Name;
-
         public abstract bool IsUnmanaged { get; }
 
         public abstract bool UseUnmanagedStorage { get; }
@@ -415,7 +410,10 @@ internal class SymbolHandler
         UniqueCases =
             Cases
             .Where(caseData => caseData.TypeInfo is not null)
-            .GroupBy(caseData => caseData.TypeInfo!.SimplifiedName)
+            .GroupBy(caseData =>
+                caseData.TypeInfo!.IsTupleType ?
+                $"({string.Join(", ", caseData.TypeInfo.TupleTypeArgs)})" : // Removes custom field names
+                caseData.TypeInfo.Name)
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
