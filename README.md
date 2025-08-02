@@ -345,6 +345,45 @@ partial class GenericUnion<T>
 
 You can also pass `GenericTypeInfo.ReferenceType` for generic types that you know are reference types. Doing this is never neccessary for the code to work, but it helps `SumSharp` emit more efficient code.
 
+### ValueTuple cases
+
+If a case holds a `System.ValueTuple`, an overload of the case constructor is generated that allows the individual tuple items to be passed as separate arguments. `Switch`, `Match`, and `If` function handlers also accept the items of the tuple as individual arguments rather than the tuple itself.
+
+```csharp
+[UnionCase("Case0", typeof((int, string)))]
+[UnionCase("Case1", typeof(float))]
+partial class UnionWithTuple
+{
+
+}
+
+// ...
+
+// You can either pass a tuple or pass each tuple value as a separate argument
+var x = UnionWithTuple.Case0(5, "abc");
+
+// "Switch", "Match", and "If" function handlers work with the individual items rather than the tuple type itself
+x.Switch(
+  (i, s) =>
+  {
+    Console.WriteLine(i);
+    Console.WriteLine(s);
+  },
+  (f) => {});
+
+var s = x.Match(
+  (i, s) => s + t.ToString(),
+  (f) => f.ToString());
+
+Console.WriteLine(s);
+
+x.IfCase0((i, s) =>
+{
+  Console.WriteLine(i);
+  Console.WriteLine(s);
+});
+```
+
 ### Struct union types
 
 As mentioned before, `SumSharp` allows for struct and record struct union types. It's important to remember that **any struct union instance that is initialized to `default` is in an invalid state and its behavior is undefined**. The only valid way to create a `SumSharp` union is to use one of its case constructors or conversion operators. C\# allows for any struct instance to be initialized to a `default` value which involves initializing every instance member field to its default value. A `SumSharp` union initialized in such a way is in an invalid, undefined state. Using it may result in exceptions being thrown, or may silently work. **`SumSharp` makes no guarantees about the runtime behavior of default initialized struct unions.**
@@ -365,31 +404,6 @@ StructUnionType x = default;
 x.IfDouble(value =>
 {
   Console.WriteLine(value);
-});
-```
-
-### ValueTuple cases
-
-If a case holds a `System.ValueTuple`, special overloads of the case constructors and if functions are generated that make it easier to construct and work with the tuple values.
-
-```csharp
-[UnionCase("Case0", typeof((int, string)))]
-partial class UnionWithTuple
-{
-
-}
-
-// ...
-
-// You can either pass a tuple or pass each tuple value as a separate argument
-var x = UnionWithTuple.Case0(5, "abc");
-
-// "If" handler functions can accept either the tuple itself or break apart the tuple
-// into individual arguments.
-x.IfCase0((i, s) =>
-{
-  Console.WriteLine(i);
-  Console.WriteLine(s);
 });
 ```
 

@@ -965,15 +965,15 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Action f{caseData.Index}";
+                return $"Action handle{caseData.Name}";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}> f{caseData.Index}";
+                return $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}> handle{caseData.Name}";
             }
             else
             {
-                return $"Action<{caseData.TypeInfo.Name}> f{caseData.Index}";
+                return $"Action<{caseData.TypeInfo.Name}> handle{caseData.Name}";
             }
         })));
 
@@ -993,7 +993,7 @@ internal class SymbolHandler
                 $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
-            case {caseData.Index}: f{caseData.Index}({arg}); break;");
+            case {caseData.Index}: handle{caseData.Name}({arg}); break;");
         }
 
         Builder.Append(@"
@@ -1011,15 +1011,15 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Func<Task> f{caseData.Index}";
+                return $"Func<Task> handle{caseData.Name}";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task> f{caseData.Index}";
+                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task> handle{caseData.Name}";
             }
             else
             {
-                return $"Func<{caseData.TypeInfo.Name}, Task> f{caseData.Index}";
+                return $"Func<{caseData.TypeInfo.Name}, Task> handle{caseData.Name}";
             }
         })));
 
@@ -1039,7 +1039,7 @@ internal class SymbolHandler
                 $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
-            {caseData.Index} => f{caseData.Index}({arg}),");
+            {caseData.Index} => handle{caseData.Name}({arg}),");
         }
 
         Builder.Append(@"
@@ -1057,15 +1057,15 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Func<TRet_> f{caseData.Index}";
+                return $"Func<TRet_> handle{caseData.Name}";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_> f{caseData.Index}";
+                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_> handle{caseData.Name}";
             }
             else
             {
-                return $"Func<{caseData.TypeInfo.Name}, TRet_> f{caseData.Index}";
+                return $"Func<{caseData.TypeInfo.Name}, TRet_> handle{caseData.Name}";
             }
         })));
 
@@ -1085,7 +1085,7 @@ internal class SymbolHandler
                 $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
-            {caseData.Index} => f{caseData.Index}({arg}),");
+            {caseData.Index} => handle{caseData.Name}({arg}),");
         }
 
         Builder.Append(@"
