@@ -12,6 +12,14 @@ public partial class Match
 
     }
 
+    [UnionCase("Case0", typeof((string, ushort)))]
+    [UnionCase("Case1", "System.ValueTuple<T, T>")]
+
+    partial class ContainsTuple<T>
+    {
+
+    }
+
     [Fact]
     public void Case0()
     {
@@ -52,6 +60,17 @@ public partial class Match
             await StringOrNone.Case1.Match(
                 _ => Task.FromResult(false),
                 () => Task.FromResult(true));
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void TupleMatch()
+    {
+        var passed =
+            ContainsTuple<double>.Case0("abc", 5).Match(
+            (s, i) => s == "abc" && i == 5,
+            (_, _) => false);
 
         Assert.True(passed);
     }
