@@ -16,17 +16,19 @@ jobs:
         with:
           fetch-depth: 0 # Ensure full history is available
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.x
-
-      - name: Install GitVersion
+      - name: Setup GitVersion
         uses: GitTools/actions/gitversion/setup@v0.11.0
+        with:
+          versionSpec: "5.x"
 
       - name: Run GitVersion
         id: gitversion
         uses: GitTools/actions/gitversion/execute@v0.11.0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
 
       - name: Create tag
         run: |
