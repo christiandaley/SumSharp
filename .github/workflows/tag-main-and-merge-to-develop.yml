@@ -25,11 +25,6 @@ jobs:
         id: gitversion
         uses: GitTools/actions/gitversion/execute@v0.11.0
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
       - name: Create tag
         run: |
           VERSION=${{ steps.gitversion.outputs.nuGetVersionV2 }}
@@ -46,4 +41,4 @@ jobs:
           git checkout develop
           git pull origin develop
           git merge origin/main --no-ff -m "Auto-merge main into develop [skip ci]"
-          git push origin develop
+          git push -f origin develop

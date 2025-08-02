@@ -8,7 +8,6 @@ branches:
     prevent-increment-of-merged-branch-version: true
     is-release-branch: true
     tracks-release-branches: false
-    is-mainline: false
     tag: ""
 
   develop:
