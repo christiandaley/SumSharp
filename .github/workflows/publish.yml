@@ -3,10 +3,10 @@ name: Publish
 on:
   push:
     branches:
-      - main
+      - develop
       - "release/*"
     tags:
-      - "v*"
+      - "v*.*.*"
 
 jobs:
   publish:
@@ -56,4 +56,4 @@ jobs:
           files: ./nupkgs/*.nupkg
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
