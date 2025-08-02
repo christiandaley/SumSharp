@@ -80,7 +80,7 @@ internal class SymbolHandler
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
         {
-            public override string Name { get; } = symbol.Name;
+            public override string Name => symbol.Name;
 
             public override bool IsUnmanaged => useUnmanagedStorage;
 

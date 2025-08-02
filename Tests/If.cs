@@ -13,7 +13,7 @@ public partial class If
 
     }
 
-    [UnionCase("Case0", typeof((int IntValue, double DoubleValue)))]
+    [UnionCase("Case0", typeof((int, double)))]
     [UnionCase("Case1", typeof(ValueTuple<int, double>))]
     [UnionCase("Case2", "(T, U)")]
     [UnionCase("Case3", "ValueTuple<Dictionary<T, List<U>>, (T, U)>")]
