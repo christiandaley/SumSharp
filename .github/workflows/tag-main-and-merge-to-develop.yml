@@ -1,4 +1,4 @@
-name: Create release tag
+name: Tag main and merge to develop
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  create_tag:
+  tag_and_merge:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Needed to push a tag
@@ -28,7 +28,7 @@ jobs:
         id: gitversion
         uses: GitTools/actions/gitversion/execute@v0.11.0
 
-      - name: Create Tag
+      - name: Create tag
         run: |
           VERSION=${{ steps.gitversion.outputs.nuGetVersionV2 }}
           echo "Tagging version v$VERSION"
@@ -36,3 +36,12 @@ jobs:
           git config user.email "github-actions@github.com"
           git tag v$VERSION
           git push origin v$VERSION
+
+      - name: Merge main into develop
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout develop
+          git pull origin develop
+          git merge origin/main --no-ff -m "Auto-merge main into develop [skip ci]"
+          git push origin develop
