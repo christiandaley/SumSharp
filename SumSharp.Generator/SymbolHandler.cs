@@ -857,13 +857,13 @@ internal class SymbolHandler
 
             if (caseData.TypeInfo.IsTupleType)
             {
-                var tupleArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((arg, i) => $"{arg} arg{i}"));
+                var tupleArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((argType, i) => $"{argType} item{i + 1}"));
 
-                var passedArgs = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"arg{i}"));
+                var tupleValue = string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"item{i + 1}"));
 
                 Builder.AppendLine($@"
     ///<summary>A static function that creates a {Name} that holds a {caseData.Name}</summary>
-    public static {Name} {caseData.Name}({tupleArgs}) => {caseData.Name}(({passedArgs}));") ;
+    public static {Name} {caseData.Name}({tupleArgs}) => {caseData.Name}(({tupleValue}));") ;
             }
 
         }
