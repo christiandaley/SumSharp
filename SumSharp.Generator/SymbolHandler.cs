@@ -862,10 +862,32 @@ internal class SymbolHandler
     {{
         var ret = new {Name}({caseData.Index});");
 
-            if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
+            if (caseData.StoreAsObject)
             {
-                Builder.AppendLine($@"        
+                if (caseData.TypeInfo.IsAlwaysValueType)
+                {
+                    Builder.AppendLine($@"
         ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
+                }
+                else if (caseData.TypeInfo.IsAlwaysRefType)
+                {
+                    Builder.AppendLine($@"
+        ret.{caseData.FieldName} = value;");
+                }
+                else
+                {
+                    // https://github.com/dotnet/runtime/issues/48605
+                    Builder.AppendLine($@"
+        // The JIT is able to optimize away this branch at runtime
+        if (typeof({caseData.TypeInfo.Name}).IsValueType)
+        {{
+            ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);  
+        }}
+        else
+        {{
+            ret.{caseData.FieldName} = value;
+        }}");
+                }
             }
             else if (caseData.UseUnmanagedStorage)
             {
@@ -926,8 +948,16 @@ internal class SymbolHandler
                 }
                 else
                 {
-                    Builder.Append($@"
-            return ({caseData.TypeInfo.Name}){caseData.FieldName};");
+                    Builder.AppendLine($@"
+            // The JIT is able to optimize away this branch at runtime
+            if (typeof({caseData.TypeInfo.Name}).IsValueType)
+            {{
+                return System.Runtime.CompilerServices.Unsafe.As<global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.FieldName}).Value;
+            }}
+            else
+            {{
+                return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});
+            }}");
                 }
             }
             else if (caseData.UseUnmanagedStorage)
@@ -940,7 +970,6 @@ internal class SymbolHandler
             {
                 Builder.Append($@"
             return {caseData.FieldName};");
-
             }
 
             Builder.AppendLine(@"
