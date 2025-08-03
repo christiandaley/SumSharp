@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Ensure full history is available
+          token: ${{ secrets.REPO_TOKEN }}
 
       - name: Setup GitVersion
         uses: GitTools/actions/gitversion/setup@v0.11.0
@@ -26,8 +27,6 @@ jobs:
         uses: GitTools/actions/gitversion/execute@v0.11.0
 
       - name: Create tag
-        env: 
-          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
         run: |
           VERSION=${{ steps.gitversion.outputs.nuGetVersionV2 }}
           echo "Tagging version v$VERSION"
