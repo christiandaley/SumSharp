@@ -862,10 +862,19 @@ internal class SymbolHandler
     {{
         var ret = new {Name}({caseData.Index});");
 
-            if (caseData.StoreAsObject && caseData.TypeInfo.IsAlwaysValueType)
+            if (caseData.StoreAsObject)
             {
-                Builder.AppendLine($@"        
-        ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
+                // https://github.com/dotnet/runtime/issues/48605
+                Builder.AppendLine($@"
+        // The JIT is able to optimize away this branch at runtime
+        if (typeof({caseData.TypeInfo.Name}).IsValueType)
+        {{
+            ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);  
+        }}
+        else
+        {{
+            ret.{caseData.FieldName} = value;
+        }}");
             }
             else if (caseData.UseUnmanagedStorage)
             {
@@ -926,8 +935,17 @@ internal class SymbolHandler
                 }
                 else
                 {
-                    Builder.Append($@"
-            return ({caseData.TypeInfo.Name}){caseData.FieldName};");
+                    Builder.AppendLine($@"
+            // The JIT is able to optimize away this branch at runtime
+            if (typeof({caseData.TypeInfo.Name}).IsValueType)
+            {{
+                return System.Runtime.CompilerServices.Unsafe.As<global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>>({caseData.FieldName}).Value;
+            }}
+            else
+            {{
+                // Cannot do Unsafe.As here because {caseData.TypeInfo.Name} is not necessarily constrained to be a reference type
+                return ({caseData.TypeInfo.Name}){caseData.FieldName};
+            }}");
                 }
             }
             else if (caseData.UseUnmanagedStorage)
