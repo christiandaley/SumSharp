@@ -7,6 +7,7 @@ branches:
     increment: Minor
     prevent-increment-of-merged-branch-version: true
     is-release-branch: true
+    is-mainline: true
     tracks-release-branches: false
     tag: ""
 
