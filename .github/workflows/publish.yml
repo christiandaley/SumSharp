@@ -6,7 +6,7 @@ on:
       - develop
       - "release/*"
     tags:
-      - "v*.*.*"
+      - "v*"
 
 jobs:
   publish:
