@@ -1,4 +1,4 @@
-mode: ContinuousDeployment
+mode: ContinuousDelivery
 next-version: 2.0.0
 
 branches:
@@ -13,6 +13,7 @@ branches:
 
   develop:
     regex: ^develop$
+    mode: ContinuousDeployment
     increment: Minor
     is-mainline: false
     tag: rc
