@@ -31,8 +31,8 @@ jobs:
         run: |
           VERSION=${{ steps.gitversion.outputs.nuGetVersionV2 }}
           echo "Tagging version v$VERSION"
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "Christian Daley"
+          git config user.email "christiandaley@gmail.com"
           git tag v$VERSION
           git push origin v$VERSION
 
