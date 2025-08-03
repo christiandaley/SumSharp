@@ -4,7 +4,7 @@ namespace SumSharp.Internal;
 
 public sealed class Box<T>(T value) : IEquatable<Box<T>>
 {
-    public T Value => value;
+    public readonly T Value = value;
 
     public bool Equals(Box<T> other)
     {
