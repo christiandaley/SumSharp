@@ -9,7 +9,7 @@ branches:
     is-release-branch: true
     is-mainline: true
     tracks-release-branches: false
-    tag: ""
+    tag: ''
 
   develop:
     regex: ^develop$
@@ -21,7 +21,7 @@ branches:
   release:
     regex: ^release[/-]
     increment: Patch
-    tag: ""
+    tag: ''
 
 ignore:
   sha: []
