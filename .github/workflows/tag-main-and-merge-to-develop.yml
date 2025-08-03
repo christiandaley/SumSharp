@@ -26,6 +26,8 @@ jobs:
         uses: GitTools/actions/gitversion/execute@v0.11.0
 
       - name: Create tag
+        env: 
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
         run: |
           VERSION=${{ steps.gitversion.outputs.nuGetVersionV2 }}
           echo "Tagging version v$VERSION"
@@ -40,5 +42,5 @@ jobs:
           git config user.email "github-actions@github.com"
           git checkout develop
           git pull origin develop
-          git merge origin/main --no-ff -m "Auto-merge main into develop [skip ci]"
+          git merge origin/main --no-ff -m "Auto-merge main into develop"
           git push -f origin develop
