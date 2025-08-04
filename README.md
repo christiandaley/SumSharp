@@ -10,7 +10,7 @@ A highly configurable C# discriminated union library
 ---
 
 1. [Installation](#installation)
-2. [Features](#features)
+2. [Why use `SumSharp`?](#why-use-sumsharp)
 3. [Quick start](#quick-start)
    - [Creating a DU type](#creating-a-du-type)
    - [Empty cases](#empty-cases)
@@ -41,14 +41,24 @@ dotnet add package SumSharp
 
 ---
 
-## Features
+## Why use SumSharp?
+
+Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help to ensure safe data access patterns and can [make illegal states unrepresentable](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
+
+There are many discriminated union libraries available for C#, including [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features that would be expected from true, language level discriminated union types.
+
+`SumSharp` aims to be **the most powerful, expressive, and configurable C# discriminated union library available**. Its goal is to provide features and syntax comparable to the discriminated union types natively offered by languages such as F\#, Rust, Haskell, and Scala. Although it's impossible to exactly replicate the funcionality that those other languages offer, `SumSharp` attempts to get as close as possible.
+
+### Features
 
 - Unlimited number of cases
 - Support for class, struct, record, and record struct union types
 - Support for generic type cases
+- Expressive `match` syntax with exhaustiveness checking
 - **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
-- Built in JSON serialization with both System.Text.Json and Newtonsoft.Json. Compatible with System.Text.Json source generation and AOT compilation
+- Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
 - Implicit conversions to/from `OneOf` types
+- Configurable equality definitions (choose between reference or value equality for class unions)
 
 ---
 
@@ -138,9 +148,9 @@ C\# unfortunately does not offer discriminated unions as a language feature. Alt
 
 ### What about `OneOf`?
 
-[OneOf](https://github.com/mcintyre321/OneOf) is a popular existing discriminated union library for C\# that I have personally used and found very helpful. There are, however, several pain points in using `OneOf` that I have encountered, such as:
+`OneOf` is the most popular discriminated union library for C\#. I have personally used and it found it very helpful. There are, however, several pain points in using `OneOf` that I have encountered, such as:
 
-- Limited number of cases (The base library limits you to 8. There is an extended version that allows up to 32)
+- Limited number of cases (The base library limits you to 10. There is an extended version that allows up to 32)
 - No support for case "names"
 - The underlying implementation uses a dedicated field for each individual case, resulting in a larger memory footprint than is neccessary
 - Limited support for JSON serialization (There is a [separate package](https://github.com/Liversage/OneOf.Serialization.SystemTextJson) that provides System.Text.Json serialization support)
