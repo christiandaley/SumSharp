@@ -194,7 +194,7 @@ C\# unfortunately does not offer discriminated unions as a language feature. Alt
 
 `OneOf` is the most popular discriminated union library for C\#. I have personally used and it found it very helpful. There are, however, several pain points in using `OneOf` that I have encountered, such as:
 
-- Limited number of cases (The base library limits you to 10. There is an extended version that allows up to 32)
+- Limited number of cases (The base library limits you to 9. There is an extended version that allows up to 32)
 - No support for case "names"
 - The underlying implementation uses a dedicated field for each individual case, resulting in a larger memory footprint than is neccessary
 - Limited support for JSON serialization (There is a [separate package](https://github.com/Liversage/OneOf.Serialization.SystemTextJson) that provides System.Text.Json serialization support)
