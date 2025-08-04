@@ -48,7 +48,8 @@ There are many discriminated union libraries available for C#, including [`OneOf
 - Support for class, struct, record, and record struct union types
 - Support for generic type cases
 - Expressive match syntax with exhaustiveness checking
-- Implicit conversions from types with a single case
+- Implicit conversions from types (as long as there's only one case of that type in the union)
+- Convenient handling of tuple types
 - **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
 - Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
 - Implicit conversions to/from `OneOf` types
