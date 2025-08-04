@@ -178,7 +178,7 @@ Again, the corresponding F\# code would look like:
 
 ```fsharp
 let result = match myOptionalValue with
-             | Some x => x
+             | Some x -> x
              | _ -> ""
 ```
 
