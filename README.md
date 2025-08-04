@@ -197,7 +197,7 @@ C\# unfortunately does not offer discriminated unions as a language feature. Alt
 - Limited number of cases (The base library limits you to 9. There is an extended version that allows up to 32)
 - No support for case "names"
 - The underlying implementation uses a dedicated field for each individual case, resulting in a larger memory footprint than is neccessary
-- Limited support for JSON serialization (There is a [separate package](https://github.com/Liversage/OneOf.Serialization.SystemTextJson) that provides System.Text.Json serialization support)
+- Limited support for JSON serialization (There is a [separate package](https://github.com/Liversage/OneOf.Serialization.SystemTextJson) that provides `System.Text.Json serialization` support)
 - All `OneOf` instances are structs and all user defined types inheriting from `OneOfBase` must be classes. No ability to pick and choose the type kind you want to use
 
 Overall `OneOf` is an excellent library that has served me and many other developers well, but I felt that with the advent of C\# source generators it would be possible to produce a more powerful discriminated union library.
