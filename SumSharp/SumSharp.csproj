@@ -44,7 +44,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SumSharp.Analyzer\SumSharp.Analyzer.csproj" />
+    <ProjectReference Include="..\SumSharp.Analyzer\SumSharp.Analyzer.csproj" Pack="false">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>Content</OutputItemType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </ProjectReference>
     <ProjectReference Include="..\SumSharp.Generator\SumSharp.Generator.csproj" Pack="false">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <OutputItemType>Content</OutputItemType>
