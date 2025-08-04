@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SumSharp.Generator", "SumSh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.AOT", "Tests.AOT\Tests.AOT.csproj", "{AB02E647-82CD-4DB7-9207-3661E7FD933B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SumSharp.Analyzer", "SumSharp.Analyzer\SumSharp.Analyzer.csproj", "{D50E46B6-6A70-4A3C-A89F-348A1566825F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{AB02E647-82CD-4DB7-9207-3661E7FD933B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB02E647-82CD-4DB7-9207-3661E7FD933B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB02E647-82CD-4DB7-9207-3661E7FD933B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

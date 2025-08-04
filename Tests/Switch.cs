@@ -157,7 +157,7 @@ public partial class Switch
     {
         bool passed = false;
 
-        await Result<string, Exception>.Error(new InvalidOperationException()).Switch(
+        await Result<string, Exception>.Error(new Exception()).Switch(
             Ok: str => Task.CompletedTask,
             _: () =>
             {
@@ -169,7 +169,7 @@ public partial class Switch
     }
 
     [Fact]
-    public void UnhandledCaseException()
+    public void NonExhaustiveSwitch()
     {
         var err = Assert.Throws<MatchFailureException>(() =>
         {
@@ -181,14 +181,14 @@ public partial class Switch
     }
 
     [Fact]
-    public async Task UnhandledCaseExceptionAsync()
+    public async Task NonExhaustiveSwitchAsync()
     {
         var err = await Assert.ThrowsAsync<MatchFailureException>(async () =>
         {
-            await Result<string, Exception>.Ok("abc").Switch(
-                Error: _ => Task.CompletedTask);
+            await Result<string, Exception>.Error(new Exception()).Switch(
+                Ok: _ => Task.CompletedTask);
         });
 
-        Assert.Equal("Ok", err.CaseName);
+        Assert.Equal("Error", err.CaseName);
     }
 }

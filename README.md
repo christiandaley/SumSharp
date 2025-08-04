@@ -9,12 +9,13 @@ A highly configurable C# discriminated union library
 
 ---
 
-1. [Installation](#installation)
-2. [Features](#features)
+1. [Why use `SumSharp`?](#why-use-sumsharp)
+2. [Installation](#installation)
 3. [Quick start](#quick-start)
    - [Creating a DU type](#creating-a-du-type)
    - [Empty cases](#empty-cases)
    - [Generic cases](#generic-cases)
+   - [The `Match` function](#the-match-function)
 4. [Motivation](#motivation)
    - [What about `OneOf`?](#what-about-oneof)
    - [Typical DU implementation approaches](#typical-du-implementation-approaches)
@@ -33,22 +34,36 @@ A highly configurable C# discriminated union library
 
 ---
 
+## Why use SumSharp?
+
+Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help ensure safe data access patterns and can [make illegal states unrepresentable.](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
+
+There are many discriminated union libraries available for C#, such as [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features that would be expected from true, language level discriminated union types.
+
+`SumSharp` aims to be **the most powerful, expressive, and configurable C# discriminated union library available**. Its goal is to provide features and syntax comparable to the discriminated union types natively offered by languages such as F\#, Rust, Haskell, and Scala. Although it's impossible to exactly replicate the functionality that those other languages offer, `SumSharp` attempts to get as close as possible.
+
+### Features
+
+- Unlimited number of cases
+- Support for class, struct, record, and record struct union types
+- Support for generic type cases
+- Expressive match syntax with exhaustiveness checking
+- Implicit conversions from types (as long as there's only one case of that type in the union)
+- Convenient handling of tuple types
+- **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
+- Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
+- Implicit conversions to/from `OneOf` types
+- Configurable equality definitions (choose between reference or value equality for class unions)
+
+---
+
 ## Installation
 
 ```bash
 dotnet add package SumSharp
 ```
 
----
-
-## Features
-
-- Unlimited number of cases
-- Support for class, struct, record, and record struct union types
-- Support for generic type cases
-- **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
-- Built in JSON serialization with both System.Text.Json and Newtonsoft.Json. Compatible with System.Text.Json source generation and AOT compilation
-- Implicit conversions to/from `OneOf` types
+Or install via the Nuget package manager in Visual Studio.
 
 ---
 
@@ -77,7 +92,7 @@ That's it! `SumSharp` will generate members for the `StringOrDouble` class that 
 - `Switch`, `Match`, `IfString`, and `IfDouble` functions for control flow
 - An `Index` int property that reflects the current case
 - Implicit conversions from string/double to `StringOrDouble`
-- Implementation of the `IEquatable<StringOrDouble>` interface, `Object.Equals` override and `==` and `!=` operators to allow for value equality comparisons
+- Implementation of the `IEquatable<StringOrDouble>` interface, `Object.Equals` override, and `==` and `!=` operators to allow for value equality comparisons
 - Various overloads of `As[CaseName]` and `If[CaseName]` to allow for more expressive control flow
 
 ```csharp
@@ -85,15 +100,15 @@ var x = StringOrDouble.Double(3.14);
 
 // Prints "Value is a double: 3.14"
 x.Switch(
-  value => Console.WriteLine($"Value is a string: {value}"),
-  value => Console.WriteLine($"Value is a double: {value}"));
+  String: s => Console.WriteLine($"Value is a string: {s}"),
+  Double: d => Console.WriteLine($"Value is a double: {d}"));
 
 StringOrDouble y = "abcdefg";
 
 // result is "Value is a string: abcdefg"
 var result = y.Match(
-  value => $"Value is a string: {value}",
-  value => $"Value is a double: {value}");
+  String: s => $"Value is a string: {s}",
+  Double: d => $"Value is a double: {d}");
 
 // Prints "abcdefg"
 Console.WriteLine(y.AsString);
@@ -123,12 +138,52 @@ Case types can be generic. To define a generic case you must supply the **name**
 
 ```csharp
 [UnionCase("Some", "T")]
-[UnionCase("Empty")]
+[UnionCase("None")]
 partial class Optional<T>
 {
 
 }
 ```
+
+### The `Match` function
+
+Performing a "match" on a discriminated union for control flow is a common need. `SumSharp` unions have a `Match` member function that provides this functionality (`Switch` and its async overload provide equivalent functionality for void returning handlers). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
+
+```csharp
+// Here myOptionalValue is an Optional<string>
+// The "None" handler can come before the "Some" handler as long as they're both named
+var result = myOptionalValue.Match(
+             None: () => "",
+             Some: x => x);
+```
+
+Corresponding F\# code would look like:
+
+```fsharp
+let result = match myOptionalValue with
+             | None -> ""
+             | Some x -> x
+```
+
+Handling each case is not required, but a warning will be emitted by the `SumSharp` analyzer if the handling is non-exhaustive. It can be a good idea to treat this warning as an error. A match or switch statement that fails to handle a case at runtime will throw a `SumSharp.MatchFailureException`.
+
+If you only want to handle some subset of cases, you can provide a default handler to prevent a warning from being emitted.
+
+```csharp
+var result = myOptionalValue.Match(
+             Some: x => x,
+             _: () => "");
+```
+
+Again, the corresponding F\# code would look like:
+
+```fsharp
+let result = match myOptionalValue with
+             | Some x -> x
+             | _ -> ""
+```
+
+The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive.
 
 ---
 
@@ -138,12 +193,12 @@ C\# unfortunately does not offer discriminated unions as a language feature. Alt
 
 ### What about `OneOf`?
 
-[OneOf](https://github.com/mcintyre321/OneOf) is a popular existing discriminated union library for C\# that I have personally used and found very helpful. There are, however, several pain points in using `OneOf` that I have encountered, such as:
+`OneOf` is the most popular discriminated union library for C\#. I have personally used and it found it very helpful. There are, however, several pain points in using `OneOf` that I have encountered, such as:
 
-- Limited number of cases (The base library limits you to 8. There is an extended version that allows up to 32)
+- Limited number of cases (The base library limits you to 9. There is an extended version that allows up to 32)
 - No support for case "names"
 - The underlying implementation uses a dedicated field for each individual case, resulting in a larger memory footprint than is neccessary
-- Limited support for JSON serialization (There is a [separate package](https://github.com/Liversage/OneOf.Serialization.SystemTextJson) that provides System.Text.Json serialization support)
+- Limited support for JSON serialization (There is a [separate package](https://github.com/Liversage/OneOf.Serialization.SystemTextJson) that provides `System.Text.Json serialization` support)
 - All `OneOf` instances are structs and all user defined types inheriting from `OneOfBase` must be classes. No ability to pick and choose the type kind you want to use
 
 Overall `OneOf` is an excellent library that has served me and many other developers well, but I felt that with the advent of C\# source generators it would be possible to produce a more powerful discriminated union library.
@@ -364,16 +419,16 @@ var x = UnionWithTuple.Case0(5, "abc");
 
 // "Switch", "Match", and "If" function handlers work with the individual items rather than the tuple type itself
 x.Switch(
-  (i, s) =>
+  Case0: (i, s) =>
   {
     Console.WriteLine(i);
     Console.WriteLine(s);
   },
-  (f) => {});
+  Case1: f => {});
 
 var s = x.Match(
-  (i, s) => s + i.ToString(),
-  (f) => f.ToString());
+  Case0: (i, s) => s + i.ToString(),
+  Case1: f => f.ToString());
 
 Console.WriteLine(s);
 

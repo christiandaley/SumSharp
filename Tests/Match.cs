@@ -87,8 +87,8 @@ public partial class Match
     {
         var passed =
             Result<string, Exception>.Ok("abc").Match(
-                Ok: str => str == "abc",
-                Error: _ => false);
+                Error: _ => false,
+                Ok: str => str == "abc");
 
         Assert.True(passed);
     }
@@ -105,7 +105,7 @@ public partial class Match
     }
 
     [Fact]
-    public void UnhandledCaseException()
+    public void NonExhaustiveMatch()
     {
         var err = Assert.Throws<MatchFailureException>(() =>
         {
@@ -114,5 +114,16 @@ public partial class Match
         });
 
         Assert.Equal("Ok", err.CaseName);
+    }
+
+    [Fact]
+    public void RedundantDefaultCase()
+    {
+        var passed = Result<string, Exception>.Ok("a").Match(
+            Ok: str => str == "a",
+            Error: _ => false,
+            _: () => false);
+
+        Assert.True(passed);
     }
 }
