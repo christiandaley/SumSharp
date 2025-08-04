@@ -62,6 +62,8 @@ There are many discriminated union libraries available for C#, including [`OneOf
 dotnet add package SumSharp
 ```
 
+Or install via the Nuget package manager in Visual Studio.
+
 ---
 
 ## Quick start
