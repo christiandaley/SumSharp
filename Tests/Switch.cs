@@ -20,6 +20,13 @@ public partial class Switch
 
     }
 
+    [UnionCase("Ok", "T")]
+    [UnionCase("Error", "E")]
+    partial class Result<T, E>
+    {
+
+    }
+
     [Fact]
     public void Case0()
     {
@@ -102,5 +109,86 @@ public partial class Switch
             });
 
         Assert.True(passed);
+    }
+
+    [Fact]
+    public void NamedSwitchNoDefault()
+    {
+        bool passed = false;
+
+        Result<string, Exception>.Ok("abc").Switch(
+            Ok: str => passed = str == "abc",
+            Error: _ => { });
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public async Task NamedSwitchNoDefaultAsync()
+    {
+        bool passed = false;
+
+        await Result<string, Exception>.Ok("abc").Switch(
+            Ok: str => 
+            {
+                passed = str == "abc";
+
+                return Task.CompletedTask;
+            },
+            Error: _ => Task.CompletedTask);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void NamedSwitchWithDefault()
+    {
+        bool passed = false;
+
+        Result<string, Exception>.Error(new InvalidOperationException()).Switch(
+            Ok: str => { },
+            _: () => passed = true);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void NamedSwitchWithDefaultAsync()
+    {
+        bool passed = false;
+
+        await Result<string, Exception>.Error(new InvalidOperationException()).Switch(
+            Ok: str => Task.CompletedTask,
+            _: () =>
+            {
+                passed = true;
+                return Task.CompletedTask;
+            });
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void UnhandledCaseException()
+    {
+        var err = Assert.Throws<MatchFailureException>(() =>
+        {
+            Result<string, Exception>.Ok("abc").Switch(
+                Error: _ => { });
+        });
+
+        Assert.Equal("Ok", err.CaseName);
+    }
+
+    [Fact]
+    public void UnhandledCaseExceptionAsync()
+    {
+        var err = await Assert.ThrowsAsync<MatchFailureException>(async () =>
+        {
+            await Result<string, Exception>.Ok("abc").Switch(
+                Error: _ => Task.CompletedTask);
+        });
+
+        Assert.Equal("Ok", err.CaseName);
     }
 }

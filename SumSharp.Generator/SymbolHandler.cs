@@ -1021,19 +1021,19 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Action handle{caseData.Name}";
+                return $"Action{Nullable} {caseData.Name} = null";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}> handle{caseData.Name}";
+                return $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}>{Nullable} {caseData.Name} = null";
             }
             else
             {
-                return $"Action<{caseData.TypeInfo.Name}> handle{caseData.Name}";
+                return $"Action<{caseData.TypeInfo.Name}>{Nullable} {caseData.Name} = null";
             }
         })));
 
-        Builder.Append(")");
+        Builder.Append($", Action{Nullable} _ = null)");
 
         Builder.Append(@"
     {
@@ -1048,8 +1048,15 @@ internal class SymbolHandler
                 string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"As{caseData.Name}Unsafe.Item{i + 1}")) :
                 $"As{caseData.Name}Unsafe";
 
+            var throwException = $@"throw new global::SumSharp.MatchFailureException(""{caseData.Name}"")";
+
             Builder.Append($@"
-            case {caseData.Index}: handle{caseData.Name}({arg}); break;");
+            case {caseData.Index}: 
+                if ({caseData.Name} is not null) {caseData.Name}({arg});
+                else if (_ is not null) _();
+                else {throwException};
+
+                break;");
         }
 
         Builder.Append(@"
@@ -1125,7 +1132,7 @@ internal class SymbolHandler
             }
         })));
 
-        Builder.Append(", Func<TRet_>? _ = null)");
+        Builder.Append($", Func<TRet_>{Nullable} _ = null)");
 
         Builder.Append(@"
     {
@@ -1143,7 +1150,7 @@ internal class SymbolHandler
             var throwException = $@"throw new global::SumSharp.MatchFailureException(""{caseData.Name}"")";
 
             Builder.Append($@"
-            {caseData.Index} => {caseData.Name} is null ? _ is null ? {throwException} : _() : {caseData.Name}({arg}),");
+            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ?  _() : {throwException},");
         }
 
         Builder.Append(@"
