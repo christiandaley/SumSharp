@@ -1113,15 +1113,15 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Func<TRet_> handle{caseData.Name}";
+                return $"Func<TRet_> {caseData.Name}";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_> handle{caseData.Name}";
+                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_> {caseData.Name}";
             }
             else
             {
-                return $"Func<{caseData.TypeInfo.Name}, TRet_> handle{caseData.Name}";
+                return $"Func<{caseData.TypeInfo.Name}, TRet_> {caseData.Name}";
             }
         })));
 
@@ -1141,7 +1141,7 @@ internal class SymbolHandler
                 $"As{caseData.Name}Unsafe";
 
             Builder.Append($@"
-            {caseData.Index} => handle{caseData.Name}({arg}),");
+            {caseData.Index} => {caseData.Name}({arg}),");
         }
 
         Builder.Append(@"
