@@ -1104,7 +1104,7 @@ internal class SymbolHandler
             var throwException = $@"throw new global::SumSharp.MatchFailureException(""{caseData.Name}"")";
 
             Builder.Append($@"
-            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ?  _() : {throwException},");
+            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ? _() : {throwException},");
         }
 
         Builder.Append(@"
@@ -1152,7 +1152,7 @@ internal class SymbolHandler
             var throwException = $@"throw new global::SumSharp.MatchFailureException(""{caseData.Name}"")";
 
             Builder.Append($@"
-            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ?  _() : {throwException},");
+            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ? _() : {throwException},");
         }
 
         Builder.Append(@"

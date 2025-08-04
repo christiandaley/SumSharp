@@ -169,7 +169,7 @@ public partial class Switch
     }
 
     [Fact]
-    public void UnhandledCaseException()
+    public void NonExhaustiveSwitch()
     {
         var err = Assert.Throws<MatchFailureException>(() =>
         {
@@ -181,7 +181,7 @@ public partial class Switch
     }
 
     [Fact]
-    public async Task UnhandledCaseExceptionAsync()
+    public async Task NonExhaustiveSwitchAsync()
     {
         var err = await Assert.ThrowsAsync<MatchFailureException>(async () =>
         {

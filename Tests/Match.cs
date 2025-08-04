@@ -105,7 +105,7 @@ public partial class Match
     }
 
     [Fact]
-    public void UnhandledCaseException()
+    public void NonExhaustiveMatch()
     {
         var err = Assert.Throws<MatchFailureException>(() =>
         {
