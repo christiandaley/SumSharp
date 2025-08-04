@@ -87,8 +87,8 @@ public partial class Match
     {
         var passed =
             Result<string, Exception>.Ok("abc").Match(
-                Ok: str => str == "abc",
-                Error: _ => false);
+                Error: _ => false,
+                Ok: str => str == "abc");
 
         Assert.True(passed);
     }

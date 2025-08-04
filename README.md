@@ -15,6 +15,7 @@ A highly configurable C# discriminated union library
    - [Creating a DU type](#creating-a-du-type)
    - [Empty cases](#empty-cases)
    - [Generic cases](#generic-cases)
+   - [Using the `Match` function](#using-the-match-function)
 4. [Motivation](#motivation)
    - [What about `OneOf`?](#what-about-oneof)
    - [Typical DU implementation approaches](#typical-du-implementation-approaches)
@@ -141,27 +142,45 @@ partial class Optional<T>
 }
 ```
 
-### Match and Switch
+### Using the `Match` function
 
 Performing a "match" on a discriminated union for control flow is a common need. `SumSharp` unions
-all have a `Match` member function that provides this functionality. The arguments to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing for the use of named parameters to aid in readability and for the handlers to be specified out of order. Compare performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
+all have a `Match` member function that provides this functionality (`Switch` and its async overload provide equivalent functionality for void returning handlers). The arguments to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing for the use of named parameters to aid in readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
 
 ```csharp
-// Note that the "None" handler can come before the "Some" handler
-// as long as they're both named
-myOptionalValue.Match(
-  None: () => Console.WriteLine("The value is empty"),
-  Some: x => Console.WriteLine($"The value is {x}"));
-
+// The "None" handler can come before the "Some" handler as long as they're both named
+var result = myOptionalValue.Match(
+             None: () => "",
+             Some: x => x);
 ```
 
 Corresponding F\# code would look like:
 
 ```fsharp
-match myOptionalValue with
-| None -> Console.WriteLine("The value is empty")
-| Some x => Console.WriteLine($"The value is {x}"))
+let result = match myOptionalValue with
+             | None -> ""
+             | Some x => x
 ```
+
+Handling each case is not required, but a warning will be emitted by the `SumSharp` analyzer if the handling is non-exhaustive. It can be a good idea to treat this warning as an error. A match or switch statement that fails to handle a case at runtime will throw a `SumSharp.MatchFailureException`.
+
+If you only want to handle some subset of cases, you can provide a default handler to prevent a warning from being emitted.
+
+```csharp
+var result = myOptionalValue.Match(
+             Some: x => x,
+             _: () => "");
+```
+
+Again, the corresponding F\# code would look like:
+
+```fsharp
+let result = match myOptionalValue with
+             | Some x => x
+             | _ => ""
+```
+
+The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive.
 
 ---
 
