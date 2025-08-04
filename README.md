@@ -35,7 +35,7 @@ A highly configurable C# discriminated union library
 
 ## Why use SumSharp?
 
-Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help to ensure safe data access patterns and can [make illegal states unrepresentable](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
+Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help ensure safe data access patterns and can [make illegal states unrepresentable.](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
 
 There are many discriminated union libraries available for C#, including [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features that would be expected from true, language level discriminated union types.
 
@@ -46,7 +46,8 @@ There are many discriminated union libraries available for C#, including [`OneOf
 - Unlimited number of cases
 - Support for class, struct, record, and record struct union types
 - Support for generic type cases
-- Expressive `match` syntax with exhaustiveness checking
+- Expressive match syntax with exhaustiveness checking
+- Implicit conversions from types with a single case
 - **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
 - Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
 - Implicit conversions to/from `OneOf` types
@@ -95,15 +96,15 @@ var x = StringOrDouble.Double(3.14);
 
 // Prints "Value is a double: 3.14"
 x.Switch(
-  value => Console.WriteLine($"Value is a string: {value}"),
-  value => Console.WriteLine($"Value is a double: {value}"));
+  String: s => Console.WriteLine($"Value is a string: {s}"),
+  Double: d => Console.WriteLine($"Value is a double: {d}"));
 
 StringOrDouble y = "abcdefg";
 
 // result is "Value is a string: abcdefg"
 var result = y.Match(
-  value => $"Value is a string: {value}",
-  value => $"Value is a double: {value}");
+  String: s => $"Value is a string: {s}",
+  Double: d => $"Value is a double: {d}");
 
 // Prints "abcdefg"
 Console.WriteLine(y.AsString);
@@ -133,11 +134,33 @@ Case types can be generic. To define a generic case you must supply the **name**
 
 ```csharp
 [UnionCase("Some", "T")]
-[UnionCase("Empty")]
+[UnionCase("None")]
 partial class Optional<T>
 {
 
 }
+```
+
+### Match and Switch
+
+Performing a "match" on a discriminated union for control flow is a common need. `SumSharp` unions
+all have a `Match` member function that provides this functionality. The arguments to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing for the use of named parameters to aid in readability and for the handlers to be specified out of order. Compare performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
+
+```csharp
+// Note that the "None" handler can come before the "Some" handler
+// as long as they're both named
+myOptionalValue.Match(
+  None: () => Console.WriteLine("The value is empty"),
+  Some: x => Console.WriteLine($"The value is {x}"));
+
+```
+
+Corresponding F\# code would look like:
+
+```fsharp
+match myOptionalValue with
+| None -> Console.WriteLine("The value is empty")
+| Some x => Console.WriteLine($"The value is {x}"))
 ```
 
 ---
@@ -374,16 +397,16 @@ var x = UnionWithTuple.Case0(5, "abc");
 
 // "Switch", "Match", and "If" function handlers work with the individual items rather than the tuple type itself
 x.Switch(
-  (i, s) =>
+  Case0: (i, s) =>
   {
     Console.WriteLine(i);
     Console.WriteLine(s);
   },
-  (f) => {});
+  Case1: f => {});
 
 var s = x.Match(
-  (i, s) => s + i.ToString(),
-  (f) => f.ToString());
+  Case0: (i, s) => s + i.ToString(),
+  Case1: f => f.ToString());
 
 Console.WriteLine(s);
 
