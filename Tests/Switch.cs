@@ -153,7 +153,7 @@ public partial class Switch
     }
 
     [Fact]
-    public void NamedSwitchWithDefaultAsync()
+    public async Task NamedSwitchWithDefaultAsync()
     {
         bool passed = false;
 
@@ -181,7 +181,7 @@ public partial class Switch
     }
 
     [Fact]
-    public void UnhandledCaseExceptionAsync()
+    public async Task UnhandledCaseExceptionAsync()
     {
         var err = await Assert.ThrowsAsync<MatchFailureException>(async () =>
         {

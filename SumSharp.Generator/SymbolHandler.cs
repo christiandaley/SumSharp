@@ -1074,19 +1074,19 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Func<Task> handle{caseData.Name}";
+                return $"Func<Task>{Nullable} {caseData.Name} = null";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task> handle{caseData.Name}";
+                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task>{Nullable} {caseData.Name} = null";
             }
             else
             {
-                return $"Func<{caseData.TypeInfo.Name}, Task> handle{caseData.Name}";
+                return $"Func<{caseData.TypeInfo.Name}, Task>{Nullable} {caseData.Name} = null";
             }
         })));
 
-        Builder.Append(")");
+        Builder.Append($", Func<Task>{Nullable} _ = null)");
 
         Builder.Append(@"
     {
@@ -1101,8 +1101,10 @@ internal class SymbolHandler
                 string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"As{caseData.Name}Unsafe.Item{i + 1}")) :
                 $"As{caseData.Name}Unsafe";
 
+            var throwException = $@"throw new global::SumSharp.MatchFailureException(""{caseData.Name}"")";
+
             Builder.Append($@"
-            {caseData.Index} => handle{caseData.Name}({arg}),");
+            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ?  _() : {throwException},");
         }
 
         Builder.Append(@"
