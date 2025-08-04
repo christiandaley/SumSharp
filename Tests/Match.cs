@@ -20,6 +20,13 @@ public partial class Match
 
     }
 
+    [UnionCase("Ok", "T")]
+    [UnionCase("Error", "E")]
+    partial class Result<T, E>
+    {
+
+    }
+
     [Fact]
     public void Case0()
     {
@@ -73,5 +80,39 @@ public partial class Match
             (_, _) => false);
 
         Assert.True(passed);
+    }
+
+    [Fact]
+    public void NamedMatchNoDefault()
+    {
+        var passed =
+            Result<string, Exception>.Ok("abc").Match(
+                Ok: str => str == "abc",
+                Error: _ => false);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void NamedMatchWithDefault()
+    {
+        var passed =
+            Result<string, Exception>.Error(new InvalidOperationException()).Match(
+                Ok: str => false,
+                _: () => true);
+
+        Assert.True(passed);
+    }
+
+    [Fact]
+    public void UnhandledCaseException()
+    {
+        var err = Assert.Throws<MatchFailureException>(() =>
+        {
+            Result<string, Exception>.Ok("abc").Match(
+                Error: _ => true);
+        });
+
+        Assert.Equal("Ok", err.CaseName);
     }
 }
