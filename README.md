@@ -38,7 +38,7 @@ A highly configurable C# discriminated union library
 
 Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help ensure safe data access patterns and can [make illegal states unrepresentable.](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
 
-There are many discriminated union libraries available for C#, including [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features that would be expected from true, language level discriminated union types.
+There are many discriminated union libraries available for C#, such as [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features that would be expected from true, language level discriminated union types.
 
 `SumSharp` aims to be **the most powerful, expressive, and configurable C# discriminated union library available**. Its goal is to provide features and syntax comparable to the discriminated union types natively offered by languages such as F\#, Rust, Haskell, and Scala. Although it's impossible to exactly replicate the functionality that those other languages offer, `SumSharp` attempts to get as close as possible.
 
