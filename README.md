@@ -162,7 +162,7 @@ Corresponding F\# code would look like:
 ```fsharp
 let result = match myOptionalValue with
              | None -> ""
-             | Some x => x
+             | Some x -> x
 ```
 
 Handling each case is not required, but a warning will be emitted by the `SumSharp` analyzer if the handling is non-exhaustive. It can be a good idea to treat this warning as an error. A match or switch statement that fails to handle a case at runtime will throw a `SumSharp.MatchFailureException`.
@@ -180,7 +180,7 @@ Again, the corresponding F\# code would look like:
 ```fsharp
 let result = match myOptionalValue with
              | Some x => x
-             | _ => ""
+             | _ -> ""
 ```
 
 The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive.
