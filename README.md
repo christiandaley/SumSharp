@@ -92,7 +92,7 @@ That's it! `SumSharp` will generate members for the `StringOrDouble` class that 
 - `Switch`, `Match`, `IfString`, and `IfDouble` functions for control flow
 - An `Index` int property that reflects the current case
 - Implicit conversions from string/double to `StringOrDouble`
-- Implementation of the `IEquatable<StringOrDouble>` interface, `Object.Equals` override and `==` and `!=` operators to allow for value equality comparisons
+- Implementation of the `IEquatable<StringOrDouble>` interface, `Object.Equals` override, and `==` and `!=` operators to allow for value equality comparisons
 - Various overloads of `As[CaseName]` and `If[CaseName]` to allow for more expressive control flow
 
 ```csharp
