@@ -186,7 +186,7 @@ public partial class Switch
         var err = await Assert.ThrowsAsync<MatchFailureException>(async () =>
         {
             await Result<string, Exception>.Ok("abc").Switch(
-                Error: _ => Task.CompletedTask);
+                Ok: _ => Task.CompletedTask);
         });
 
         Assert.Equal("Ok", err.CaseName);
