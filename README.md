@@ -150,6 +150,7 @@ partial class Optional<T>
 Performing a "match" on a discriminated union for control flow is a common need. `SumSharp` unions have a `Match` member function that provides this functionality (`Switch` and its async overload provide equivalent functionality for void returning handlers). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
 
 ```csharp
+// Here `myOptionalValue` is an `Optional<string>`
 // The "None" handler can come before the "Some" handler as long as they're both named
 var result = myOptionalValue.Match(
              None: () => "",
