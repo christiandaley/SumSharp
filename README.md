@@ -9,8 +9,8 @@ A highly configurable C# discriminated union library
 
 ---
 
-1. [Installation](#installation)
-2. [Why use `SumSharp`?](#why-use-sumsharp)
+1. [Why use `SumSharp`?](#why-use-sumsharp)
+2. [Installation](#installation)
 3. [Quick start](#quick-start)
    - [Creating a DU type](#creating-a-du-type)
    - [Empty cases](#empty-cases)
@@ -33,14 +33,6 @@ A highly configurable C# discriminated union library
 
 ---
 
-## Installation
-
-```bash
-dotnet add package SumSharp
-```
-
----
-
 ## Why use SumSharp?
 
 Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help to ensure safe data access patterns and can [make illegal states unrepresentable](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
@@ -59,6 +51,14 @@ There are many discriminated union libraries available for C#, including [`OneOf
 - Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
 - Implicit conversions to/from `OneOf` types
 - Configurable equality definitions (choose between reference or value equality for class unions)
+
+---
+
+## Installation
+
+```bash
+dotnet add package SumSharp
+```
 
 ---
 
