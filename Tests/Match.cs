@@ -99,7 +99,7 @@ public partial class Match
         var passed =
             Result<string, Exception>.Error(new InvalidOperationException()).Match(
                 Ok: str => false,
-                Default: () => true);
+                _: () => true);
 
         Assert.True(passed);
     }
