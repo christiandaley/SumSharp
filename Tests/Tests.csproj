@@ -13,12 +13,12 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <WarningsNotAsErrors>SumSharp0001</WarningsNotAsErrors>
+    <WarningsNotAsErrors>SumSharp0001;SumSharp0002</WarningsNotAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <WarningsNotAsErrors>SumSharp0001</WarningsNotAsErrors>
+    <WarningsNotAsErrors>SumSharp0001;SumSharp0002</WarningsNotAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

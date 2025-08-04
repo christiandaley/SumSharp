@@ -115,4 +115,15 @@ public partial class Match
 
         Assert.Equal("Ok", err.CaseName);
     }
+
+    [Fact]
+    public void RedundantDefaultCase()
+    {
+        var passed = Result<string, Exception>.Ok("a").Match(
+            Ok: str => str == "a",
+            Error: _ => false,
+            _: () => false);
+
+        Assert.True(passed);
+    }
 }

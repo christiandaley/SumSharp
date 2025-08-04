@@ -8,17 +8,25 @@ using System.Linq;
 namespace SumSharp.Analyzer;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class ExhaustiveMatchAnalyzer : DiagnosticAnalyzer
+public class MatchAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
+    private static readonly DiagnosticDescriptor NonExhaustiveMatchRule = new DiagnosticDescriptor(
         "SumSharp0001",
         title: "Non-exhaustive match",
-        messageFormat: "Match/Switch fails to handle cases: {0}. Either handle all cases or provide a default case (_) handler",
+        messageFormat: "Failure to handle cases: {0}. Handle all cases or provide a default case (_) handler",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    private static readonly DiagnosticDescriptor RedundantDefaultCaseRule = new DiagnosticDescriptor(
+        "SumSharp0002",
+        title: "Redundant default case",
+        messageFormat: "All cases are handled. Default case handler will never be used",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(NonExhaustiveMatchRule, RedundantDefaultCaseRule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -45,45 +53,45 @@ public class ExhaustiveMatchAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var receiverType = methodSymbol.ContainingType;
+        var caseNames = GetCaseNames(methodSymbol.ContainingType);
 
-        if (!IsSumSharpUnion(receiverType))
+        if (caseNames.Length == 0)
         {
             return;
         }
-
-        var caseNames = GetCaseNames(receiverType);
 
         var passedArgs = 
             invocation.ArgumentList.Arguments
             .Select((arg, i) => arg.NameColon?.Name.Identifier.Text ?? caseNames[i])
             .ToImmutableHashSet();
 
-        bool hasDefault = passedArgs.Contains("_");
+        bool hasDefaultHandler = passedArgs.Contains("_");
 
         var missingCases = caseNames.Where(name => !passedArgs.Contains(name)).ToArray();
 
-        if (missingCases.Length > 0 && !hasDefault)
+        if (missingCases.Length > 0 && !hasDefaultHandler)
         {
             var diagnostic = Diagnostic.Create(
-                Rule,
+                NonExhaustiveMatchRule,
                 invocation.GetLocation(),
                 $"[{string.Join(", ", missingCases)}]");
 
             context.ReportDiagnostic(diagnostic);
         }
+        else if (missingCases.Length == 0 && hasDefaultHandler)
+        {
+            var diagnostic = Diagnostic.Create(
+                RedundantDefaultCaseRule,
+                invocation.GetLocation());
+
+            context.ReportDiagnostic(diagnostic);
+        }
     }
 
-    private bool IsSumSharpUnion(INamedTypeSymbol type)
+    private string[] GetCaseNames(INamedTypeSymbol type)
     {
-        return type.GetAttributes().Any(attr =>
-            attr.AttributeClass.Name == "UnionCaseAttribute");
-    }
-
-    private string[] GetCaseNames(INamedTypeSymbol unionType)
-    {
-        return 
-            unionType.GetAttributes()
+        return
+            type.GetAttributes()
             .Where(attr => attr.AttributeClass.Name == "UnionCaseAttribute")
             .Select(attr => (string)attr.ConstructorArguments[0].Value!)
             .ToArray();
