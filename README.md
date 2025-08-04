@@ -15,7 +15,7 @@ A highly configurable C# discriminated union library
    - [Creating a DU type](#creating-a-du-type)
    - [Empty cases](#empty-cases)
    - [Generic cases](#generic-cases)
-   - [Using the `Match` function](#using-the-match-function)
+   - [The `Match` function](#the-match-function)
 4. [Motivation](#motivation)
    - [What about `OneOf`?](#what-about-oneof)
    - [Typical DU implementation approaches](#typical-du-implementation-approaches)
@@ -145,7 +145,7 @@ partial class Optional<T>
 }
 ```
 
-### Using the `Match` function
+### The `Match` function
 
 Performing a "match" on a discriminated union for control flow is a common need. `SumSharp` unions have a `Match` member function that provides this functionality (`Switch` and its async overload provide equivalent functionality for void returning handlers). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
 
