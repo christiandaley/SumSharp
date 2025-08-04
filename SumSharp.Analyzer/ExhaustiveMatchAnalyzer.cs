@@ -10,12 +10,10 @@ namespace SumSharp.Analyzer;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class ExhaustiveMatchAnalyzer : DiagnosticAnalyzer
 {
-    public const string DiagnosticId = "SumSharp0001";
-
     private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
-        DiagnosticId,
+        "SumSharp0001",
         title: "Non-exhaustive match",
-        messageFormat: "Match fails to handle cases: {0}. Either handle all cases or provide a default case (_) handler",
+        messageFormat: "Match/Switch fails to handle cases: {0}. Either handle all cases or provide a default case (_) handler",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
