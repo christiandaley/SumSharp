@@ -590,10 +590,6 @@ internal class SymbolHandler
 
         EmitIs();
 
-        EmitSwitch();
-
-        EmitSwitchAsync();
-
         EmitMatch();
 
         EmitIf();
@@ -1015,13 +1011,15 @@ internal class SymbolHandler
         }
     }
 
-    private void EmitSwitch()
+    private void EmitMatch()
     {
+        // void returning match
+
         Builder.Append($@"
     ///<summary>Invokes the corresponding function with the underlying value held by the {XMLEscapedName}. Throws <see cref=""SumSharp.MatchFailureException""/>
     /// if no handler or default handler is provided for the active case</summary>
     ///<exception cref=""SumSharp.MatchFailureException"">Thrown when no handler or default handler is provided for the active case</exception>
-    public void Switch(");
+    public void Match(");
 
         Builder.Append(string.Join(", ", Cases.Select(caseData =>
         {
@@ -1065,63 +1063,12 @@ internal class SymbolHandler
                 break;");
         }
 
-        Builder.Append(@"
+        Builder.AppendLine(@"
         }
     }");
-    }
 
-    private void EmitSwitchAsync()
-    {
-        Builder.Append($@"
-    ///<summary>Invokes the corresponding function with the underlying value held by the {XMLEscapedName}. Throws <see cref=""SumSharp.MatchFailureException""/>
-    /// if no handler or default handler is provided for the active case</summary>
-    ///<exception cref=""SumSharp.MatchFailureException"">Thrown when no handler or default handler is provided for the active case</exception>
-    public Task Switch(");
+        // value returning match
 
-        Builder.Append(string.Join(", ", Cases.Select(caseData =>
-        {
-            if (caseData.TypeInfo == null)
-            {
-                return $"Func<Task>{Nullable} {caseData.Name} = null";
-            }
-            else if (caseData.TypeInfo.IsTupleType)
-            {
-                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task>{Nullable} {caseData.Name} = null";
-            }
-            else
-            {
-                return $"Func<{caseData.TypeInfo.Name}, Task>{Nullable} {caseData.Name} = null";
-            }
-        })));
-
-        Builder.Append($", Func<Task>{Nullable} _ = null)");
-
-        Builder.Append(@"
-    {
-        return Index switch
-        {");
-
-        foreach (var caseData in Cases)
-        {
-            var arg =
-                caseData.TypeInfo == null ? "" :
-                caseData.TypeInfo.IsTupleType ?
-                string.Join(", ", caseData.TypeInfo.TupleTypeArgs.Select((_, i) => $"As{caseData.Name}Unsafe.Item{i + 1}")) :
-                $"As{caseData.Name}Unsafe";
-
-            var throwException = $@"throw new global::SumSharp.MatchFailureException(""{caseData.Name}"")";
-
-            Builder.Append($@"
-            {caseData.Index} => {caseData.Name} is not null ? {caseData.Name}({arg}) : _ is not null ? _() : {throwException},");
-        }
-
-        Builder.Append(@"
-        };
-    }");
-    }
-
-    private void EmitMatch()
-    {
         Builder.Append($@"
     ///<summary>Invokes the corresponding function with the underlying value held by the {XMLEscapedName} and returns the result. Throws
     /// <see cref=""SumSharp.MatchFailureException""/> if no handler or default handler is provided for the active case</summary>
