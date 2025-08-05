@@ -89,7 +89,7 @@ That's it! `SumSharp` will generate members for the `StringOrDouble` class that 
 - `String` and `Double` static functions that construct instances of `StringOrDouble`
 - `AsString` and `AsDouble` properties that return either the underlying string/double value or throw an `InvalidOperationException`
 - `IsString` and `IsDouble` boolean properties
-- `Switch`, `Match`, `IfString`, and `IfDouble` functions for control flow
+- `Match`, `IfString`, and `IfDouble` functions for control flow
 - An `Index` int property that reflects the current case
 - Implicit conversions from string/double to `StringOrDouble`
 - Implementation of the `IEquatable<StringOrDouble>` interface, `Object.Equals` override, and `==` and `!=` operators to allow for value equality comparisons
@@ -99,7 +99,7 @@ That's it! `SumSharp` will generate members for the `StringOrDouble` class that 
 var x = StringOrDouble.Double(3.14);
 
 // Prints "Value is a double: 3.14"
-x.Switch(
+x.Match(
   String: s => Console.WriteLine($"Value is a string: {s}"),
   Double: d => Console.WriteLine($"Value is a double: {d}"));
 
@@ -147,7 +147,7 @@ partial class Optional<T>
 
 ### The `Match` function
 
-Performing a "match" on a discriminated union for control flow is a common need. `SumSharp` unions have a `Match` member function that provides this functionality (`Switch` and its async overload provide equivalent functionality for void returning handlers). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
+`SumSharp` unions have a `Match` member function that provides functionality similar to the match statement in F\# (with the limitation that `SumSharp` does not offer partial matching). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
 
 ```csharp
 // Here myOptionalValue is an Optional<string>
@@ -165,7 +165,7 @@ let result = match myOptionalValue with
              | Some x -> x
 ```
 
-Handling each case is not required, but a warning will be emitted by the `SumSharp` analyzer if the handling is non-exhaustive. It can be a good idea to treat this warning as an error. A match or switch statement that fails to handle a case at runtime will throw a `SumSharp.MatchFailureException`.
+Handling each case is not required, but a warning will be emitted by the `SumSharp` analyzer if the handling is non-exhaustive. It can be a good idea to treat this warning as an error. A `Match` that fails to handle a case at runtime will throw a `SumSharp.MatchFailureException`.
 
 If you only want to handle some subset of cases, you can provide a default handler to prevent a warning from being emitted.
 
@@ -183,7 +183,7 @@ let result = match myOptionalValue with
              | _ -> ""
 ```
 
-The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive. It will also emit a warning if any case handlers are specified by position rather than name. Specifying by name is preferred because it makes the code clearer and prevents bugs/compilation errors if the case ordering changes.
+The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match` that is already exhaustive. It will also emit a warning if any case handlers are specified by position rather than name. Specifying by name is preferred because it makes the code clearer and prevents bugs/compilation errors if the case ordering changes.
 
 ---
 
@@ -402,7 +402,7 @@ You can also pass `GenericTypeInfo.ReferenceType` for generic types that you kno
 
 ### ValueTuple cases
 
-If a case holds a `System.ValueTuple<...>`, an overload of the case constructor is generated that allows the individual tuple items to be passed as separate arguments. `Switch`, `Match`, and `If` case handler functions accept the items of the tuple as individual arguments rather than the tuple itself.
+If a case holds a `System.ValueTuple<...>`, an overload of the case constructor is generated that allows the individual tuple items to be passed as separate arguments. `Match`, and `If` case handler functions accept the items of the tuple as individual arguments rather than the tuple itself.
 
 ```csharp
 [UnionCase("Case0", typeof((int, string)))]
@@ -417,20 +417,14 @@ partial class UnionWithTuple
 // You can either pass a tuple or pass each tuple value as a separate argument
 var x = UnionWithTuple.Case0(5, "abc");
 
-// "Switch", "Match", and "If" function handlers work with the individual items rather than the tuple type itself
-x.Switch(
+// "Match", and "If" function handlers work with the individual items rather than the tuple type itself
+x.Match(
   Case0: (i, s) =>
   {
     Console.WriteLine(i);
     Console.WriteLine(s);
   },
   Case1: f => {});
-
-var s = x.Match(
-  Case0: (i, s) => s + i.ToString(),
-  Case1: f => f.ToString());
-
-Console.WriteLine(s);
 
 x.IfCase0((i, s) =>
 {

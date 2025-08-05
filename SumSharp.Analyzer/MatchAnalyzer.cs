@@ -14,7 +14,7 @@ public class MatchAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor NonExhaustiveMatchRule = new DiagnosticDescriptor(
         "SumSharp0001",
         title: "Non-exhaustive match",
-        messageFormat: "Failure to handle case(s): {0}. Handle all cases or provide a default case (_) handler",
+        messageFormat: "Match fails to handle case(s): {0}. Handle all cases or provide a default case (_) handler",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -22,7 +22,7 @@ public class MatchAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RedundantDefaultCaseRule = new DiagnosticDescriptor(
         "SumSharp0002",
         title: "Redundant default case",
-        messageFormat: "All cases are handled. Default case handler will never be used",
+        messageFormat: "Match handles all cases. Default case handler will never be used",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -30,7 +30,7 @@ public class MatchAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor UnamedCaseHandlerRule = new DiagnosticDescriptor(
         "SumSharp0003",
         title: "Unnamed case handler",
-        messageFormat: "Handler for case(s) {0} specified by position rather than name. Consider specifying by name to make code clearer and prevent bugs/compilation errors if case ordering changes",
+        messageFormat: "Match handler for case(s) {0} specified by position rather than name. Consider specifying by name to make code clearer and prevent bugs/compilation errors if case ordering changes",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -57,7 +57,7 @@ public class MatchAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (methodSymbol.Name != "Match" && methodSymbol.Name != "Switch")
+        if (methodSymbol.Name != "Match")
         {
             return;
         }
