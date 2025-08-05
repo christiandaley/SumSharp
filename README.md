@@ -183,7 +183,7 @@ let result = match myOptionalValue with
              | _ -> ""
 ```
 
-The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive.
+The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive. It will also emit a warning if any case handlers are specified by position rather than name. Specifying by name is preferred because it makes the code clearer and prevents bugs/compilation errors if the case ordering changes.
 
 ---
 

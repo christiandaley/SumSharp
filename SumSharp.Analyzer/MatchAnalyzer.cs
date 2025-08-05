@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -13,7 +14,7 @@ public class MatchAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor NonExhaustiveMatchRule = new DiagnosticDescriptor(
         "SumSharp0001",
         title: "Non-exhaustive match",
-        messageFormat: "Failure to handle cases: {0}. Handle all cases or provide a default case (_) handler",
+        messageFormat: "Failure to handle case(s): {0}. Handle all cases or provide a default case (_) handler",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -26,7 +27,15 @@ public class MatchAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(NonExhaustiveMatchRule, RedundantDefaultCaseRule);
+    private static readonly DiagnosticDescriptor UnamedCaseHandlerRule = new DiagnosticDescriptor(
+        "SumSharp0003",
+        title: "Unnamed case handler",
+        messageFormat: "Handler for case(s) {0} specified by position rather than name. Consider specifying by name to make code clearer and prevent bugs/compilation errors if case ordering changes",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(NonExhaustiveMatchRule, RedundantDefaultCaseRule, UnamedCaseHandlerRule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -53,16 +62,32 @@ public class MatchAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var caseNames = GetCaseNames(methodSymbol.ContainingType);
+        var caseNames = 
+            methodSymbol.ContainingType.GetAttributes()
+            .Where(attr => attr.AttributeClass.Name == "UnionCaseAttribute")
+            .Select(attr => (string)attr.ConstructorArguments[0].Value!)
+            .ToArray();
 
         if (caseNames.Length == 0)
         {
             return;
         }
 
+        var unnamedArgs = new List<string>();
+
         var passedArgs = 
             invocation.ArgumentList.Arguments
-            .Select((arg, i) => arg.NameColon?.Name.Identifier.Text ?? caseNames[i])
+            .Select((arg, i) =>
+            {
+                if (arg.NameColon is not null)
+                {
+                    return arg.NameColon.Name.Identifier.Text;
+                }
+
+                unnamedArgs.Add(caseNames[i]);
+
+                return caseNames[i];
+            })
             .ToImmutableHashSet();
 
         bool hasDefaultHandler = passedArgs.Contains("_");
@@ -86,14 +111,15 @@ public class MatchAnalyzer : DiagnosticAnalyzer
 
             context.ReportDiagnostic(diagnostic);
         }
-    }
 
-    private string[] GetCaseNames(INamedTypeSymbol type)
-    {
-        return
-            type.GetAttributes()
-            .Where(attr => attr.AttributeClass.Name == "UnionCaseAttribute")
-            .Select(attr => (string)attr.ConstructorArguments[0].Value!)
-            .ToArray();
+        if (unnamedArgs.Count > 0)
+        {
+            var diagnostic = Diagnostic.Create(
+                UnamedCaseHandlerRule,
+                invocation.GetLocation(),
+                $"[{string.Join(", ", unnamedArgs)}]");
+
+            context.ReportDiagnostic(diagnostic);
+        }
     }
 }
