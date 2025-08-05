@@ -1,6 +1,6 @@
 # SumSharp
 
-A highly configurable C# discriminated union library
+A highly configurable C\# discriminated union library
 
 [![NuGet](https://img.shields.io/nuget/v/SumSharp.svg)](https://www.nuget.org/packages/SumSharp)
 [![Build](https://github.com/christiandaley/SumSharp/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/christiandaley/SumSharp/actions)
@@ -38,17 +38,17 @@ A highly configurable C# discriminated union library
 
 Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help ensure safe data access patterns and can [make illegal states unrepresentable.](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
 
-There are many discriminated union libraries available for C#, such as [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features that would be expected from true, language level discriminated union types.
+There are many discriminated union libraries available for C\#, such as [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features commonly offered by discriminated union types in other languages.
 
-`SumSharp` aims to be **the most powerful, expressive, and configurable C# discriminated union library available**. Its goal is to provide features and syntax comparable to the discriminated union types natively offered by languages such as F\#, Rust, Haskell, and Scala. Although it's impossible to exactly replicate the functionality that those other languages offer, `SumSharp` attempts to get as close as possible.
+`SumSharp` aims to be **the most powerful, expressive, and configurable C\# discriminated union library available**. Its goal is to provide features and syntax comparable to the discriminated union types natively offered by languages such as F\#, Rust, and Haskell. Although it's impossible to exactly replicate the functionality these other languages offer, `SumSharp` strives to get as close as possible.
 
 ### Features
 
 - Unlimited number of cases
-- Support for class, struct, record, and record struct union types
-- Support for generic type cases
+- Support for class, struct, record, and record struct unions
+- Support for generic unions
 - Expressive match syntax with exhaustiveness checking
-- Implicit conversions from types (as long as there's only one case of that type in the union)
+- Implicit conversions from types (if there's only one case of that type in the union)
 - Convenient handling of tuple types
 - **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
 - Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
@@ -183,7 +183,7 @@ let result = match myOptionalValue with
              | _ -> ""
 ```
 
-The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive.
+The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match`/`Switch` that is already exhaustive. It will also emit a warning if any case handlers are specified by position rather than name. Specifying by name is preferred because it makes the code clearer and prevents bugs/compilation errors if the case ordering changes.
 
 ---
 
@@ -653,7 +653,7 @@ The custom empty type is required to have a parameterless (default) constructor.
 
 All `SumSharp` union types by default implement the `IEquatable<T>` interface, override the `Object.Equals` member function, and implement `==` and `!=` operators. This allows for value type equality between instances: Two instances of the same union type are equal iff they both hold the same case and their underlying values compare equal using the static `Object.Equals` function.
 
-If you'd rather disable this feature and have reference equality for class type unions add the `[DisableValueEquality]` attribute to your union. _Note that adding this attribute does nothing for record union types because the C# compiler will always add an `IEquatable` implementation for record types._
+If you'd rather disable this feature and have reference equality for class type unions add the `[DisableValueEquality]` attribute to your union. _Note that adding this attribute does nothing for record union types because the C\# compiler will always add an `IEquatable` implementation for record types._
 
 ### Disabling nullable annotations
 
