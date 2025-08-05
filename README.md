@@ -147,7 +147,7 @@ partial class Optional<T>
 
 ### The `Match` function
 
-`SumSharp` unions have a `Match` member function that provides functionality similar to the match statement in F\# (with the limitation that `SumSharp` does not offer partial pattern matching). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
+`SumSharp` unions have a `Match` member function that provides functionality similar to the match statement in F\# (with the limitation that `SumSharp` does not offer partial matching). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
 
 ```csharp
 // Here myOptionalValue is an Optional<string>
