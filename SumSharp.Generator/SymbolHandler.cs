@@ -226,6 +226,8 @@ internal class SymbolHandler
 
     public string NullableIfRef => NullableDisabled || IsStruct ? "" : "?";
 
+    public string NullForgiving => NullableDisabled ? "" : "!";
+
     public string Accessibility { get; }
 
     public bool IsGenericType => TypeArguments.Length > 0;
@@ -778,7 +780,7 @@ internal class SymbolHandler
     ///<summary>Compares two {XMLEscapedName} instances for equality. The two instances are equal iff they have the same Index and their underlying values compare equal using Object.Equals</summary>
     public bool Equals({Name}{NullableIfRef} other)
     {{
-        {(IsStruct ? "" : "if (ReferenceEquals(null, other)) return false;")}
+        {(IsStruct ? "" : "if (other is null) return false;")}
         if (Index != other.Index) return false;
 
         return Index switch
@@ -806,7 +808,7 @@ internal class SymbolHandler
     /// the other object is a {XMLEscapedName} and they have the same Index and their underlying values compare equal using Object.Equals</summary>
     public override bool Equals(object{Nullable} obj)
     {{
-        if (ReferenceEquals(null, obj)) return false;
+        if (obj is null) return false;
         {(IsStruct ? "" : "if (ReferenceEquals(this, obj)) return true;")}
         if (obj.GetType() != GetType()) return false;
 
@@ -1291,7 +1293,7 @@ internal class SymbolHandler
         Builder.Append($@"
     public override string ToString()
     {{
-        var valueString = Index switch
+        var (caseName, value) = Index switch
         {{");
 
         foreach (var caseData in Cases)
@@ -1299,24 +1301,29 @@ internal class SymbolHandler
             if (caseData.TypeInfo == null)
             {
                 Builder.Append($@"
-            {caseData.Index} => ""(empty)"",");
+            {caseData.Index} => (""{caseData.Name}"", null),");
             }
             else if (caseData.TypeInfo.IsAlwaysValueType)
             {
                 Builder.Append($@"
-            {caseData.Index} => As{caseData.Name}Unsafe.ToString(),");
+            {caseData.Index} => (""{caseData.Name}"", As{caseData.Name}Unsafe.ToString()),");
+            }
+            else if (caseData.TypeInfo.IsAlwaysRefType)
+            {
+                Builder.Append($@"
+            {caseData.Index} => (""{caseData.Name}"", As{caseData.Name}Unsafe is null ? ""null"" : As{caseData.Name}Unsafe.ToString()),");
             }
             else
             {
                 Builder.Append($@"
-            {caseData.Index} => ReferenceEquals(null, As{caseData.Name}Unsafe) ? ""null"" : As{caseData.Name}Unsafe.ToString(),");
+            {caseData.Index} => (""{caseData.Name}"", typeof({caseData.TypeInfo.Name}).IsValueType ? As{caseData.Name}Unsafe{NullForgiving}.ToString() : ReferenceEquals(null, As{caseData.Name}Unsafe) ? ""null"" : As{caseData.Name}Unsafe.ToString()),");
             }
         }
 
         Builder.AppendLine(@"
         };
 
-        return $""{{ Index = {Index}, Value = {valueString} }}"";
+        return value is null ? caseName : $""{caseName} {value}"";
     }
 ");
     }
@@ -1381,14 +1388,20 @@ internal class SymbolHandler
         }}
 
         public override void Write(System.Text.Json.Utf8JsonWriter writer, {Name}{NullableIfRef} value, System.Text.Json.JsonSerializerOptions options)
-        {{
-            if (ReferenceEquals(null, value))
+        {{");
+
+        if (!IsStruct)
+        {
+            Builder.AppendLine($@"
+            if (value is null)
             {{
                 writer.WriteNullValue();
 
                 return;
-            }}
+            }}");
+        }
 
+        Builder.Append($@"
             writer.WriteStartObject();
 
             switch (value.Index)
@@ -1487,14 +1500,20 @@ internal class SymbolHandler
         }}
     
         public override void WriteJson(Newtonsoft.Json.JsonWriter writer, {Name}{NullableIfRef} value, Newtonsoft.Json.JsonSerializer serializer)
-        {{
-            if (ReferenceEquals(null, value))
+        {{");
+
+        if (!IsStruct)
+        {
+            Builder.AppendLine($@"
+            if (value is null)
             {{
                 writer.WriteNull();
 
                 return;
-            }}
+            }}");
+        }
 
+        Builder.Append($@"
             writer.WriteStartObject();
             
             switch (value.Index)
@@ -1593,7 +1612,7 @@ public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
 
     public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object{Nullable} value, Newtonsoft.Json.JsonSerializer serializer)
     {{
-        if (ReferenceEquals(null, value))
+        if (value is null)
         {{
             writer.WriteNull();
 
