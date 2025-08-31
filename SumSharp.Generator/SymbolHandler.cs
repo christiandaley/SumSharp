@@ -35,7 +35,7 @@ internal class SymbolHandler
 
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
-            public override string Name { get; } = symbol.ToDisplayString();
+            public override string Name { get; } = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             public override bool IsUnmanaged => symbol.IsUnmanagedType;
 
@@ -54,7 +54,7 @@ internal class SymbolHandler
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
         {
-            public override string Name { get; } = symbol.ToDisplayString();
+            public override string Name { get; } = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             public override bool IsUnmanaged => false;
 
@@ -466,7 +466,7 @@ internal class SymbolHandler
 
             if (enableOneOfConversionsData.ConstructorArguments.Length == 1)
             {
-                OneOfEmptyCase = ((ITypeSymbol)enableOneOfConversionsData.ConstructorArguments[0].Value!).ToDisplayString();
+                OneOfEmptyCase = ((ITypeSymbol)enableOneOfConversionsData.ConstructorArguments[0].Value!).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
         }
 
