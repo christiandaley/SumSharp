@@ -4,6 +4,8 @@ namespace Tests;
 
 using SumSharp;
 
+using System;
+
 public partial class Equals
 {
 

@@ -2,6 +2,11 @@ namespace Tests;
 
 using SumSharp;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
 public partial class If
 {
 
@@ -16,7 +21,7 @@ public partial class If
     [UnionCase("Case0", typeof((int, double)))]
     [UnionCase("Case1", typeof(ValueTuple<int, double>))]
     [UnionCase("Case2", "(T, U)")]
-    [UnionCase("Case3", "ValueTuple<Dictionary<T, List<U>>, (T, U)>")]
+    [UnionCase("Case3", "System.ValueTuple<System.Collections.Generic.Dictionary<T, System.Collections.Generic.List<U>>, (T, U)>")]
 
     partial class ContainsTuple<T, U> where T : notnull
     {
