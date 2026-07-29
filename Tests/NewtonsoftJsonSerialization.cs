@@ -3,6 +3,7 @@ namespace Tests;
 using SumSharp;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 public partial class NewtonsoftJsonSerialization
 {
@@ -23,7 +24,7 @@ public partial class NewtonsoftJsonSerialization
 
     [UnionCase("Case0", "T")]
     [UnionCase("Case1", "U[]")]
-    [UnionCase("Case2", "GenericType<V, Dictionary<T, T>, U>")]
+    [UnionCase("Case2", "GenericType<V, System.Collections.Generic.Dictionary<T, T>, U>")]
     [EnableJsonSerialization(JsonSerializationSupport.Newtonsoft)]
     partial struct GenericType<T, U, V>
         where T : notnull

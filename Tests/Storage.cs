@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using SumSharp;
@@ -114,9 +115,9 @@ public partial class Storage
         }
     }
 
-    [UnionCase("Case0", "Dictionary<int, T>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
+    [UnionCase("Case0", "System.Collections.Generic.Dictionary<int, T>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
     [UnionCase("Case1", "InnerStruct<U>", GenericTypeInfo: GenericTypeInfo.ValueType)]
-    [UnionCase("Case2", "IEnumerable<V>", IsInterface: true)]
+    [UnionCase("Case2", "System.Collections.Generic.IEnumerable<V>", IsInterface: true)]
     [UnionCase("Case3", "InnerStruct<V>", GenericTypeInfo: GenericTypeInfo.ValueType)]
     [UnionCase("Case4", "InnerClass<V>", GenericTypeInfo: GenericTypeInfo.ReferenceType)]
     partial class GenericWithTypeInfo<T, U, V>

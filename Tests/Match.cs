@@ -2,6 +2,8 @@ namespace Tests;
 
 using SumSharp;
 
+using System;
+using System.Threading.Tasks;
 public partial class Match
 {
 

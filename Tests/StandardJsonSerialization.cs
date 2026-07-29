@@ -3,7 +3,8 @@ namespace Tests;
 using SumSharp;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
+using System;
+using System.Collections.Generic;
 
 public partial class StandardJsonSerialization
 {
@@ -24,7 +25,7 @@ public partial class StandardJsonSerialization
 
     [UnionCase("Case0", "T")]
     [UnionCase("Case1", "U[]")]
-    [UnionCase("Case2", "GenericType<V, Dictionary<T, T>, U>")]
+    [UnionCase("Case2", "GenericType<V, System.Collections.Generic.Dictionary<T, T>, U>")]
     [EnableJsonSerialization]
     partial class GenericType<T, U, V> 
         where T : notnull

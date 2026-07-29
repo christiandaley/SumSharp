@@ -73,7 +73,7 @@ internal class SymbolHandler
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
         {
-            public override string Name => symbol.Name;
+            public override string Name => symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             public override bool IsUnmanaged => useUnmanagedStorage;
 
@@ -752,7 +752,7 @@ internal class SymbolHandler
 
             if (UnmanagedStorageSize < requiredStorage)
             {{
-                throw new ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
+                throw new System.ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
             }}
         }}");
         }
@@ -981,7 +981,7 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     ///<summary>The {caseData.Name} value, if present. Throws InvalidOperationException if the {XMLEscapedName} does not hold a {caseData.Name}</summary>
     ///<exception cref=""InvalidOperationException"">Thrown if the {XMLEscapedName} does not hold a {caseData.Name}</exception>
-    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new System.InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
             Builder.AppendLine($@"
     ///<summary>The {caseData.Name} value, if present. Otherwise default({caseData.TypeInfo.Name})</summary>

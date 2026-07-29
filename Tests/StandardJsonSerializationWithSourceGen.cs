@@ -1,7 +1,8 @@
 namespace Tests;
 
 using SumSharp;
-using System.Diagnostics.Metrics;
+using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -45,7 +46,7 @@ public partial class StandardJsonSerializationWithSourceGen
 
     [UnionCase("Case0", "T")]
     [UnionCase("Case1", "U[]")]
-    [UnionCase("Case2", "GenericType<V, Dictionary<T, T>, U>")]
+    [UnionCase("Case2", "GenericType<V, System.Collections.Generic.Dictionary<T, T>, U>")]
     [EnableJsonSerialization(AddJsonConverterAttribute: false)]
     [JsonConverter(typeof(GenericType.StandardJsonConverter))]
     internal partial class GenericType<T, U, V>

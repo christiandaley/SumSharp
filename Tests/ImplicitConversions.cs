@@ -2,6 +2,8 @@ namespace Tests;
 
 using SumSharp;
 
+using System.Collections.Generic;
+
 public partial class Conversions
 {
 

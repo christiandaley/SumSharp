@@ -1,7 +1,7 @@
 namespace Tests;
 
 using SumSharp;
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using OneOf;
 using OneOf.Types;
 
