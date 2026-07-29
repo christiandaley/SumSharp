@@ -2,6 +2,11 @@ namespace Tests;
 
 using SumSharp;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
 public partial class As
 {
 
@@ -20,7 +25,7 @@ public partial class As
     }
 
     [UnionCase("Case0", typeof((int IntValue, double DoubleValue)))]
-    [UnionCase("Case1", "(Dictionary<T, List<U>> DictValue, (T, U) GenericTupleValue)")]
+    [UnionCase("Case1", "(System.Collections.Generic.Dictionary<T, System.Collections.Generic.List<U>> DictValue, (T, U) GenericTupleValue)")]
 
     partial class ContainsTuple<T, U> where T : notnull
     {

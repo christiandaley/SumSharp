@@ -35,7 +35,7 @@ internal class SymbolHandler
 
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
-            public override string Name { get; } = symbol.ToDisplayString();
+            public override string Name { get; } = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             public override bool IsUnmanaged => symbol.IsUnmanagedType;
 
@@ -54,7 +54,7 @@ internal class SymbolHandler
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
         {
-            public override string Name { get; } = symbol.ToDisplayString();
+            public override string Name { get; } = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             public override bool IsUnmanaged => false;
 
@@ -73,7 +73,7 @@ internal class SymbolHandler
 
         public class SimpleGenericTypeArgument(ITypeParameterSymbol symbol, bool useUnmanagedStorage) : TypeInfo
         {
-            public override string Name => symbol.Name;
+            public override string Name => symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             public override bool IsUnmanaged => useUnmanagedStorage;
 
@@ -466,7 +466,7 @@ internal class SymbolHandler
 
             if (enableOneOfConversionsData.ConstructorArguments.Length == 1)
             {
-                OneOfEmptyCase = ((ITypeSymbol)enableOneOfConversionsData.ConstructorArguments[0].Value!).ToDisplayString();
+                OneOfEmptyCase = ((ITypeSymbol)enableOneOfConversionsData.ConstructorArguments[0].Value!).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
         }
 
@@ -695,7 +695,7 @@ internal class SymbolHandler
         }
 
         Builder.Append($@"
-{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(DisableValueEquality ? "" : $" : IEquatable<{Name}>")}
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(DisableValueEquality ? "" : $" : System.IEquatable<{Name}>")}
 {{");
 
         foreach (var field in fieldNameTypeMap)
@@ -752,7 +752,7 @@ internal class SymbolHandler
 
             if (UnmanagedStorageSize < requiredStorage)
             {{
-                throw new ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
+                throw new System.ArgumentException($""The unmanaged type {{typeof(TUnmanaged__).Name}} requires {{requiredStorage}} bytes of storage but {{typeof({Name}).Name}} has only {{UnmanagedStorageSize}} bytes available to store unmanaged types"");
             }}
         }}");
         }
@@ -838,10 +838,10 @@ internal class SymbolHandler
         }};
     }}
 
-    ///<summary>Compares two {XMLEscapedName} instances for equality using IEquatable<{XMLEscapedName}>.Equals</summary>
+    ///<summary>Compares two {XMLEscapedName} instances for equality using System.IEquatable<{XMLEscapedName}>.Equals</summary>
     public static bool operator==({Name} left, {Name} right) => left.Equals(right);
 
-    ///<summary>Compares two {XMLEscapedName} instances for inequality using IEquatable<{XMLEscapedName}>.Equals</summary>
+    ///<summary>Compares two {XMLEscapedName} instances for inequality using System.IEquatable<{XMLEscapedName}>.Equals</summary>
     public static bool operator!=({Name} left, {Name} right) => !left.Equals(right);");
     }
     private void EmitCaseConstructors()
@@ -981,7 +981,7 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     ///<summary>The {caseData.Name} value, if present. Throws InvalidOperationException if the {XMLEscapedName} does not hold a {caseData.Name}</summary>
     ///<exception cref=""InvalidOperationException"">Thrown if the {XMLEscapedName} does not hold a {caseData.Name}</exception>
-    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
+    public {caseData.TypeInfo.Name} As{caseData.Name} => Index == {caseData.Index} ? As{caseData.Name}Unsafe : throw new System.InvalidOperationException($""Attempted to access case index {caseData.Index} but index is {{Index}}"");");
 
             Builder.AppendLine($@"
     ///<summary>The {caseData.Name} value, if present. Otherwise default({caseData.TypeInfo.Name})</summary>
@@ -995,12 +995,12 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     ///<summary>Returns the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory""/></summary>
     ///<param name=""defaultValueFactory"">Provides the default value to return if the {XMLEscapedName} does not hold a {caseData.Name}</param>
-    public {caseData.TypeInfo.Name} As{caseData.Name}Or(Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
+    public {caseData.TypeInfo.Name} As{caseData.Name}Or(System.Func<{caseData.TypeInfo.Name}> defaultValueFactory) => Index == {caseData.Index} ? As{caseData.Name}Unsafe : defaultValueFactory();");
 
             Builder.AppendLine($@"
     ///<summary>Returns a ValueTask wrapping the {caseData.Name} value, if present. Otherwise returns the result of invoking <paramref name=""defaultValueFactory""/></summary>
     ///<param name=""defaultValueFactory"">Provides the default value to return if the {XMLEscapedName} does not hold a {caseData.Name}</param>
-    public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
+    public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(System.Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
         }
     }
     public void EmitIs()
@@ -1027,19 +1027,19 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Action{Nullable} {caseData.Name} = null";
+                return $"System.Action{Nullable} {caseData.Name} = null";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}>{Nullable} {caseData.Name} = null";
+                return $"System.Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}>{Nullable} {caseData.Name} = null";
             }
             else
             {
-                return $"Action<{caseData.TypeInfo.Name}>{Nullable} {caseData.Name} = null";
+                return $"System.Action<{caseData.TypeInfo.Name}>{Nullable} {caseData.Name} = null";
             }
         })));
 
-        Builder.Append($", Action{Nullable} _ = null)");
+        Builder.Append($", System.Action{Nullable} _ = null)");
 
         Builder.Append(@"
     {
@@ -1081,19 +1081,19 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo == null)
             {
-                return $"Func<TRet_>{Nullable} {caseData.Name} = null";
+                return $"System.Func<TRet_>{Nullable} {caseData.Name} = null";
             }
             else if (caseData.TypeInfo.IsTupleType)
             {
-                return $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_>{Nullable} {caseData.Name} = null";
+                return $"System.Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_>{Nullable} {caseData.Name} = null";
             }
             else
             {
-                return $"Func<{caseData.TypeInfo.Name}, TRet_>{Nullable} {caseData.Name} = null";
+                return $"System.Func<{caseData.TypeInfo.Name}, TRet_>{Nullable} {caseData.Name} = null";
             }
         })));
 
-        Builder.Append($", Func<TRet_>{Nullable} _ = null)");
+        Builder.Append($", System.Func<TRet_>{Nullable} _ = null)");
 
         Builder.Append(@"
     {
@@ -1129,13 +1129,13 @@ internal class SymbolHandler
 
             var actionArgType = 
                 caseData.TypeInfo.IsTupleType ?
-                $"Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}>" : 
-                $"Action<{caseData.TypeInfo.Name}>";
+                $"System.Action<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}>" : 
+                $"System.Action<{caseData.TypeInfo.Name}>";
 
             var funcArgType =
                 caseData.TypeInfo.IsTupleType ?
-                $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_>" : 
-                $"Func<{caseData.TypeInfo.Name}, TRet_>";
+                $"System.Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, TRet_>" : 
+                $"System.Func<{caseData.TypeInfo.Name}, TRet_>";
 
             var handlerName = $"handle{caseData.Name}";
 
@@ -1163,7 +1163,7 @@ internal class SymbolHandler
     ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""orElse"">Function to be invoked if the {XMLEscapedName} does not hold a {caseData.Name}</param>
-    public void If{caseData.Name}Else({actionArgType} {handlerName}, Action orElse)
+    public void If{caseData.Name}Else({actionArgType} {handlerName}, System.Action orElse)
     {{
         if (Index == {caseData.Index})
         {{
@@ -1187,7 +1187,7 @@ internal class SymbolHandler
     ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseFunc"">Produces the value to be returned if the {XMLEscapedName} does not hold a {caseData.Name}</param>
-    public TRet_ If{caseData.Name}Else<TRet_>({funcArgType} {handlerName}, Func<TRet_> elseFunc) => Index == {caseData.Index} ? {invokeHandler} : elseFunc();");
+    public TRet_ If{caseData.Name}Else<TRet_>({funcArgType} {handlerName}, System.Func<TRet_> elseFunc) => Index == {caseData.Index} ? {invokeHandler} : elseFunc();");
             
         }
     }
@@ -1203,13 +1203,13 @@ internal class SymbolHandler
 
             var actionArgType = 
                 caseData.TypeInfo.IsTupleType ?
-                $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task>" :
-                $"Func<{caseData.TypeInfo.Name}, Task>";
+                $"System.Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task>" :
+                $"System.Func<{caseData.TypeInfo.Name}, Task>";
 
             var funcArgType = 
                 caseData.TypeInfo.IsTupleType ?
-                $"Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task<TRet_>>" :
-                $"Func<{caseData.TypeInfo.Name}, Task<TRet_>>";
+                $"System.Func<{string.Join(", ", caseData.TypeInfo.TupleTypeArgs)}, Task<TRet_>>" :
+                $"System.Func<{caseData.TypeInfo.Name}, Task<TRet_>>";
 
             var handlerName = $"{caseData.Name}Handler";
 
@@ -1230,7 +1230,7 @@ internal class SymbolHandler
     ///{caseData.TypeInfo.Name} value, otherwise invokes <paramref name=""orElse"">orElse</paramref>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""orElse"">Function to be invoked if the {XMLEscapedName} does not hold a {caseData.Name}</param>
-    public Task If{caseData.Name}Else({actionArgType} {handlerName}, Func<Task> elseF) => Index == {caseData.Index} ? {invokeHandler} : elseF();");
+    public Task If{caseData.Name}Else({actionArgType} {handlerName}, System.Func<Task> elseF) => Index == {caseData.Index} ? {invokeHandler} : elseF();");
 
             Builder.AppendLine($@"
     ///<summary>If the {XMLEscapedName} holds a {caseData.Name}, returns the result of invoking the <paramref name=""{handlerName}""/>
@@ -1244,7 +1244,7 @@ internal class SymbolHandler
     ///function with the {caseData.TypeInfo.Name} value, otherwise returns the result of invoking <paramref name=""elseFunc""/>.</summary>
     ///<param name=""{handlerName}"">Function to be invoked with the {caseData.Name} value, if it exists.</param>
     ///<param name=""elseFunc"">Produces the value to be returned if the {XMLEscapedName} does not hold a {caseData.Name}</param>
-    public Task<TRet_> If{caseData.Name}Else<TRet_>({funcArgType} {handlerName}, Func<Task<TRet_>> elseFunc) => Index == {caseData.Index} ? {invokeHandler} : elseFunc();");
+    public Task<TRet_> If{caseData.Name}Else<TRet_>({funcArgType} {handlerName}, System.Func<Task<TRet_>> elseFunc) => Index == {caseData.Index} ? {invokeHandler} : elseFunc();");
         }
     }
 
@@ -1423,7 +1423,7 @@ internal class SymbolHandler
                     writer.WritePropertyName(""{caseData.Index}"");");
 
                 Builder.AppendLine($@"
-                    System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
+                    System.Text.Json.JsonSerializer.Serialize(writer, value.As{caseData.Name}Unsafe, options);");
             }
 
             Builder.Append($@"
@@ -1535,7 +1535,7 @@ internal class SymbolHandler
             else
             {
                 Builder.AppendLine($@"
-                    serializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe);");
+                    serializer.Serialize(writer, value.As{caseData.Name}Unsafe);");
             }
 
             Builder.Append($@"
