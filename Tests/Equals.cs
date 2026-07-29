@@ -38,6 +38,15 @@ public partial class Equals
 
     }
 
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(double))]
+    [UnionCase("Case2", typeof(string))]
+    [UnionCase("Case3", typeof(double))]
+    partial class StringOrDoubleExtended
+    {
+
+    }
+
     [Fact]
     public void ValueEquality()
     {
@@ -84,5 +93,19 @@ public partial class Equals
         Assert.NotEqual(StringOrDoubleRecordStruct.Case1(3.45), StringOrDoubleRecordStruct.Case0("abc"));
 
         Assert.True(StringOrDoubleRecordStruct.Case0("") is IEquatable<StringOrDoubleRecordStruct>);
+    }
+
+    [Fact]
+    public void UnderlyingValueEquality()
+    {
+        Assert.True("abc" == StringOrDoubleExtended.Case0("abc"));
+        Assert.True(StringOrDoubleExtended.Case0("abc") == "abc");
+        Assert.True(StringOrDoubleExtended.Case1(3.45) == 3.45);
+        Assert.True(3.45 == StringOrDoubleExtended.Case1(3.45));
+
+        Assert.True("abc" == StringOrDoubleExtended.Case2("abc"));
+        Assert.True(StringOrDoubleExtended.Case2("abc") == "abc");
+        Assert.True(StringOrDoubleExtended.Case3(3.45) == 3.45);
+        Assert.True(3.45 == StringOrDoubleExtended.Case3(3.45));
     }
 }
