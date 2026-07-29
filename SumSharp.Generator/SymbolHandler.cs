@@ -1423,7 +1423,7 @@ internal class SymbolHandler
                     writer.WritePropertyName(""{caseData.Index}"");");
 
                 Builder.AppendLine($@"
-                    System.Text.Json.JsonSerializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe, options);");
+                    System.Text.Json.JsonSerializer.Serialize(writer, value.As{caseData.Name}Unsafe, options);");
             }
 
             Builder.Append($@"
@@ -1535,7 +1535,7 @@ internal class SymbolHandler
             else
             {
                 Builder.AppendLine($@"
-                    serializer.Serialize(writer, value.AsCase{caseData.Index}Unsafe);");
+                    serializer.Serialize(writer, value.As{caseData.Name}Unsafe);");
             }
 
             Builder.Append($@"
