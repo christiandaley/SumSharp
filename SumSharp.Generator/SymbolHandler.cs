@@ -1395,8 +1395,6 @@ internal class SymbolHandler
             switch (Index)
             {{");
 
-        int disposeIndex = 0;
-
         foreach (var caseData in Cases)
         {
             var disposeExpression = "";
@@ -1410,9 +1408,9 @@ internal class SymbolHandler
                 else if (caseData.TypeInfo.IsGeneric)
                 {
                     disposeExpression = $@"
-                if (As{caseData.Name}Unsafe is System.IDisposable __d{disposeIndex})
+                if (As{caseData.Name}Unsafe is System.IDisposable _disposable{caseData.Name})
                 {{
-                    __d{disposeIndex++}.Dispose();
+                    _disposable{caseData.Name}.Dispose();
                 }};";
                 }
             }
