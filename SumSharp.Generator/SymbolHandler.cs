@@ -909,9 +909,9 @@ internal class SymbolHandler
 
     public static bool operator==({type} left, {Name} right) => right == left;
 
-    public static bool operator!=({Name} left, {type} right) => throw new System.NotImplementedException();
+    public static bool operator!=({Name} left, {type} right) => !(left == right);
 
-    public static bool operator!=({type} left, {Name} right) => right != left;");
+    public static bool operator!=({type} left, {Name} right) => !(right == left);");
             }
         }
     }
