@@ -36,6 +36,10 @@ internal class SymbolHandler
 
         public bool IsTupleType => TupleTypeArgs.Length > 0;
 
+        public virtual bool IsAlwaysDisposable => false;
+
+        public virtual bool IsAlwaysAsyncDisposable => false;
+
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name { get; } = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -53,6 +57,10 @@ internal class SymbolHandler
             public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
 
             public override string[] TupleTypeArgs { get; } = symbol.IsTupleType ? [.. symbol.TypeArguments.Select(t => t.ToDisplayString())] : [];
+
+            public override bool IsAlwaysDisposable => symbol.Interfaces.Any(i => i.Name == "IDisposable");
+
+            public override bool IsAlwaysAsyncDisposable => symbol.Interfaces.Any(i => i.Name == "IAsyncDisposable");
         }
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
@@ -281,6 +289,12 @@ internal class SymbolHandler
 
     public string FileFriendlyName => $"{Namespace}_{string.Join("_", ContainingTypes.Select(symbol => symbol.Name))}_{_fieldNameRegex.Replace(Name, "_")}";
 
+    public bool IsSealed { get; }
+
+    public bool IsDisposable { get; }
+
+    public bool IsAsyncDisposable { get; }
+
     public SymbolHandler(
         StringBuilder builder,
         Compilation compilation,
@@ -478,6 +492,12 @@ internal class SymbolHandler
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableNullableSymbol))
             .Any();
+
+        IsSealed = symbol.IsSealed;
+
+        IsDisposable = Cases.Any(caseData => caseData.TypeInfo is not null && (caseData.TypeInfo.IsAlwaysDisposable || caseData.TypeInfo.IsGeneric));
+
+        IsAsyncDisposable = Cases.Any(caseData => caseData.TypeInfo is not null && (caseData.TypeInfo.IsAlwaysAsyncDisposable || caseData.TypeInfo.IsGeneric));
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, TypeInfo typeInfo)
@@ -610,6 +630,16 @@ internal class SymbolHandler
 
         EmitToString();
 
+        if (IsDisposable)
+        {
+            EmitDispose();
+        }
+
+        if (IsAsyncDisposable)
+        {
+            EmitDisposeAsync();
+        }
+
         if (EnableStandardJsonSerialization)
         {
             EmitStandardJsonConverter();
@@ -697,14 +727,35 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
+        List<string> interfaces = [];
+
+        if (!DisableValueEquality)
+        {
+            interfaces.Add($"System.IEquatable<{Name}>");
+        }
+        if (IsDisposable)
+        {
+            interfaces.Add("System.IDisposable");
+        }
+        if (IsAsyncDisposable)
+        {
+            interfaces.Add("System.IAsyncDisposable");
+        }
+
         Builder.Append($@"
-{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(DisableValueEquality ? "" : $" : System.IEquatable<{Name}>")}
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(interfaces.Count == 0 ? "" : $" : {string.Join(", ", interfaces)}")}
 {{");
 
         foreach (var field in fieldNameTypeMap)
         {
             Builder.Append($@"
     private {field.Key} {field.Value} = default;");
+        }
+
+        if (IsDisposable)
+        {
+            Builder.Append(@"
+    private bool _disposed = false;");
         }
 
         Builder.AppendLine($@" 
@@ -1329,6 +1380,117 @@ internal class SymbolHandler
         return value is null ? caseName : $""{caseName} {value}"";
     }
 ");
+    }
+
+    private void EmitDispose()
+    {
+        Builder.Append($@"
+    public void Dispose()
+    {{
+        Dispose(true);
+
+        System.GC.SuppressFinalize(this);
+    }}
+
+    {(IsSealed ? "private" : "protected virtual")} void Dispose(bool disposing)
+    {{
+        if (_disposed)
+        {{
+            return;
+        }}
+
+        if (disposing)
+        {{
+            switch (Index)
+            {{");
+
+        foreach (var caseData in Cases)
+        {
+            var disposeExpression = "";
+
+            if (caseData.TypeInfo is not null)
+            {
+                if (caseData.TypeInfo.IsAlwaysDisposable)
+                {
+                    disposeExpression = $"As{caseData.Name}Unsafe.Dispose();";
+                }
+                else if (caseData.TypeInfo.IsGeneric)
+                {
+                    disposeExpression = $@"
+                if (As{caseData.Name}Unsafe is System.IDisposable _disposable{caseData.Name})
+                {{
+                    _disposable{caseData.Name}.Dispose();
+                }}";
+                }
+            }
+
+            Builder.Append($@"
+            case {caseData.Index}:
+                {disposeExpression}
+                break;");
+        }
+
+        Builder.AppendLine(@"
+            }
+        }
+
+        _disposed = true;
+    }");
+    }
+
+    private void EmitDisposeAsync()
+    {
+        Builder.Append($@"
+    public async ValueTask DisposeAsync()
+    {{
+        await DisposeAsyncCore().ConfigureAwait(false);
+
+        {(IsDisposable ? "Dispose(false);" : "")}
+        System.GC.SuppressFinalize(this);
+    }}
+
+    {(IsSealed ? "private" : "protected virtual")} async ValueTask DisposeAsyncCore()
+    {{
+        switch (Index)
+        {{");
+
+        foreach (var caseData in Cases)
+        {
+            var disposeExpression = "";
+
+            if (caseData.TypeInfo is not null)
+            {
+                if (caseData.TypeInfo.IsAlwaysAsyncDisposable)
+                {
+                    disposeExpression = $"await As{caseData.Name}Unsafe.DisposeAsync().ConfigureAwait(false);";
+                }
+                else if (caseData.TypeInfo.IsAlwaysDisposable)
+                {
+                    disposeExpression = $"As{caseData.Name}Unsafe.Dispose();";
+                }
+                else if (caseData.TypeInfo.IsGeneric)
+                {
+                    disposeExpression = $@"
+                if (As{caseData.Name}Unsafe is System.IAsyncDisposable _asyncDisposable{caseData.Name})
+                {{
+                    await _asyncDisposable{caseData.Name}.DisposeAsync().ConfigureAwait(false);
+                }}
+                else if (As{caseData.Name}Unsafe is System.IDisposable _disposable{caseData.Name})
+                {{
+                    _disposable{caseData.Name}.Dispose();
+                }}";
+                }
+            }
+
+            Builder.Append($@"
+            case {caseData.Index}:
+                {disposeExpression}
+                break;");
+        }
+
+        Builder.AppendLine(@"
+        }
+    }");
     }
 
     private void EmitStandardJsonConverter()

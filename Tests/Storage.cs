@@ -292,7 +292,9 @@ public partial class Storage
     public void GenericUnmanagedTypeProperties()
     {
         Assert.Equal(typeof(SumSharp.Internal.Generated.Tests_Storage_GenericUnmanagedType_T_.UnmanagedStorage), typeof(GenericUnmanagedType<byte>).GetField("_unmanagedStorage", BindingFlags.NonPublic | BindingFlags.Instance)?.FieldType);
-        Assert.Equal(2, typeof(GenericUnmanagedType<byte>).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
+        
+        // One field for unmanaged storgae, one field for the index, one field for _disposed
+        Assert.Equal(3, typeof(GenericUnmanagedType<byte>).GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Length);
     }
 
     [Fact]

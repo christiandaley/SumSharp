@@ -23,6 +23,7 @@ A highly configurable C\# discriminated union library
 5. [Usage Guide](#usage-guide)
    - [Controlling the memory layout](#controlling-the-memory-layout)
    - [ValueTuple cases](#valuetuple-cases)
+   - [IDisposable and IAsyncDisposable cases](#idisposable-and-iasyncdisposable-cases)
    - [Struct union types](#struct-union-types)
    - [Generic interface types](#generic-interface-types)
    - [JSON serialization](#json-serialization)
@@ -50,6 +51,7 @@ There are many discriminated union libraries available for C\#, such as [`OneOf`
 - Expressive match syntax with exhaustiveness checking
 - Implicit conversions from types (if there's only one case of that type in the union)
 - Convenient handling of tuple types
+- Automatic implementation of `IDisposable` and `IAsyncDisposable` interfaces
 - **Highly configurable memory layout**, allowing developers to optimize for their app's memory/perfomance requirements
 - Built in JSON serialization with both `System.Text.Json` and `Newtonsoft.Json`. Compatible with `System.Text.Json` source generation and AOT compilation
 - Implicit conversions to/from `OneOf` types
@@ -436,6 +438,53 @@ x.IfCase0((i, s) =>
 ```
 
 Custom field names of tuple types will be preserved when accessed via `As[CaseName]`.
+
+### IDisposable and IAsyncDisposable cases
+
+If any case holds a type that implements `IDisposable` and/or `IAsyncDisposable`, the union itself will also implement the `IDisposable` and/or `IAsyncDisposable` interfaces, respectively. Additionally, if any case holds a generic type the union will always implement both `IDisposable` and `IAsyncDisposable`.
+
+```csharp
+
+class Disposable : IDisposable
+{
+  // ...
+}
+
+class AsyncDisposable : IAsyncDisposable
+{
+  //..
+}
+
+[UnionCase("Case0", typeof(Disposable))]
+[UnionCase("Case1", typeof(AsyncDisposable))]
+partial class DisposableOrAsyncDisposable
+{
+  // DisposableOrAsyncDisposable implements both IDisposable and IAsyncDisposable
+}
+
+// ..
+{
+  using DisposableOrAsyncDisposable w = new Disposable();
+} // w.Dispose() will be called, which in turn will call Dispose() on the underlying Disposable
+
+{
+  await using DisposableOrAsyncDisposable x = new AsyncDisposable();
+} // x.DisposeAsync() will be called, which in turn will call DisposeAsync() on the underlying AsyncDisposable
+
+{
+  await using DisposableOrAsyncDisposable y = new Disposable();
+} // y.DisposeAsync() will be called, which in turn will call Dispose() on the underlying Disposable
+
+{
+  using DisposableOrAsyncDisposable z = new AsyncDisposable();
+} // z.Dispose() will be called, which WILL NOT call DisposeAsync() on the underlying AsyncDisposable
+```
+
+The generated `Dispose()` method will call `Dispose()` on the underlying value iff the value is an instance of a type that implements `IDisposable`. The generated `DisposeAsync()` method will call `DisposeAsync()` OR `Dispose()` on the underlying value iff the value is an instance of a type that implements `IAsyncDisposable` or `IDisposable`, respectively.
+
+Be aware that `Dispose()` WILL NOT attempt to call `DisposeAsync()` on an underlying value that is an `IAsyncDisposable` but not an `IDisposable`, so if you are using a union that has both `IDisposable` and `IAsyncDisposable` case types you must ensure that you are calling `DisposeAsync()` on the union, or that all case types implement `IDisposable`. Otherwise your `IAsyncDisposable` cases may not be properly disposed.
+
+The `Dispose()` and `DisposeAsync()` methods on generic unions will use a runtime test to determine if the underlying value implements `IDisposable` or `IAsyncDisposable`. If none of the types implement either of these interfaces, the dispose methods do nothing.
 
 ### Struct union types
 
