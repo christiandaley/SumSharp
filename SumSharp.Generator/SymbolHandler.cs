@@ -36,7 +36,7 @@ internal class SymbolHandler
 
         public bool IsTupleType => TupleTypeArgs.Length > 0;
 
-        public virtual bool IsDisposable { get => false; }
+        public virtual bool IsAlwaysDisposable { get => false; }
 
         public virtual bool IsAsyncDisposable { get => false; }
 
@@ -58,7 +58,7 @@ internal class SymbolHandler
 
             public override string[] TupleTypeArgs { get; } = symbol.IsTupleType ? [.. symbol.TypeArguments.Select(t => t.ToDisplayString())] : [];
 
-            public override bool IsDisposable => symbol.Interfaces.Any(i => i.Name == "IDisposable");
+            public override bool IsAlwaysDisposable => symbol.Interfaces.Any(i => i.Name == "IDisposable");
 
             public override bool IsAsyncDisposable => symbol.Interfaces.Any(i => i.Name == "IAsyncDisposable");
         }
@@ -495,7 +495,7 @@ internal class SymbolHandler
 
         IsSealed = symbol.IsSealed;
 
-        IsDisposable = Cases.Any(caseData => caseData.TypeInfo?.IsDisposable == true);
+        IsDisposable = Cases.Any(caseData => caseData.TypeInfo is not null && (caseData.TypeInfo.IsAlwaysDisposable || caseData.TypeInfo.IsGeneric));
 
         IsAsyncDisposable = Cases.Any(caseData => caseData.TypeInfo?.IsAsyncDisposable == true);
     }
@@ -1383,7 +1383,7 @@ internal class SymbolHandler
         System.GC.SuppressFinalize(this);
     }}
 
-    protected {(IsSealed ? "" : "virtual ")}void Dispose(bool disposing)
+    {(IsSealed || IsStruct ? "private" : "protected")} {(IsSealed ? "" : "virtual ")}void Dispose(bool disposing)
     {{
         if (_disposed)
         {{
@@ -1395,15 +1395,32 @@ internal class SymbolHandler
             switch (Index)
             {{");
 
+        int disposeIndex = 0;
+
         foreach (var caseData in Cases)
         {
-            var disposeExpression =
-                caseData.TypeInfo?.IsDisposable == true ?
-                $"As{caseData.Name}Unsafe.Dispose(); " :
-                "";
+            var disposeExpression = "";
+
+            if (caseData.TypeInfo is not null)
+            {
+                if (caseData.TypeInfo.IsAlwaysDisposable)
+                {
+                    disposeExpression = $"As{caseData.Name}Unsafe.Dispose();";
+                }
+                else if (caseData.TypeInfo.IsGeneric)
+                {
+                    disposeExpression = $@"
+                if (As{caseData.Name}Unsafe is System.IDisposable __d{disposeIndex})
+                {{
+                    __d{disposeIndex++}.Dispose();
+                }};";
+                }
+            }
 
             Builder.Append($@"
-            case {caseData.Index}: {disposeExpression}break;");
+            case {caseData.Index}:
+                {disposeExpression}
+                break;");
         }
 
         Builder.AppendLine(@"
