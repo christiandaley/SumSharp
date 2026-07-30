@@ -13,6 +13,9 @@ internal class SymbolHandler
     private static readonly Regex _fieldNameRegex = new(@"[.<>,\s\(\)]+|\[\]", RegexOptions.Compiled);
     private static readonly Regex _tupleRegex = new(@"^(?:System\.)?ValueTuple<(?<types>.+)>$|^\((?<types>.+)\)$", RegexOptions.Compiled);
 
+    private const string IL2026SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026:RequiresUnreferencedCode\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
+    private const string IL3050SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"AOT\", \"IL3050:AotAnalysisWarning\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
+
     public abstract class TypeInfo
     {
         public abstract string Name { get; }
@@ -1334,6 +1337,8 @@ internal class SymbolHandler
     ///<summary>System.Text.Json converter capable of serializing and deserializing a {XMLEscapedName}</summary>
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
+        {(UsingAOTCompilation ? IL2026SupressAttribute : "")}
+        {(UsingAOTCompilation ? IL3050SupressAttribute : "")}
         public override {Name}{NullableIfRef} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
         {{
             if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
@@ -1387,6 +1392,8 @@ internal class SymbolHandler
             return ret;
         }}
 
+        {(UsingAOTCompilation ? IL2026SupressAttribute : "")}
+        {(UsingAOTCompilation ? IL3050SupressAttribute : "")}
         public override void Write(System.Text.Json.Utf8JsonWriter writer, {Name}{NullableIfRef} value, System.Text.Json.JsonSerializerOptions options)
         {{");
 
@@ -1567,6 +1574,7 @@ internal class SymbolHandler
 
         Builder.Append($@"
     ///<summary>System.Text.Json converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
+    {(UsingAOTCompilation ? IL3050SupressAttribute : "")}
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
     {{
         public override bool CanConvert(System.Type typeToConvert)
