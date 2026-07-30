@@ -1449,7 +1449,7 @@ internal class SymbolHandler
         System.GC.SuppressFinalize(this);
     }}
 
-    {(IsSealed || IsStruct ? "private" : "protected")} {(IsSealed ? "" : "virtual ")}async ValueTask DisposeAsyncCore()
+    {(IsSealed ? "private" : "protected virtual")} async ValueTask DisposeAsyncCore()
     {{
         switch (Index)
         {{");
