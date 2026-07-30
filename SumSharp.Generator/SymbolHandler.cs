@@ -1420,7 +1420,7 @@ internal class SymbolHandler
                 if (As{caseData.Name}Unsafe is System.IDisposable _disposable{caseData.Name})
                 {{
                     _disposable{caseData.Name}.Dispose();
-                }};";
+                }}";
                 }
             }
 
@@ -1463,13 +1463,21 @@ internal class SymbolHandler
                 {
                     disposeExpression = $"await As{caseData.Name}Unsafe.DisposeAsync().ConfigureAwait(false);";
                 }
+                else if (caseData.TypeInfo.IsAlwaysDisposable)
+                {
+                    disposeExpression = $"As{caseData.Name}Unsafe.Dispose();";
+                }
                 else if (caseData.TypeInfo.IsGeneric)
                 {
                     disposeExpression = $@"
                 if (As{caseData.Name}Unsafe is System.IAsyncDisposable _asyncDisposable{caseData.Name})
                 {{
                     await _asyncDisposable{caseData.Name}.DisposeAsync().ConfigureAwait(false);
-                }};";
+                }}
+                else if (As{caseData.Name}Unsafe is System.IDisposable _disposable{caseData.Name})
+                {{
+                    _disposable{caseData.Name}.Dispose();
+                }}";
                 }
             }
 
