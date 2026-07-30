@@ -255,6 +255,8 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
+    public string[] DistinctTypeNames { get; }
+
     public INamedTypeSymbol[] ContainingTypes;
 
     public bool HasGenericContainingTypes => ContainingTypes.Any(type => type.TypeArguments.Length > 0);
@@ -417,13 +419,13 @@ internal class SymbolHandler
             })
             .ToArray();
 
-        var distinctTypes =
-            Cases
+        DistinctTypeNames =
+            [.. Cases
             .Where(caseData => caseData.TypeInfo != null)
             .Select(caseData => caseData.TypeInfo!.Name)
-            .Distinct();
+            .Distinct()];
 
-        if (storageStrategy == 0 && distinctTypes.Count() == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
+        if (storageStrategy == 0 && DistinctTypeNames.Length == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
         {
             Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false, caseData.StorageMode, FullUnmanagedStorageTypeName))];
         }
@@ -897,6 +899,21 @@ internal class SymbolHandler
 
     ///<summary>Compares two {XMLEscapedName} instances for inequality using System.IEquatable<{XMLEscapedName}>.Equals</summary>
     public static bool operator!=({Name} left, {Name} right) => !left.Equals(right);");
+
+        if (!EnableStandardJsonSerialization || AddJsonConverterAttribute)
+        {
+            foreach (var type in DistinctTypeNames)
+            {
+                Builder.AppendLine($@"
+    public static bool operator==({Name} left, {type} right) => throw new System.NotImplementedException();
+
+    public static bool operator==({type} left, {Name} right) => right == left;
+
+    public static bool operator!=({Name} left, {type} right) => throw new System.NotImplementedException();
+
+    public static bool operator!=({type} left, {Name} right) => right != left;");
+            }
+        }
     }
     private void EmitCaseConstructors()
     {
