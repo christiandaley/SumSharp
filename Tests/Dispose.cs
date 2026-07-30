@@ -14,6 +14,16 @@ public partial class Dispose
         public void Dispose() => onDispose();
     }
 
+    class AsyncDisposable(Action onDispose) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            onDispose();
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
 
     [UnionCase("Case0", typeof(string))]
     [UnionCase("Case1", typeof(Disposable))]
@@ -29,7 +39,12 @@ public partial class Dispose
 
     }
 
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(AsyncDisposable))]
+    partial class StringOrAsyncDisposable
+    {
 
+    }
 
     [Fact]
     public void NonGenericDispose()
@@ -64,6 +79,26 @@ public partial class Dispose
 
         {
             using GenericStringOrDisposable<Disposable> value = new Disposable(() => disposed = true);
+
+            Assert.False(disposed);
+        }
+
+        Assert.True(disposed);
+    }
+
+    [Fact]
+    public async Task NonGenericAsyncDispose()
+    {
+        bool disposed = false;
+
+        {
+            await using StringOrAsyncDisposable value = "string";
+        }
+
+        Assert.False(disposed);
+
+        {
+            await using StringOrAsyncDisposable value = new AsyncDisposable(() => disposed = true);
 
             Assert.False(disposed);
         }
