@@ -24,6 +24,18 @@ public partial class Dispose
         }
     }
 
+    class DisposableAndAsyncDisposable(Action onDispose) : IDisposable, IAsyncDisposable
+    {
+        public void Dispose() => onDispose();
+
+        public ValueTask DisposeAsync()
+        {
+            onDispose();
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
 
     [UnionCase("Case0", typeof(string))]
     [UnionCase("Case1", typeof(Disposable))]
@@ -42,6 +54,13 @@ public partial class Dispose
     [UnionCase("Case0", typeof(string))]
     [UnionCase("Case1", typeof(AsyncDisposable))]
     partial class StringOrAsyncDisposable
+    {
+
+    }
+
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(DisposableAndAsyncDisposable))]
+    partial class StringOrDisposableAndAsyncDisposable
     {
 
     }
@@ -134,7 +153,7 @@ public partial class Dispose
     }
 
     [Fact]
-    public async Task DisposableAndAsyncDisposable()
+    public async Task DisposableOrAsyncDisposableDispose()
     {
         bool disposed = false;
 
@@ -165,5 +184,27 @@ public partial class Dispose
         }
 
         Assert.True(disposed);
+    }
+
+    [Fact]
+    public async Task DisposableAndAsyncDisposableDispose()
+    {
+        bool disposed = false;
+
+        {
+            using StringOrDisposableAndAsyncDisposable value = new DisposableAndAsyncDisposable(() => disposed = true);
+        }
+
+        Assert.True(disposed);
+
+        disposed = false;
+
+        {
+            await using StringOrDisposableAndAsyncDisposable value = new DisposableAndAsyncDisposable(() => disposed = true);
+        }
+
+        Assert.True(disposed);
+
+        disposed = false;
     }
 }
