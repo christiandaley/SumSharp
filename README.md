@@ -480,7 +480,7 @@ partial class DisposableOrAsyncDisposable
 } // z.Dispose() will be called, which WILL NOT call DisposeAsync() on the underlying AsyncDisposable
 ```
 
-The generated `Dispose()` method will call `Dispose()` on the underlying value iff the value is an instance of a type that implements `IDisposable`. The generated `DisposeAsync` method will call `DisposeAsync()` OR `Dispose()` on the underlying value iff the value is an instance of a type that implements `IAsyncDisposable` or `IDisposable`, respectively.
+The generated `Dispose()` method will call `Dispose()` on the underlying value iff the value is an instance of a type that implements `IDisposable`. The generated `DisposeAsync()` method will call `DisposeAsync()` OR `Dispose()` on the underlying value iff the value is an instance of a type that implements `IAsyncDisposable` or `IDisposable`, respectively.
 
 Be aware that `Dispose()` WILL NOT attempt to call `DisposeAsync()` on an underlying value that is an `IAsyncDisposable` but not an `IDisposable`, so if you are using a union that has both `IDisposable` and `IAsyncDisposable` case types you must ensure that you are calling `DisposeAsync()` on the union, or that all case types implement `IDisposable`. Otherwise your `IAsyncDisposable` cases may not be properly disposed.
 
