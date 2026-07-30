@@ -22,7 +22,13 @@ public partial class Dispose
 
     }
 
-    
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", "T")]
+    partial class GenericStringOrDisposable<T>
+    {
+
+    }
+
 
 
     [Fact]
@@ -45,5 +51,23 @@ public partial class Dispose
         Assert.True(disposed);
     }
 
-    
+    [Fact]
+    public void GenericDispose()
+    {
+        bool disposed = false;
+
+        {
+            using GenericStringOrDisposable<Disposable> value = "string";
+        }
+
+        Assert.False(disposed);
+
+        {
+            using GenericStringOrDisposable<Disposable> value = new Disposable(() => disposed = true);
+
+            Assert.False(disposed);
+        }
+
+        Assert.True(disposed);
+    }
 }
