@@ -1392,7 +1392,7 @@ internal class SymbolHandler
         System.GC.SuppressFinalize(this);
     }}
 
-    {(IsSealed || IsStruct ? "private" : "protected")} {(IsSealed ? "" : "virtual ")}void Dispose(bool disposing)
+    {(IsSealed ? "private" : "protected virtual")} void Dispose(bool disposing)
     {{
         if (_disposed)
         {{
