@@ -36,6 +36,10 @@ internal class SymbolHandler
 
         public bool IsTupleType => TupleTypeArgs.Length > 0;
 
+        public virtual bool IsDisposable { get => false; }
+
+        public virtual bool IsAsyncDisposable { get => false; }
+
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
             public override string Name { get; } = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -53,6 +57,10 @@ internal class SymbolHandler
             public override bool IsInterface => symbol.TypeKind == TypeKind.Interface;
 
             public override string[] TupleTypeArgs { get; } = symbol.IsTupleType ? [.. symbol.TypeArguments.Select(t => t.ToDisplayString())] : [];
+
+            public override bool IsDisposable => symbol.Interfaces.Any(i => i.Name == "IDisposable");
+
+            public override bool IsAsyncDisposable => symbol.Interfaces.Any(i => i.Name == "IAsyncDisposable");
         }
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
@@ -281,6 +289,10 @@ internal class SymbolHandler
 
     public string FileFriendlyName => $"{Namespace}_{string.Join("_", ContainingTypes.Select(symbol => symbol.Name))}_{_fieldNameRegex.Replace(Name, "_")}";
 
+    public bool IsDisposable { get; }
+
+    public bool IsAsyncDisposable { get; }
+
     public SymbolHandler(
         StringBuilder builder,
         Compilation compilation,
@@ -478,6 +490,10 @@ internal class SymbolHandler
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableNullableSymbol))
             .Any();
+
+        IsDisposable = Cases.Any(caseData => caseData.TypeInfo?.IsDisposable == true);
+
+        IsAsyncDisposable = Cases.Any(caseData => caseData.TypeInfo?.IsAsyncDisposable == true);
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, TypeInfo typeInfo)
@@ -610,6 +626,11 @@ internal class SymbolHandler
 
         EmitToString();
 
+        if (IsDisposable)
+        {
+            EmitDisposable();
+        }
+
         if (EnableStandardJsonSerialization)
         {
             EmitStandardJsonConverter();
@@ -697,8 +718,19 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
+        List<string> interfaces = [];
+
+        if (!DisableValueEquality)
+        {
+            interfaces.Add($"System.IEquatable<{Name}>");
+        }
+        if (IsDisposable)
+        {
+            interfaces.Add("System.IDisposable");
+        }
+
         Builder.Append($@"
-{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(DisableValueEquality ? "" : $" : System.IEquatable<{Name}>")}
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(interfaces.Count == 0 ? "" : $" : {string.Join(", ", interfaces)}")}
 {{");
 
         foreach (var field in fieldNameTypeMap)
@@ -1328,6 +1360,16 @@ internal class SymbolHandler
 
         return value is null ? caseName : $""{caseName} {value}"";
     }
+");
+    }
+
+    private void EmitDisposable()
+    {
+        Builder.Append($@"
+    public void Dispose()
+    {{
+        throw new System.NotImplementedException();
+    }}
 ");
     }
 
