@@ -546,7 +546,7 @@ internal class SymbolHandler
             Builder.AppendLine("#nullable enable");
         }
 
-        Builder.AppendLine("#pragma warning disable CS8509, CS8604, CS8601, CS8625, CS8600, CS8603");
+        Builder.AppendLine("#pragma warning disable CS8509, CS8604, CS8601, CS8625, CS8600, CS8603, IL2026, IL3050");
 
         Builder.AppendLine("using System.Threading.Tasks;");
 
