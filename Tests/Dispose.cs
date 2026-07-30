@@ -67,7 +67,7 @@ public partial class Dispose
 
     [UnionCase("Case0", typeof(Disposable))]
     [UnionCase("Case1", typeof(AsyncDisposable))]
-    partial class DisposableOrAsyncDisposable
+    sealed partial class DisposableOrAsyncDisposable
     {
 
     }
