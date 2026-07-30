@@ -1445,6 +1445,7 @@ internal class SymbolHandler
     {{
         await DisposeAsyncCore().ConfigureAwait(false);
 
+        {(IsDisposable ? "Dispose(false); " : "")}
         System.GC.SuppressFinalize(this);
     }}
 
