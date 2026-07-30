@@ -36,9 +36,9 @@ internal class SymbolHandler
 
         public bool IsTupleType => TupleTypeArgs.Length > 0;
 
-        public virtual bool IsAlwaysDisposable { get => false; }
+        public virtual bool IsAlwaysDisposable => false;
 
-        public virtual bool IsAsyncDisposable { get => false; }
+        public virtual bool IsAlwaysAsyncDisposable => false;
 
         public class NonArray(INamedTypeSymbol symbol) : TypeInfo
         {
@@ -60,7 +60,7 @@ internal class SymbolHandler
 
             public override bool IsAlwaysDisposable => symbol.Interfaces.Any(i => i.Name == "IDisposable");
 
-            public override bool IsAsyncDisposable => symbol.Interfaces.Any(i => i.Name == "IAsyncDisposable");
+            public override bool IsAlwaysAsyncDisposable => symbol.Interfaces.Any(i => i.Name == "IAsyncDisposable");
         }
 
         public class Array(IArrayTypeSymbol symbol) : TypeInfo
@@ -497,7 +497,7 @@ internal class SymbolHandler
 
         IsDisposable = Cases.Any(caseData => caseData.TypeInfo is not null && (caseData.TypeInfo.IsAlwaysDisposable || caseData.TypeInfo.IsGeneric));
 
-        IsAsyncDisposable = Cases.Any(caseData => caseData.TypeInfo?.IsAsyncDisposable == true);
+        IsAsyncDisposable = Cases.Any(caseData => caseData.TypeInfo is not null && (caseData.TypeInfo.IsAlwaysAsyncDisposable || caseData.TypeInfo.IsGeneric));
     }
 
     private bool GetStoreAsObject(int storageStrategy, int storageMode, TypeInfo typeInfo)
@@ -632,7 +632,12 @@ internal class SymbolHandler
 
         if (IsDisposable)
         {
-            EmitDisposable();
+            EmitDispose();
+        }
+
+        if (IsAsyncDisposable)
+        {
+            EmitDisposeAsync();
         }
 
         if (EnableStandardJsonSerialization)
@@ -731,6 +736,10 @@ internal class SymbolHandler
         if (IsDisposable)
         {
             interfaces.Add("System.IDisposable");
+        }
+        if (IsAsyncDisposable)
+        {
+            interfaces.Add("System.IAsyncDisposable");
         }
 
         Builder.Append($@"
@@ -1373,7 +1382,7 @@ internal class SymbolHandler
 ");
     }
 
-    private void EmitDisposable()
+    private void EmitDispose()
     {
         Builder.Append($@"
     public void Dispose()
@@ -1427,6 +1436,22 @@ internal class SymbolHandler
 
         _disposed = true;
     }");
+    }
+
+    private void EmitDisposeAsync()
+    {
+        Builder.Append($@"
+    public async ValueTask DisposeAsync()
+    {{
+        await DisposeAsyncCore().ConfigureAwait(false);
+
+        System.GC.SuppressFinalize(this);
+    }}
+
+    {(IsSealed || IsStruct ? "private" : "protected")} {(IsSealed ? "" : "virtual ")}async ValueTask DisposeAsyncCore()
+    {{
+        throw new System.NotImplementedException();
+    }}");
     }
 
     private void EmitStandardJsonConverter()
