@@ -44,9 +44,9 @@ public partial class Dispose
 
     }
 
-    [UnionCase("Case0", typeof(string))]
-    [UnionCase("Case1", "T")]
-    partial class GenericStringOrDisposable<T>
+    [UnionCase("Case0", "T")]
+    [UnionCase("Case1", "U")]
+    partial class GenericDisposable<T, U>
     {
 
     }
@@ -60,7 +60,7 @@ public partial class Dispose
 
     [UnionCase("Case0", typeof(string))]
     [UnionCase("Case1", typeof(DisposableAndAsyncDisposable))]
-    partial class StringOrDisposableAndAsyncDisposable
+    partial struct StringOrDisposableAndAsyncDisposable
     {
 
     }
@@ -98,13 +98,13 @@ public partial class Dispose
         bool disposed = false;
 
         {
-            using GenericStringOrDisposable<Disposable> value = "string";
+            using GenericDisposable<int, Disposable> value = 1;
         }
 
         Assert.False(disposed);
 
         {
-            using GenericStringOrDisposable<Disposable> value = new Disposable(() => disposed = true);
+            using GenericDisposable<int, Disposable> value = new Disposable(() => disposed = true);
 
             Assert.False(disposed);
         }
@@ -138,15 +138,49 @@ public partial class Dispose
         bool disposed = false;
 
         {
-            await using GenericStringOrDisposable<AsyncDisposable> value = "string";
+            await using GenericDisposable<AsyncDisposable, double> value = 0.0;
         }
 
         Assert.False(disposed);
 
         {
-            await using GenericStringOrDisposable<AsyncDisposable> value = new AsyncDisposable(() => disposed = true);
+            await using GenericDisposable<AsyncDisposable, double> value = new AsyncDisposable(() => disposed = true);
 
             Assert.False(disposed);
+        }
+
+        Assert.True(disposed);
+    }
+
+    [Fact]
+    public async Task GenericDisposeAndAsyncDispose()
+    {
+        bool disposed = false;
+
+        {
+            using GenericDisposable<Disposable, AsyncDisposable> value = new Disposable(() => disposed = true);
+        }
+
+        Assert.True(disposed);
+
+        disposed = false;
+
+        {
+            using GenericDisposable<Disposable, AsyncDisposable> value = new AsyncDisposable(() => disposed = true);
+        }
+
+        Assert.False(disposed);
+
+        {
+            await using GenericDisposable<Disposable, AsyncDisposable> value = new Disposable(() => disposed = true);
+        }
+
+        Assert.True(disposed);
+
+        disposed = false;
+
+        {
+            await using GenericDisposable<Disposable, AsyncDisposable> value = new AsyncDisposable(() => disposed = true);
         }
 
         Assert.True(disposed);
