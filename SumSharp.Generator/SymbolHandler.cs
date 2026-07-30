@@ -1450,8 +1450,38 @@ internal class SymbolHandler
 
     {(IsSealed || IsStruct ? "private" : "protected")} {(IsSealed ? "" : "virtual ")}async ValueTask DisposeAsyncCore()
     {{
-        throw new System.NotImplementedException();
-    }}");
+        switch (Index)
+        {{");
+
+        foreach (var caseData in Cases)
+        {
+            var disposeExpression = "";
+
+            if (caseData.TypeInfo is not null)
+            {
+                if (caseData.TypeInfo.IsAlwaysAsyncDisposable)
+                {
+                    disposeExpression = $"await As{caseData.Name}Unsafe.DisposeAsync().ConfigureAwait(false);";
+                }
+                else if (caseData.TypeInfo.IsGeneric)
+                {
+                    disposeExpression = $@"
+                if (As{caseData.Name}Unsafe is System.IAsyncDisposable _asyncDisposable{caseData.Name})
+                {{
+                    await _asyncDisposable{caseData.Name}.DisposeAsync().ConfigureAwait(false);
+                }};";
+                }
+            }
+
+            Builder.Append($@"
+            case {caseData.Index}:
+                {disposeExpression}
+                break;");
+        }
+
+        Builder.AppendLine(@"
+        }
+    }");
     }
 
     private void EmitStandardJsonConverter()
