@@ -289,6 +289,8 @@ internal class SymbolHandler
 
     public string FileFriendlyName => $"{Namespace}_{string.Join("_", ContainingTypes.Select(symbol => symbol.Name))}_{_fieldNameRegex.Replace(Name, "_")}";
 
+    public bool IsSealed { get; }
+
     public bool IsDisposable { get; }
 
     public bool IsAsyncDisposable { get; }
@@ -490,6 +492,8 @@ internal class SymbolHandler
             .GetAttributes()
             .Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, disableNullableSymbol))
             .Any();
+
+        IsSealed = symbol.IsSealed;
 
         IsDisposable = Cases.Any(caseData => caseData.TypeInfo?.IsDisposable == true);
 
@@ -737,6 +741,12 @@ internal class SymbolHandler
         {
             Builder.Append($@"
     private {field.Key} {field.Value} = default;");
+        }
+
+        if (IsDisposable)
+        {
+            Builder.Append(@"
+    private bool _disposed = false;");
         }
 
         Builder.AppendLine($@" 
@@ -1368,9 +1378,40 @@ internal class SymbolHandler
         Builder.Append($@"
     public void Dispose()
     {{
-        throw new System.NotImplementedException();
+        Dispose(true);
+
+        System.GC.SuppressFinalize(this);
     }}
-");
+
+    protected {(IsSealed ? "" : "virtual ")}void Dispose(bool disposing)
+    {{
+        if (_disposed)
+        {{
+            return;
+        }}
+
+        if (disposing)
+        {{
+            switch (Index)
+            {{");
+
+        foreach (var caseData in Cases)
+        {
+            var disposeExpression =
+                caseData.TypeInfo?.IsDisposable == true ?
+                $"As{caseData.Name}Unsafe.Dispose(); " :
+                "";
+
+            Builder.Append($@"
+            case {caseData.Index}: {disposeExpression}break;");
+        }
+
+        Builder.AppendLine(@"
+            }
+        }
+
+        _disposed = true;
+    }");
     }
 
     private void EmitStandardJsonConverter()
