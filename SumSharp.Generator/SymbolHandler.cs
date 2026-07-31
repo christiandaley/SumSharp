@@ -915,12 +915,16 @@ internal class SymbolHandler
         foreach (var type in DistinctTypeNames)
         {
             Builder.AppendLine($@"
+    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({Name} left, {type} right) => throw new System.NotImplementedException();
 
+    ///<summary>Compares a <see cref=""{type}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({type} left, {Name} right) => right == left;
 
+    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type}"" /> for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator!=({Name} left, {type} right) => !(left == right);
 
+    ///<summary>Compares a <see cref=""{type}"" /> with a {XMLEscapedName} for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator!=({type} left, {Name} right) => !(right == left);");
         }
 
