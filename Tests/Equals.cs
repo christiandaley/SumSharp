@@ -138,5 +138,13 @@ public partial class Equals
         Assert.True(StringOrDoubleExtended<string>.Case4("abc") == "abc");
         Assert.True(StringOrDoubleExtended<string>.Case4("abc") != "efg");
         Assert.True(StringOrDoubleExtended<string>.Case4("abc") != 3.45);
+
+        Assert.True(5 == StringOrDoubleExtended<int>.Case4(5));
+        Assert.True("abc" != StringOrDoubleExtended<int>.Case4(5));
+        Assert.True(3.45 != StringOrDoubleExtended<int>.Case4(5));
+
+        Assert.True(StringOrDoubleExtended<int>.Case4(5) == 5);
+        Assert.True(StringOrDoubleExtended<int>.Case4(5) != "abc");
+        Assert.True(StringOrDoubleExtended<int>.Case4(5) != 3.45);
     }
 }
