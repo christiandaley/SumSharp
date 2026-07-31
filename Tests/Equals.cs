@@ -40,9 +40,9 @@ public partial class Equals
 
     [UnionCase("Case0", typeof(string))]
     [UnionCase("Case1", typeof(double))]
-    [UnionCase("Case2", typeof(string))]
-    [UnionCase("Case3", typeof(double))]
-    partial class StringOrDoubleExtended
+    [UnionCase("Case2", "T")]
+    [UnionCase("Case3", "U")]
+    partial class StringOrDoubleGeneric<T, U>
     {
 
     }
@@ -98,20 +98,36 @@ public partial class Equals
     [Fact]
     public void UnderlyingValueEquality()
     {
-        Assert.True("abc" == StringOrDoubleExtended.Case0("abc"));
-        Assert.True("efg" != StringOrDoubleExtended.Case0("abc"));
-        Assert.True(3.45 != StringOrDoubleExtended.Case0("abc"));
+        Assert.True("abc" == StringOrDoubleGeneric<string, double>.Case0("abc"));
+        Assert.True("efg" != StringOrDoubleGeneric<string, double>.Case0("abc"));
+        Assert.True(3.45 != StringOrDoubleGeneric<string, double>.Case0("abc"));
 
-        Assert.True(StringOrDoubleExtended.Case0("abc") == "abc");
-        Assert.True(StringOrDoubleExtended.Case0("abc") != "efg");
-        Assert.True(StringOrDoubleExtended.Case0("abc") != 3.45);
+        Assert.True(StringOrDoubleGeneric<string, double>.Case0("abc") == "abc");
+        Assert.True(StringOrDoubleGeneric<string, double>.Case0("abc") != "efg");
+        Assert.True(StringOrDoubleGeneric<string, double>.Case0("abc") != 3.45);
 
-        Assert.True(StringOrDoubleExtended.Case1(3.45) == 3.45);
-        Assert.True(StringOrDoubleExtended.Case1(3.45) != 3.46);
-        Assert.True(StringOrDoubleExtended.Case1(3.45) != "abc");
+        Assert.True(StringOrDoubleGeneric<string, double>.Case1(3.45) == 3.45);
+        Assert.True(StringOrDoubleGeneric<string, double>.Case1(3.45) != 3.46);
+        Assert.True(StringOrDoubleGeneric<string, double>.Case1(3.45) != "abc");
 
-        Assert.True(3.45 == StringOrDoubleExtended.Case1(3.45));
-        Assert.True(3.46 != StringOrDoubleExtended.Case1(3.45));
-        Assert.True("abc" != StringOrDoubleExtended.Case1(3.45));
+        Assert.True(3.45 == StringOrDoubleGeneric<string, double>.Case1(3.45));
+        Assert.True(3.46 != StringOrDoubleGeneric<string, double>.Case1(3.45));
+        Assert.True("abc" != StringOrDoubleGeneric<string, double>.Case1(3.45));
+
+        Assert.True("abc" == StringOrDoubleGeneric<string, double>.Case2("abc"));
+        Assert.True("efg" != StringOrDoubleGeneric<string, double>.Case2("abc"));
+        Assert.True(3.45 != StringOrDoubleGeneric<string, double>.Case2("abc"));
+
+        Assert.True(StringOrDoubleGeneric<string, double>.Case2("abc") == "abc");
+        Assert.True(StringOrDoubleGeneric<string, double>.Case2("abc") != "efg");
+        Assert.True(StringOrDoubleGeneric<string, double>.Case2("abc") != 3.45);
+
+        Assert.True(StringOrDoubleGeneric<string, double>.Case3(3.45) == 3.45);
+        Assert.True(StringOrDoubleGeneric<string, double>.Case3(3.45) != 3.46);
+        Assert.True(StringOrDoubleGeneric<string, double>.Case3(3.45) != "abc");
+
+        Assert.True(3.45 == StringOrDoubleGeneric<string, double>.Case3(3.45));
+        Assert.True(3.46 != StringOrDoubleGeneric<string, double>.Case3(3.45));
+        Assert.True("abc" != StringOrDoubleGeneric<string, double>.Case3(3.45));
     }
 }
