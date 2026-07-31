@@ -914,10 +914,34 @@ internal class SymbolHandler
 
         foreach (var type in DistinctTypeNames)
         {
-            Builder.AppendLine($@"
+            Builder.Append($@"
     ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
-    public static bool operator==({Name} left, {type} right) => throw new System.NotImplementedException();
+    public static bool operator==({Name} left, {type} right)
+    {{
+        return left.Index switch
+        {{");
+            foreach (var caseData in Cases)
+            {
+                if (caseData.TypeInfo is null)
+                {
+                    Builder.Append($@"
+            {caseData.Index} => false,");
+                }
+                else if (!caseData.TypeInfo.IsGeneric)
+                {
+                    Builder.Append($@"
+            {caseData.Index} => {(caseData.TypeInfo.Name == type ? $"left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
+                }
+                else
+                {
+                    Builder.Append($@"
+            {caseData.Index} => throw new System.NotImplementedException(),");
+                }
+            }
 
+            Builder.AppendLine($@"
+        }};
+    }}
     ///<summary>Compares a <see cref=""{type}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({type} left, {Name} right) => right == left;
 
