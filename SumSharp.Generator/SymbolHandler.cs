@@ -908,6 +908,7 @@ internal class SymbolHandler
         if (disableUnderlyingValueEquality)
         {
             Builder.AppendLine(@"
+// These equality operators interfere with JSON source generation in .NET 8 
 #if NET9_0_OR_GREATER");
         }
 
