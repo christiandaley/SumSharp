@@ -912,11 +912,11 @@ internal class SymbolHandler
 #if NET9_0_OR_GREATER");
         }
 
-        foreach (var type in DistinctTypeNames)
+        foreach (var typeName in DistinctTypeNames)
         {
             Builder.Append($@"
-    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
-    public static bool operator==({Name} left, {type} right)
+    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{typeName}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator==({Name} left, {typeName} right)
     {{
         return left.Index switch
         {{");
@@ -929,27 +929,36 @@ internal class SymbolHandler
                 }
                 else if (!caseData.TypeInfo.IsGeneric)
                 {
-                    Builder.Append($@"
-            {caseData.Index} => {(caseData.TypeInfo.Name == type ? $"left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
+                    if (caseData.TypeInfo.IsAlwaysValueType)
+                    {
+                        Builder.Append($@"
+            {caseData.Index} => {(caseData.TypeInfo.Name == typeName ? $"left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
+                    }
+                    else
+                    {
+                        Builder.Append($@"
+            {caseData.Index} => {(caseData.TypeInfo.Name == typeName ? $"left.As{caseData.Name}Unsafe is null ? right is null : left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
+                    }
                 }
                 else
                 {
+
                     Builder.Append($@"
-            {caseData.Index} => throw new System.NotImplementedException(),");
+            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({typeName}) && object.Equals(left.As{caseData.Name}Unsafe, right),");
                 }
             }
 
             Builder.AppendLine($@"
         }};
     }}
-    ///<summary>Compares a <see cref=""{type}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
-    public static bool operator==({type} left, {Name} right) => right == left;
+    ///<summary>Compares a <see cref=""{typeName}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator==({typeName} left, {Name} right) => right == left;
 
-    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type}"" /> for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
-    public static bool operator!=({Name} left, {type} right) => !(left == right);
+    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{typeName}"" /> for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator!=({Name} left, {typeName} right) => !(left == right);
 
-    ///<summary>Compares a <see cref=""{type}"" /> with a {XMLEscapedName} for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
-    public static bool operator!=({type} left, {Name} right) => !(right == left);");
+    ///<summary>Compares a <see cref=""{typeName}"" /> with a {XMLEscapedName} for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator!=({typeName} left, {Name} right) => !(right == left);");
         }
 
         if (disableUnderlyingValueEquality)
