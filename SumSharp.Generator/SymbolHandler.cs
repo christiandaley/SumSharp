@@ -623,6 +623,8 @@ internal class SymbolHandler
 
         EmitAs();
 
+        EmitNativeUnion();
+
         EmitIs();
 
         EmitMatch();
@@ -759,14 +761,14 @@ internal class SymbolHandler
         {
             interfaces = $@"
 #if NET11_0_OR_GREATER
-    : System.Runtime.CompilerServices.IUnion
+    : {Name}.IUnionMembers
 #endif";
         }
         else
         {
             interfaces += $@"
 #if NET11_0_OR_GREATER
-    , System.Runtime.CompilerServices.IUnion
+    , {Name}.IUnionMembers
 #endif";
         }
 
@@ -1196,6 +1198,39 @@ internal class SymbolHandler
     public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(System.Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
         }
     }
+
+    public void EmitNativeUnion()
+    {
+        Builder.Append($@"
+#if NET11_0_OR_GREATER
+    public object{Nullable} Value
+    {{
+        get
+        {{
+            throw new System.NotImplementedException();
+        }}
+    }}
+
+    public interface IUnionMembers
+    {{
+        public object{Nullable} Value {{ get; }}");
+        
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                continue;
+            }
+
+            Builder.AppendLine($@"
+        public static {Name} Create({caseData.TypeInfo.Name} value) => throw new System.NotImplementedException();");
+        }
+
+        Builder.AppendLine($@"
+    }}
+#endif");
+    }
+
     public void EmitIs()
     {
         foreach (var caseData in Cases)
