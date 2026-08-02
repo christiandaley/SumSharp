@@ -15,6 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SumSharp\SumSharp.csproj" />
+    <ProjectReference Include="..\SumSharp.Generator\SumSharp.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SumSharp.Analyzer\SumSharp.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+	
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
