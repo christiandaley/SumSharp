@@ -1224,7 +1224,7 @@ internal class SymbolHandler
             }
         }
 
-        Builder.AppendLine($@"
+        Builder.Append($@"
             }};
         }}
     }}
@@ -1241,12 +1241,24 @@ internal class SymbolHandler
             if (caseData.TypeInfo is null)
             {
                 Builder.Append($@"
-                {caseData.Index} => throw new System.NotImplementedException(),");
+                {caseData.Index} => true,");
             }
             else
             {
+                var expression = "";
+
+                // Cannot use "is not null" pattern matching against non-generic value types
+                if (caseData.TypeInfo.IsAlwaysValueType && !caseData.TypeInfo.IsGeneric)
+                {
+                    expression = $"As{caseData.Name}Unsafe != null";
+                }
+                else
+                {
+                    expression = $"As{caseData.Name}Unsafe is not null";
+                }
+
                 Builder.Append($@"
-                {caseData.Index} => throw new System.NotImplementedException(),");
+                {caseData.Index} => {expression},");
             }
         }
 
