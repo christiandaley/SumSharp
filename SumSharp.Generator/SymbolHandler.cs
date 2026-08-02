@@ -937,7 +937,6 @@ internal class SymbolHandler
 
                 switch (type.IsGeneric, caseData.TypeInfo.IsGeneric)
                 {
-                    // No generic type comparison needed. Simplest case
                     case (false, false):
 
                         if (caseData.TypeInfo.IsAlwaysValueType)
@@ -969,15 +968,31 @@ internal class SymbolHandler
                     case (true, false):
 
                         Builder.Append($@"
-            {caseData.Index} => throw new System.NotImplementedException(),");
+            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe.Equals(right),");
 
                         break;
 
                     case (true, true):
+                        {
+                            var expression = new List<string>();
 
-                        Builder.Append($@"
-            {caseData.Index} => throw new System.NotImplementedException(),");
+                            if (caseData.TypeInfo.Name != type.Name)
+                            {
+                                expression.Add($"typeof({caseData.TypeInfo.Name}) == typeof({type.Name})");
+                            }
+                            if (caseData.TypeInfo.IsAlwaysValueType || type.IsAlwaysValueType)
+                            {
+                                expression.Add($"left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right)");
+                            }
+                            else
+                            {
+                                expression.Add($"(ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right))");
+                            }
 
+                            Builder.Append($@"
+            {caseData.Index} => {string.Join(" && ", expression)},");
+
+                        }
                         break;
                 }
             }
