@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35806.99
+# Visual Studio Version 18
+VisualStudioVersion = 18.8.12023.21 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SumSharp", "SumSharp\SumSharp.csproj", "{F757C23E-EF40-420D-AE51-9A0491392968}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.AOT", "Tests.AOT\Tests.AOT.csproj", "{AB02E647-82CD-4DB7-9207-3661E7FD933B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SumSharp.Analyzer", "SumSharp.Analyzer\SumSharp.Analyzer.csproj", "{D50E46B6-6A70-4A3C-A89F-348A1566825F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Net11", "Tests.Net11\Tests.Net11.csproj", "{76BD98D1-AA76-4FED-8802-7EB256A1A187}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D50E46B6-6A70-4A3C-A89F-348A1566825F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76BD98D1-AA76-4FED-8802-7EB256A1A187}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76BD98D1-AA76-4FED-8802-7EB256A1A187}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76BD98D1-AA76-4FED-8802-7EB256A1A187}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76BD98D1-AA76-4FED-8802-7EB256A1A187}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
