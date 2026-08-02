@@ -737,23 +737,44 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
-        List<string> interfaces = [];
+        string interfaces = ": ";
 
         if (!DisableValueEquality)
         {
-            interfaces.Add($"System.IEquatable<{Name}>");
+            interfaces += $@"
+    System.IEquatable<{Name}>";
         }
         if (IsDisposable)
         {
-            interfaces.Add("System.IDisposable");
+            interfaces += @",
+    System.IDisposable";
         }
         if (IsAsyncDisposable)
         {
-            interfaces.Add("System.IAsyncDisposable");
+            interfaces += @",
+    System.IAsyncDisposable";
+        }
+
+        if (interfaces == ": ")
+        {
+            interfaces = $@"
+#if NET11_0_OR_GREATER
+    : System.Runtime.CompilerServices.IUnion
+#endif";
+        }
+        else
+        {
+            interfaces += $@"
+#if NET11_0_OR_GREATER
+    , System.Runtime.CompilerServices.IUnion
+#endif";
         }
 
         Builder.Append($@"
-{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(interfaces.Count == 0 ? "" : $" : {string.Join(", ", interfaces)}")}
+#if NET11_0_OR_GREATER
+[System.Runtime.CompilerServices.Union]
+#endif
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{interfaces}
 {{");
 
         foreach (var field in fieldNameTypeMap)
