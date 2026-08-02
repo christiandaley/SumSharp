@@ -255,6 +255,8 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
+    public TypeInfo[] DistinctTypes { get; }
+
     public INamedTypeSymbol[] ContainingTypes;
 
     public bool HasGenericContainingTypes => ContainingTypes.Any(type => type.TypeArguments.Length > 0);
@@ -417,13 +419,21 @@ internal class SymbolHandler
             })
             .ToArray();
 
-        var distinctTypes =
-            Cases
-            .Where(caseData => caseData.TypeInfo != null)
-            .Select(caseData => caseData.TypeInfo!.Name)
-            .Distinct();
+        var typeMap = new Dictionary<string, TypeInfo>();
 
-        if (storageStrategy == 0 && distinctTypes.Count() == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                continue;
+            }
+
+            typeMap[caseData.TypeInfo.Name] = caseData.TypeInfo;
+        }
+
+        DistinctTypes = [..typeMap.Values];
+
+        if (storageStrategy == 0 && DistinctTypes.Length == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
         {
             Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false, caseData.StorageMode, FullUnmanagedStorageTypeName))];
         }
@@ -897,6 +907,114 @@ internal class SymbolHandler
 
     ///<summary>Compares two {XMLEscapedName} instances for inequality using System.IEquatable<{XMLEscapedName}>.Equals</summary>
     public static bool operator!=({Name} left, {Name} right) => !left.Equals(right);");
+
+        bool disableUnderlyingValueEquality = EnableStandardJsonSerialization && !AddJsonConverterAttribute;
+
+        if (disableUnderlyingValueEquality)
+        {
+            Builder.AppendLine(@"
+// These equality operators interfere with JSON source generation in .NET 8 
+#if NET9_0_OR_GREATER");
+        }
+
+        foreach (var type in DistinctTypes)
+        {
+            Builder.Append($@"
+    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type.Name}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator==({Name} left, {type.Name} right)
+    {{
+        return left.Index switch
+        {{");
+            foreach (var caseData in Cases)
+            {
+                if (caseData.TypeInfo is null)
+                {
+                    Builder.Append($@"
+            {caseData.Index} => false,");
+
+                    continue;
+                }
+
+                switch (type.IsGeneric, caseData.TypeInfo.IsGeneric)
+                {
+                    case (false, false):
+
+                        if (caseData.TypeInfo.IsAlwaysValueType)
+                        {
+                            Builder.Append($@"
+            {caseData.Index} => {(caseData.TypeInfo.Name == type.Name ? $"left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
+                        }
+                        else
+                        {
+                            Builder.Append($@"
+            {caseData.Index} => {(caseData.TypeInfo.Name == type.Name ? $"left.As{caseData.Name}Unsafe is null ? right is null : left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
+                        }
+
+                        break;
+                    case (false, true):
+
+                        if (type.IsAlwaysValueType)
+                        {
+                            Builder.Append($@"
+            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right),");
+                        }
+                        else
+                        {
+                            Builder.Append($@"
+            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && (ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right)),");
+                        }
+
+                        break;
+                    case (true, false):
+
+                        Builder.Append($@"
+            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe.Equals(right),");
+
+                        break;
+
+                    case (true, true):
+                        {
+                            var expression = new List<string>();
+
+                            if (caseData.TypeInfo.Name != type.Name)
+                            {
+                                expression.Add($"typeof({caseData.TypeInfo.Name}) == typeof({type.Name})");
+                            }
+                            if (caseData.TypeInfo.IsAlwaysValueType || type.IsAlwaysValueType)
+                            {
+                                expression.Add($"left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right)");
+                            }
+                            else
+                            {
+                                expression.Add($"(ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right))");
+                            }
+
+                            Builder.Append($@"
+            {caseData.Index} => {string.Join(" && ", expression)},");
+
+                        }
+                        break;
+                }
+            }
+
+            Builder.AppendLine($@"
+        }};
+    }}
+    ///<summary>Compares a <see cref=""{type.Name}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator==({type.Name} left, {Name} right) => right == left;
+
+    ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type.Name}"" /> for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator!=({Name} left, {type.Name} right) => !(left == right);
+
+    ///<summary>Compares a <see cref=""{type.Name}"" /> with a {XMLEscapedName} for inequality using <see cref=""object.Equals"" /> on the underlying value</summary>
+    public static bool operator!=({type.Name} left, {Name} right) => !(right == left);");
+        }
+
+        if (disableUnderlyingValueEquality)
+        {
+            Builder.AppendLine(@"
+#endif");
+        }
     }
     private void EmitCaseConstructors()
     {

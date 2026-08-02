@@ -696,7 +696,9 @@ The custom empty type is required to have a parameterless (default) constructor.
 
 ### Disabling value equality
 
-All `SumSharp` union types by default implement the `IEquatable<T>` interface, override the `Object.Equals` member function, and implement `==` and `!=` operators. This allows for value type equality between instances: Two instances of the same union type are equal iff they both hold the same case and their underlying values compare equal using the static `Object.Equals` function.
+All `SumSharp` union types by default implement the `IEquatable<T>` interface, override the `Object.Equals` member function, and implement `==` and `!=` operators. This allows for value type equality between instances: Two instances of the same union type are equal iff they both hold the same case and their underlying values compare equal using the static `object.Equals` function.
+
+`==` and `!=` comparison operators are also generated for each unique type stored by the union, allowing for direct comparisons between a union and a raw value.
 
 If you'd rather disable this feature and have reference equality for class type unions add the `[DisableValueEquality]` attribute to your union. _Note that adding this attribute does nothing for record union types because the C\# compiler will always add an `IEquatable` implementation for record types._
 

@@ -38,6 +38,16 @@ public partial class Equals
 
     }
 
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(double))]
+    [UnionCase("Case2", typeof(string))]
+    [UnionCase("Case3", typeof(double))]
+    [UnionCase("Case4", "T")]
+    partial class StringOrDoubleExtended<T>
+    {
+
+    }
+
     [Fact]
     public void ValueEquality()
     {
@@ -84,5 +94,57 @@ public partial class Equals
         Assert.NotEqual(StringOrDoubleRecordStruct.Case1(3.45), StringOrDoubleRecordStruct.Case0("abc"));
 
         Assert.True(StringOrDoubleRecordStruct.Case0("") is IEquatable<StringOrDoubleRecordStruct>);
+    }
+
+    [Fact]
+    public void UnderlyingValueEquality()
+    {
+        Assert.True("abc" == StringOrDoubleExtended<string>.Case0("abc"));
+        Assert.True("efg" != StringOrDoubleExtended<string>.Case0("abc"));
+        Assert.True(3.45 != StringOrDoubleExtended<string>.Case0("abc"));
+
+        Assert.True(StringOrDoubleExtended<string>.Case0("abc") == "abc");
+        Assert.True(StringOrDoubleExtended<string>.Case0("abc") != "efg");
+        Assert.True(StringOrDoubleExtended<string>.Case0("abc") != 3.45);
+
+        Assert.True(StringOrDoubleExtended<string>.Case1(3.45) == 3.45);
+        Assert.True(StringOrDoubleExtended<string>.Case1(3.45) != 3.46);
+        Assert.True(StringOrDoubleExtended<string>.Case1(3.45) != "abc");
+
+        Assert.True(3.45 == StringOrDoubleExtended<string>.Case1(3.45));
+        Assert.True(3.46 != StringOrDoubleExtended<string>.Case1(3.45));
+        Assert.True("abc" != StringOrDoubleExtended<string>.Case1(3.45));
+
+        Assert.True("abc" == StringOrDoubleExtended<string>.Case2("abc"));
+        Assert.True("efg" != StringOrDoubleExtended<string>.Case2("abc"));
+        Assert.True(3.45 != StringOrDoubleExtended<string>.Case2("abc"));
+
+        Assert.True(StringOrDoubleExtended<string>.Case2("abc") == "abc");
+        Assert.True(StringOrDoubleExtended<string>.Case2("abc") != "efg");
+        Assert.True(StringOrDoubleExtended<string>.Case2("abc") != 3.45);
+
+        Assert.True(StringOrDoubleExtended<string>.Case3(3.45) == 3.45);
+        Assert.True(StringOrDoubleExtended<string>.Case3(3.45) != 3.46);
+        Assert.True(StringOrDoubleExtended<string>.Case3(3.45) != "abc");
+
+        Assert.True(3.45 == StringOrDoubleExtended<string>.Case3(3.45));
+        Assert.True(3.46 != StringOrDoubleExtended<string>.Case3(3.45));
+        Assert.True("abc" != StringOrDoubleExtended<string>.Case3(3.45));
+
+        Assert.True("abc" == StringOrDoubleExtended<string>.Case4("abc"));
+        Assert.True("efg" != StringOrDoubleExtended<string>.Case4("abc"));
+        Assert.True(3.45 != StringOrDoubleExtended<string>.Case4("abc"));
+
+        Assert.True(StringOrDoubleExtended<string>.Case4("abc") == "abc");
+        Assert.True(StringOrDoubleExtended<string>.Case4("abc") != "efg");
+        Assert.True(StringOrDoubleExtended<string>.Case4("abc") != 3.45);
+
+        Assert.True(5 == StringOrDoubleExtended<int>.Case4(5));
+        Assert.True("abc" != StringOrDoubleExtended<int>.Case4(5));
+        Assert.True(3.45 != StringOrDoubleExtended<int>.Case4(5));
+
+        Assert.True(StringOrDoubleExtended<int>.Case4(5) == 5);
+        Assert.True(StringOrDoubleExtended<int>.Case4(5) != "abc");
+        Assert.True(StringOrDoubleExtended<int>.Case4(5) != 3.45);
     }
 }

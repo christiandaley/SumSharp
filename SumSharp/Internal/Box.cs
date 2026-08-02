@@ -18,9 +18,8 @@ public sealed class Box<T>(T value) : IEquatable<Box<T>>
     {
         if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != GetType()) return false;
 
-        return Equals(System.Runtime.CompilerServices.Unsafe.As<Box<T>>(obj));
+        return Equals(obj as Box<T>);
     }
 
     public override int GetHashCode() => Value.GetHashCode();
