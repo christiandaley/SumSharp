@@ -1265,7 +1265,27 @@ internal class SymbolHandler
         Builder.AppendLine($@"
             }};
         }}
-    }}
+    }}");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+
+            }
+            else
+            {
+                var nonNullableTypeName = caseData.TypeInfo.Name.TrimEnd('?');
+
+                Builder.AppendLine($@"
+    public bool TryGetValue(out {nonNullableTypeName} value)
+    {{
+        throw new System.NotImplementedException();
+    }}");
+            }
+        }
+
+        Builder.AppendLine($@"
 
     public interface IUnionMembers
     {{

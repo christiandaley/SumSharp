@@ -13,6 +13,13 @@ public partial class Union
 
     }
 
+    [UnionCase("Int", typeof(int?))]
+    [UnionCase("Bool", typeof(bool?))]
+    partial class NullableValueTypes
+    {
+
+    }
+
     [UnionCase("Some", "T")]
     [UnionCase("None")]
     partial class Optional<T>
@@ -48,6 +55,11 @@ public partial class Union
         Assert.False(IntOrStringOrOther<int?>.Other(null).HasValue);
         Assert.False(IntOrStringOrOther<int>.String(null!).HasValue);
 
+        Assert.True(NullableValueTypes.Int(1).HasValue);
+        Assert.True(NullableValueTypes.Bool(false).HasValue);
+        Assert.False(NullableValueTypes.Int(null).HasValue);
+        Assert.False(NullableValueTypes.Bool(null).HasValue);
+
         Assert.True(Optional<int>.Some(1).HasValue);
         Assert.True(Optional<int?>.Some(1).HasValue);
         Assert.True(Optional<string>.Some("abc").HasValue);
@@ -60,7 +72,7 @@ public partial class Union
 
 
     [Fact]
-    public void SimpleSwitch()
+    public void Switch()
     {
         Assert.True(IntOrStringOrOther<bool>.Int(5) switch
         {
@@ -87,6 +99,27 @@ public partial class Union
         {
             int i => i == 4,
             string s => false,
+        });
+
+        Assert.True(IntOrStringOrOther<int?>.Other(null) switch
+        {
+            int i => false,
+            string s => false,
+            null => true,
+        });
+
+        Assert.True(NullableValueTypes.Int(null) switch
+        {
+            int i => false,
+            bool b => false,
+            null => true,
+        });
+
+        Assert.True(NullableValueTypes.Bool(null) switch
+        {
+            int i => false,
+            bool b => false,
+            null => true,
         });
     }
 }
