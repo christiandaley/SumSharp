@@ -21,6 +21,10 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
+        public bool NullableAnnotation => Name.EndsWith("?");
+
+        public string NullableStrippedName => Name.TrimEnd('?');
+
         public abstract bool IsUnmanaged { get; }
 
         public abstract bool UseUnmanagedStorage { get; }
@@ -1245,17 +1249,10 @@ internal class SymbolHandler
             }
             else
             {
-                var expression = "";
-
-                // Cannot use "is not null" pattern matching against non-generic value types
-                if (caseData.TypeInfo.IsAlwaysValueType && !caseData.TypeInfo.IsGeneric)
-                {
-                    expression = $"As{caseData.Name}Unsafe != null";
-                }
-                else
-                {
-                    expression = $"As{caseData.Name}Unsafe is not null";
-                }
+                var expression =
+                    caseData.TypeInfo.IsAlwaysValueType && !caseData.TypeInfo.NullableAnnotation ?
+                    "true" :
+                    $"As{caseData.Name}Unsafe is not null";
 
                 Builder.Append($@"
                 {caseData.Index} => {expression},");
@@ -1275,12 +1272,12 @@ internal class SymbolHandler
             }
             else
             {
-                var nonNullableTypeName = caseData.TypeInfo.Name.TrimEnd('?');
-
-                Builder.AppendLine($@"
-    public bool TryGetValue(out {nonNullableTypeName} value)
+                Builder.Append($@"
+    public bool TryGetValue(out {caseData.TypeInfo.NullableStrippedName} value)
     {{
-        throw new System.NotImplementedException();
+        throw new System.NotImplementedException();");
+
+        Builder.AppendLine($@"
     }}");
             }
         }
@@ -1289,7 +1286,9 @@ internal class SymbolHandler
 
     public interface IUnionMembers
     {{
-        public object{Nullable} Value {{ get; }}");
+        public object{Nullable} Value {{ get; }}
+
+        public bool HasValue {{ get; }}");
         
         foreach (var caseData in Cases)
         {
@@ -1300,7 +1299,9 @@ internal class SymbolHandler
             else
             {
                 Builder.AppendLine($@"
-        public static {Name} Create({caseData.TypeInfo.Name} value) => {Name}.{caseData.Name}(value);");
+        public static {Name} Create({caseData.TypeInfo.Name} value) => {Name}.{caseData.Name}(value);
+
+        public bool TryGetValue(out {caseData.TypeInfo.NullableStrippedName} value);");
             }
         }
 
