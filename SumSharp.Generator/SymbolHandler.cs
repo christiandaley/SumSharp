@@ -1214,11 +1214,13 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo is null)
             {
-                continue;
+                
             }
-
-            Builder.Append($@"
+            else
+            {
+                Builder.Append($@"
                 {caseData.Index} => As{caseData.Name}Unsafe,");
+            }
         }
 
         Builder.AppendLine($@"
@@ -1236,9 +1238,11 @@ internal class SymbolHandler
             {
                 continue;
             }
-
-            Builder.AppendLine($@"
+            else
+            {
+                Builder.AppendLine($@"
         public static {Name} Create({caseData.TypeInfo.Name} value) => {Name}.{caseData.Name}(value);");
+            }
         }
 
         Builder.AppendLine($@"

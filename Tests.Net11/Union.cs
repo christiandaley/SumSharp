@@ -17,31 +17,39 @@ public partial class Union
     [Fact]
     public void SimpleSwitch()
     {
-        IntOrStringOrOther<bool> x = 5;
+        IntOrStringOrOther<bool> w = 5;
 
-        Assert.True(x switch
+        Assert.True(w switch
         {
             int i => true,
             float f => false,
             bool b => false,
         });
 
-        IntOrStringOrOther<bool> y = 3.4f;
+        IntOrStringOrOther<bool> x = 3.4f;
 
-        Assert.True(y switch
+        Assert.True(x switch
         {
             int i => false,
             float f => true,
             bool b => false,
         });
 
-        IntOrStringOrOther<bool> z = true;
+        IntOrStringOrOther<bool> y = true;
 
-        Assert.True(z switch
+        Assert.True(y switch
         {
             int i => false,
             float f => false,
             bool b => true,
+        });
+
+        var z = IntOrStringOrOther<int>.Other(4);
+
+        Assert.True(z switch
+        {
+            int i => true,
+            float f => false,
         });
     }
 }
