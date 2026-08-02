@@ -1219,7 +1219,8 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo is null)
             {
-                
+                Builder.Append($@"
+                {caseData.Index} => throw new System.NotImplementedException(),");
             }
             else
             {
