@@ -13,6 +13,13 @@ public partial class Union
 
     }
 
+    [UnionCase("Some", "T")]
+    [UnionCase("None")]
+    partial class Optional<T>
+    {
+
+    }
+
     /*[UnionCase("Case0", typeof(string))]
     [UnionCase("Case1", typeof(string))]
     partial class RepeatedCases
@@ -23,12 +30,32 @@ public partial class Union
     [Fact]
     public void Value()
     {
-        IntOrStringOrOther<bool> w = 5;
-
         Assert.Equal(5, IntOrStringOrOther<bool>.Int(5).Value);
         Assert.Equal("abc", IntOrStringOrOther<bool>.String("abc").Value);
         Assert.Equal(true, IntOrStringOrOther<bool>.Other(true).Value);
         Assert.Equal(4, IntOrStringOrOther<int>.Other(4).Value);
+    }
+
+    [Fact]
+    public void HasValue()
+    {
+        Assert.True(IntOrStringOrOther<bool>.Int(5).HasValue);
+        Assert.True(IntOrStringOrOther<bool>.String("abc").HasValue);
+        Assert.True(IntOrStringOrOther<bool>.Other(true).HasValue);
+        Assert.True(IntOrStringOrOther<int>.Other(4).HasValue);
+        Assert.True(IntOrStringOrOther<int?>.Other(3).HasValue);
+
+        Assert.False(IntOrStringOrOther<int?>.Other(null).HasValue);
+        Assert.False(IntOrStringOrOther<int>.String(null!).HasValue);
+
+        Assert.True(Optional<int>.Some(1).HasValue);
+        Assert.True(Optional<int?>.Some(1).HasValue);
+        Assert.True(Optional<string>.Some("abc").HasValue);
+
+        Assert.False(Optional<int?>.Some(null).HasValue);
+        Assert.False(Optional<string>.Some(null!).HasValue);
+
+        Assert.True(Optional<int>.None.HasValue);
     }
 
 

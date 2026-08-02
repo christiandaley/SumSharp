@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using static SumSharp.Generator.SymbolHandler;
 
 namespace SumSharp.Generator;
 
@@ -1220,6 +1221,32 @@ internal class SymbolHandler
             {
                 Builder.Append($@"
                 {caseData.Index} => As{caseData.Name}Unsafe,");
+            }
+        }
+
+        Builder.AppendLine($@"
+            }};
+        }}
+    }}
+
+    public bool HasValue
+    {{
+        get
+        {{
+            return Index switch
+            {{");
+
+        foreach(var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                Builder.Append($@"
+                {caseData.Index} => throw new System.NotImplementedException(),");
+            }
+            else
+            {
+                Builder.Append($@"
+                {caseData.Index} => throw new System.NotImplementedException(),");
             }
         }
 
