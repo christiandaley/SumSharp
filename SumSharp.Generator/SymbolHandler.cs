@@ -1201,7 +1201,7 @@ internal class SymbolHandler
 
     public void EmitNativeUnion()
     {
-        Builder.Append($@"
+        Builder.AppendLine($@"
 #if NET11_0_OR_GREATER
     public object{Nullable} Value
     {{
@@ -1223,7 +1223,7 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
-        public static {Name} Create({caseData.TypeInfo.Name} value) => throw new System.NotImplementedException();");
+        public static {Name} Create({caseData.TypeInfo.Name} value) => {Name}.{caseData.Name}(value);");
         }
 
         Builder.AppendLine($@"
