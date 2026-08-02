@@ -1201,13 +1201,28 @@ internal class SymbolHandler
 
     public void EmitNativeUnion()
     {
-        Builder.AppendLine($@"
+        Builder.Append($@"
 #if NET11_0_OR_GREATER
     public object{Nullable} Value
     {{
         get
         {{
-            throw new System.NotImplementedException();
+            return Index switch
+            {{");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                continue;
+            }
+
+            Builder.Append($@"
+                {caseData.Index} => As{caseData.Name}Unsafe,");
+        }
+
+        Builder.AppendLine($@"
+            }};
         }}
     }}
 
