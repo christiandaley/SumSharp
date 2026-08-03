@@ -1261,12 +1261,58 @@ internal class SymbolHandler
             }
             else
             {
-                Builder.Append($@"
+                Builder.AppendLine($@"
     public bool TryGetValue(out {caseData.TypeInfo.NullableStrippedName} value)
     {{
-        throw new System.NotImplementedException();");
+        value = default!;
 
-        Builder.AppendLine($@"
+        if (!TryGetValue<{caseData.TypeInfo.Name}>(out var rawValue))
+        {{
+            return false;
+        }}");
+
+                if (caseData.TypeInfo.IsAlwaysValueType)
+                {
+                    if (caseData.TypeInfo.NullableAnnotation)
+                    {
+                        Builder.Append($@"
+        if (!rawValue.HasValue)
+        {{
+            return false;
+        }}
+
+        value = rawValue.Value;");
+                    }
+                    else
+                    {
+                        Builder.Append($@"
+        value = rawValue;");
+                    }
+                }
+                else if (caseData.TypeInfo.IsAlwaysRefType)
+                {
+                    Builder.Append($@"
+        if (ReferenceEquals(null, rawValue))
+        {{
+            return false;
+        }}
+
+        value = rawValue;");
+                }
+                else
+                {
+                    Builder.Append($@"
+        if (!typeof({caseData.TypeInfo.Name}).IsValueType && ReferenceEquals(null, rawValue))
+        {{
+            return false;
+        }}
+
+        value = rawValue;");
+                }
+
+                Builder.AppendLine($@"
+
+        return true;
     }}");
             }
         }

@@ -88,6 +88,14 @@ public partial class Union
             bool b => false,
         });
 
+        Assert.True(IntOrStringOrOther<bool>.String(null!) switch
+        {
+            int i => false,
+            string s => false,
+            bool b => false,
+            null => true,
+        });
+
         Assert.True(IntOrStringOrOther<bool>.Other(true) switch
         {
             int i => false,
@@ -105,6 +113,14 @@ public partial class Union
         {
             int i => false,
             string s => false,
+            null => true,
+        });
+
+        Assert.True(IntOrStringOrOther<float[]>.Other(null!) switch
+        {
+            int i => false,
+            string s => false,
+            float[] => false,
             null => true,
         });
 
