@@ -260,7 +260,8 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
-    public TypeInfo[] DistinctTypes { get; }
+    // Cases grouped by type
+    public IGrouping<string, CaseData>[] CaseGroups { get; }
 
     public INamedTypeSymbol[] ContainingTypes;
 
@@ -424,32 +425,21 @@ internal class SymbolHandler
             })
             .ToArray();
 
-        var typeMap = new Dictionary<string, TypeInfo>();
+        CaseGroups =
+            [..Cases
+            .Where(caseData => caseData.TypeInfo is not null)
+            .GroupBy(caseData =>
+                caseData.TypeInfo!.IsTupleType ?
+                $"({string.Join(", ", caseData.TypeInfo.TupleTypeArgs)})" : // Removes custom field names
+                caseData.TypeInfo.Name)];
 
-        foreach (var caseData in Cases)
-        {
-            if (caseData.TypeInfo is null)
-            {
-                continue;
-            }
-
-            typeMap[caseData.TypeInfo.Name] = caseData.TypeInfo;
-        }
-
-        DistinctTypes = [..typeMap.Values];
-
-        if (storageStrategy == 0 && DistinctTypes.Length == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
+        if (storageStrategy == 0 && CaseGroups.Length == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
         {
             Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false, caseData.StorageMode, FullUnmanagedStorageTypeName))];
         }
 
         UniqueCases =
-            Cases
-            .Where(caseData => caseData.TypeInfo is not null)
-            .GroupBy(caseData =>
-                caseData.TypeInfo!.IsTupleType ?
-                $"({string.Join(", ", caseData.TypeInfo.TupleTypeArgs)})" : // Removes custom field names
-                caseData.TypeInfo.Name)
+            CaseGroups
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
@@ -987,8 +977,10 @@ internal class SymbolHandler
 #if NET9_0_OR_GREATER");
         }
 
-        foreach (var type in DistinctTypes)
+        foreach (var caseGroup in CaseGroups)
         {
+            var type = caseGroup.First().TypeInfo!;
+
             Builder.AppendLine($@"
     ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type.Name}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({Name} left, {type.Name} right)
@@ -1253,68 +1245,63 @@ internal class SymbolHandler
         }}
     }}");
 
-        foreach (var caseData in Cases)
+        foreach (var caseGroup in CaseGroups)
         {
-            if (caseData.TypeInfo is null)
-            {
+            var typeInfo = caseGroup.First().TypeInfo!;
 
-            }
-            else
-            {
-                Builder.AppendLine($@"
-    public bool TryGetValue(out {caseData.TypeInfo.NullableStrippedName} value)
+            Builder.AppendLine($@"
+    public bool TryGetValue(out {typeInfo.NullableStrippedName} value)
     {{
         value = default!;
 
-        if (!TryGetValue<{caseData.TypeInfo.Name}>(out var rawValue))
+        if (!TryGetValue<{typeInfo.Name}>(out var rawValue))
         {{
             return false;
         }}");
 
-                if (caseData.TypeInfo.IsAlwaysValueType)
+            if (typeInfo.IsAlwaysValueType)
+            {
+                if (typeInfo.NullableAnnotation)
                 {
-                    if (caseData.TypeInfo.NullableAnnotation)
-                    {
-                        Builder.Append($@"
+                    Builder.Append($@"
         if (!rawValue.HasValue)
         {{
             return false;
         }}
 
         value = rawValue.Value;");
-                    }
-                    else
-                    {
-                        Builder.Append($@"
-        value = rawValue;");
-                    }
                 }
-                else if (caseData.TypeInfo.IsAlwaysRefType)
+                else
                 {
                     Builder.Append($@"
+        value = rawValue;");
+                }
+            }
+            else if (typeInfo.IsAlwaysRefType)
+            {
+                Builder.Append($@"
         if (ReferenceEquals(null, rawValue))
         {{
             return false;
         }}
 
         value = rawValue;");
-                }
-                else
-                {
-                    Builder.Append($@"
-        if (!typeof({caseData.TypeInfo.Name}).IsValueType && ReferenceEquals(null, rawValue))
+            }
+            else
+            {
+                Builder.Append($@"
+        if (!typeof({typeInfo.Name}).IsValueType && ReferenceEquals(null, rawValue))
         {{
             return false;
         }}
 
         value = rawValue;");
-                }
+            }
 
-                Builder.AppendLine($@"
+            Builder.AppendLine($@"
 
         return true;
     }}");
-            }
         }
 
         Builder.AppendLine($@"
@@ -1325,19 +1312,25 @@ internal class SymbolHandler
 
         public bool HasValue {{ get; }}");
         
-        foreach (var caseData in Cases)
+        foreach (var caseGroup in CaseGroups)
         {
-            if (caseData.TypeInfo is null)
+            var firstCase = caseGroup.First();
+
+            if (caseGroup.Count() == 1)
             {
-                continue;
+                Builder.AppendLine($@"
+        public static {Name} Create({firstCase.TypeInfo!.Name} value) => {Name}.{firstCase.Name}(value);");
             }
             else
             {
-                Builder.AppendLine($@"
-        public static {Name} Create({caseData.TypeInfo.Name} value) => {Name}.{caseData.Name}(value);
+                var candidateCases = caseGroup.Select(caseData => $"\"{caseData.Name}\"");
 
-        public bool TryGetValue(out {caseData.TypeInfo.NullableStrippedName} value);");
+                Builder.AppendLine($@"
+        public static {Name} Create({firstCase.TypeInfo!.Name} value) => throw new global::SumSharp.CreateFailureException(typeof({Name}), typeof({firstCase.TypeInfo.Name}), [{string.Join(", ", candidateCases)}]);");
             }
+
+            Builder.AppendLine($@"
+        public bool TryGetValue(out {firstCase.TypeInfo!.NullableStrippedName} value);");
         }
 
         Builder.AppendLine($@"

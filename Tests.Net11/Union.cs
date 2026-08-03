@@ -155,6 +155,7 @@ public partial class Union
             RepeatedTypes x = "abc";
         });
 
+        Assert.Equal(typeof(RepeatedTypes), ex.UnionType);
         Assert.Equal(typeof(string), ex.CaseType);
         Assert.Equal(["Case0", "Case1"], ex.CandidateCaseNames);
     }
