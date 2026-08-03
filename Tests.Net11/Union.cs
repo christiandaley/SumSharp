@@ -148,6 +148,44 @@ public partial class Union
     }
 
     [Fact]
+    public void RepeatedTypesSwitch()
+    {
+        Assert.True(RepeatedTypes.Case0("abc") switch
+        {
+            string s => s == "abc",
+            int i => false,
+            null => false,
+        });
+
+        Assert.True(RepeatedTypes.Case0(null!) switch
+        {
+            string s => false,
+            int i => false,
+            null => true,
+        });
+
+        Assert.True(RepeatedTypes.Case1("abc") switch
+        {
+            string s => s == "abc",
+            int i => false,
+            null => false,
+        });
+
+        Assert.True(RepeatedTypes.Case1(null!) switch
+        {
+            string s => false,
+            int i => false,
+            null => true,
+        });
+
+        Assert.True(RepeatedTypes.Case2(4) switch
+        {
+            string s => false,
+            int i => i == 4,
+        });
+    }
+
+    [Fact]
     public void RepeatedTypesAmbiguousCaseException()
     {
         var ex = Assert.Throws<AmbiguousCaseException>(() =>
