@@ -619,6 +619,8 @@ internal class SymbolHandler
             EmitUnmanagedStorageSize();
         }
 
+        EmitTryGetValueGeneric();
+
         if (!DisableValueEquality)
         {
             EmitEquals();
@@ -866,6 +868,15 @@ internal class SymbolHandler
 
     public static int UnmanagedStorageSize => _unmanagedStorageSize;");
     }
+
+    public void EmitTryGetValueGeneric()
+    {
+        Builder.AppendLine($@"
+    private bool TryGetValue<TValue__>(out TValue__ value)
+    {{
+        throw new System.NotImplementedException();
+    }}");
+    }
     public void EmitEquals()
     { 
         Builder.Append($@"
@@ -947,86 +958,32 @@ internal class SymbolHandler
 
         foreach (var type in DistinctTypes)
         {
-            Builder.Append($@"
+            Builder.AppendLine($@"
     ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type.Name}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({Name} left, {type.Name} right)
     {{
-        return left.Index switch
-        {{");
-            foreach (var caseData in Cases)
+        if (!left.TryGetValue<{type.Name}>(out var value))
+        {{
+            return false;
+        }}");
+
+            if (type.IsAlwaysValueType)
             {
-                if (caseData.TypeInfo is null)
-                {
-                    Builder.Append($@"
-            {caseData.Index} => false,");
-
-                    continue;
-                }
-
-                switch (type.IsGeneric, caseData.TypeInfo.IsGeneric)
-                {
-                    case (false, false):
-
-                        if (caseData.TypeInfo.IsAlwaysValueType)
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => {(caseData.TypeInfo.Name == type.Name ? $"left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
-                        }
-                        else
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => {(caseData.TypeInfo.Name == type.Name ? $"left.As{caseData.Name}Unsafe is null ? right is null : left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
-                        }
-
-                        break;
-                    case (false, true):
-
-                        if (type.IsAlwaysValueType)
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right),");
-                        }
-                        else
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && (ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right)),");
-                        }
-
-                        break;
-                    case (true, false):
-
-                        Builder.Append($@"
-            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe.Equals(right),");
-
-                        break;
-
-                    case (true, true):
-                        {
-                            var expression = new List<string>();
-
-                            if (caseData.TypeInfo.Name != type.Name)
-                            {
-                                expression.Add($"typeof({caseData.TypeInfo.Name}) == typeof({type.Name})");
-                            }
-                            if (caseData.TypeInfo.IsAlwaysValueType || type.IsAlwaysValueType)
-                            {
-                                expression.Add($"left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right)");
-                            }
-                            else
-                            {
-                                expression.Add($"(ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right))");
-                            }
-
-                            Builder.Append($@"
-            {caseData.Index} => {string.Join(" && ", expression)},");
-
-                        }
-                        break;
-                }
+                Builder.Append($@"
+        return value.Equals(right);");
+            }
+            else if (type.IsAlwaysRefType)
+            {
+                Builder.Append($@"
+        return ReferenceEquals(null, value) ? ReferenceEquals(null, right) : value.Equals(right);");
+            }
+            else
+            {
+                Builder.Append($@"
+        return typeof({type.Name}).IsValueType ? value{NullForgiving}.Equals(right) : (ReferenceEquals(null, value) ? ReferenceEquals(null, right) : value.Equals(right));");
             }
 
-            Builder.AppendLine($@"
-        }};
+            Builder.Append($@"
     }}
     ///<summary>Compares a <see cref=""{type.Name}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({type.Name} left, {Name} right) => right == left;
