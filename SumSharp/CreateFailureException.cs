@@ -1,0 +1,22 @@
+﻿using System;
+
+namespace SumSharp;
+
+/// <summary>
+/// Thrown when the a generated IUnionMembers.Create static factory method is called with a type that has more than
+/// one matching case.
+/// </summary>
+/// <param name="caseType">The type of the case that failed to be constructed</param>
+/// <param name="candidateCaseNames">The multiple cases that match the given type</param>
+public sealed class CreateFailureException(Type caseType, string[] candidateCaseNames) : Exception($"Failed to construct a case of type {caseType}. There are multiple candidate cases of this type")
+{
+    /// <summary>
+    /// The type of the case that failed to be constructed
+    /// </summary>
+    public Type CaseType => caseType;
+
+    /// <summary>
+    /// The multiple cases that match the given type
+    /// </summary>
+    public string[] CandidateCaseNames => candidateCaseNames;
+}

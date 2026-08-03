@@ -17,12 +17,20 @@ public partial class Union
     [UnionCase("Bool", typeof(bool?))]
     partial class NullableValueTypes
     {
-
+         
     }
 
     [UnionCase("Some", "T")]
     [UnionCase("None")]
     partial class Optional<T>
+    {
+
+    }
+
+    [UnionCase("Case0", typeof(string))]
+    [UnionCase("Case1", typeof(string))]
+    [UnionCase("Case2", typeof(int))]
+    partial class RepeatedTypes
     {
 
     }
@@ -137,5 +145,17 @@ public partial class Union
             bool b => false,
             null => true,
         });
+    }
+
+    [Fact]
+    public void RepeatedTypesCreateFailure()
+    {
+        var ex = Assert.Throws<CreateFailureException>(() =>
+        {
+            RepeatedTypes x = "abc";
+        });
+
+        Assert.Equal(typeof(string), ex.CaseType);
+        Assert.Equal(["Case0", "Case1"], ex.CandidateCaseNames);
     }
 }
