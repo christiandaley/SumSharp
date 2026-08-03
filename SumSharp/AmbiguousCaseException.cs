@@ -8,7 +8,7 @@ namespace SumSharp;
 /// <param name="unionType">The type of the union that failed to be constructed</param>
 /// <param name="caseType">The type of the case that failed to be constructed</param>
 /// <param name="candidateCaseNames">The multiple cases that match the given type</param>
-public sealed class CreateFailureException(Type unionType, Type caseType, string[] candidateCaseNames) : Exception($"Failed to construct a {unionType} with underlying type {caseType}. There are multiple candidate cases of this type")
+public sealed class AmbiguousCaseException(Type unionType, Type caseType, string[] candidateCaseNames) : Exception($"Failed to construct a {unionType} with underlying type {caseType}. There are multiple candidate cases of this type")
 {
     /// <summary>
     /// The type of the union that failed to be constructed

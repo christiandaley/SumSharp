@@ -148,9 +148,9 @@ public partial class Union
     }
 
     [Fact]
-    public void RepeatedTypesCreateFailure()
+    public void RepeatedTypesAmbiguousCaseException()
     {
-        var ex = Assert.Throws<CreateFailureException>(() =>
+        var ex = Assert.Throws<AmbiguousCaseException>(() =>
         {
             RepeatedTypes x = "abc";
         });

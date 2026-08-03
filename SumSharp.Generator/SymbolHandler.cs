@@ -1188,6 +1188,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
 #if NET11_0_OR_GREATER
+    ///<summary>Returns the underlying value of the union as an <see cref=""object"" />{Nullable}. Value types will be boxed</summary>
     public object{Nullable} Value
     {{
         get
@@ -1214,6 +1215,7 @@ internal class SymbolHandler
         }}
     }}
 
+    ///<summary>True if the underlying value is not a null. False otherwise. If the active case is empty the value is considered to be not null</summary>
     public bool HasValue
     {{
         get
@@ -1250,6 +1252,9 @@ internal class SymbolHandler
             var typeInfo = caseGroup.First().TypeInfo!;
 
             Builder.AppendLine($@"
+    ///<summary>Attempts to get a value of type <see cref=""{typeInfo.NullableStrippedName}"" /> from the union. Returns true if the union holds a non-null value of the type.
+    ///Returns false otherwise.</summary>
+    ///<param name=""value"">An out parameter that will be set to the underlying value, if present.</param>
     public bool TryGetValue(out {typeInfo.NullableStrippedName} value)
     {{
         value = default!;
@@ -1316,21 +1321,27 @@ internal class SymbolHandler
         {
             var firstCase = caseGroup.First();
 
+            var typeInfo = firstCase.TypeInfo!;
+
             if (caseGroup.Count() == 1)
             {
                 Builder.AppendLine($@"
-        public static {Name} Create({firstCase.TypeInfo!.Name} value) => {Name}.{firstCase.Name}(value);");
+        ///<summary>Creates a <see cref=""{Name}"" /> That holds a value of type <see cref=""{typeInfo.Name}"" /> by invoking the <see cref=""{firstCase.Name}"" /> case constructor</summary>
+        public static {Name} Create({typeInfo.Name} value) => {Name}.{firstCase.Name}(value);");
             }
             else
             {
                 var candidateCases = caseGroup.Select(caseData => $"\"{caseData.Name}\"");
 
                 Builder.AppendLine($@"
-        public static {Name} Create({firstCase.TypeInfo!.Name} value) => throw new global::SumSharp.CreateFailureException(typeof({Name}), typeof({firstCase.TypeInfo.Name}), [{string.Join(", ", candidateCases)}]);");
+        ///<summary>Always throws a <see cref=""global::SumSharp.AmbiguousCaseException"" />. This method exists to satisfy the compiler's requirements that a static Create method exist for
+        /// each type the union can hold. There are multiple cases ({string.Join(", ", candidateCases)}) that can hold a value of type <see cref=""{typeInfo.Name}"" />.
+        /// Use the appropriate case constructor directly rather than relying on a compiler provided conversion.</summary>
+        public static {Name} Create({typeInfo.Name} value) => throw new global::SumSharp.AmbiguousCaseException(typeof({Name}), typeof({typeInfo.Name}), [{string.Join(", ", candidateCases)}]);");
             }
 
             Builder.AppendLine($@"
-        public bool TryGetValue(out {firstCase.TypeInfo!.NullableStrippedName} value);");
+        public bool TryGetValue(out {typeInfo.NullableStrippedName} value);");
         }
 
         Builder.AppendLine($@"
