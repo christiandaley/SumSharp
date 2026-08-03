@@ -871,10 +871,41 @@ internal class SymbolHandler
 
     public void EmitTryGetValueGeneric()
     {
-        Builder.AppendLine($@"
+        Builder.Append($@"
     private bool TryGetValue<TValue__>(out TValue__ value)
     {{
-        throw new System.NotImplementedException();
+        value = default!;
+
+        switch (Index)
+        {{");
+        
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                Builder.Append($@"
+            case {caseData.Index}: break;");
+            }
+            else
+            {
+                Builder.Append($@"
+            case {caseData.Index}:
+                if (typeof({caseData.TypeInfo.Name}) == typeof(TValue__))
+                {{
+                    var temp = As{caseData.Name}Unsafe;
+
+                    value = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, TValue__>(ref System.Runtime.CompilerServices.Unsafe.AsRef(in temp));
+
+                    return true;
+                }}
+                break;");
+            }
+        }
+
+        Builder.AppendLine($@"
+        }};
+
+        return false;
     }}");
     }
     public void EmitEquals()
