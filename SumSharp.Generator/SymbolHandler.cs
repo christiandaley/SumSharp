@@ -1327,6 +1327,16 @@ public partial record struct {caseData.Name};");
     }}");
         }
 
+        foreach (var caseData in EmptyCases)
+        {
+            Builder.AppendLine($@"
+        ///<summary>Returns true if the union is <see cref=""{XMLEscapedName}.{caseData.Name}"" />. Returns false otherwise. The <paramref name=""value"" /> parameter is always set to default</summary>
+        public bool TryGetValue(out {caseData.Name} value)
+        {{
+            throw new System.NotImplementedException();
+        }}");
+        }
+
         Builder.AppendLine($@"
 
     public interface IUnionMembers
@@ -1366,7 +1376,9 @@ public partial record struct {caseData.Name};");
         {
             Builder.AppendLine($@"
         ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
-        public static {Name} Create({caseData.Name} _) => {Name}.{caseData.Name};");
+        public static {Name} Create({caseData.Name} _) => {Name}.{caseData.Name};
+
+        public bool TryGetValue(out {caseData.Name} value);");
         }
 
         Builder.AppendLine($@"

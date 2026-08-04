@@ -215,4 +215,62 @@ public partial class Union
         Assert.Equal(typeof(string), ex.CaseType);
         Assert.Equal(["Case0", "Case1"], ex.CandidateCaseNames);
     }
+
+    [Fact]
+    public void EmptyTypesSwitch()
+    {
+        Assert.True(Optional<string>.Some("abc") switch
+        {
+            string s => true,
+            None => false,
+        });
+
+        Assert.True(Optional<string>.None switch
+        {
+            string s => false,
+            None => true,
+        });
+
+        Assert.True(EmptyCases1.Case0([0]) switch
+        {
+            int[] ints => ints.Single() == 0,
+            Case1 => false,
+            Case2 => false,
+        });
+
+        Assert.True(EmptyCases1.Case1 switch
+        {
+            int[] ints => false,
+            Case1 => true,
+            Case2 => false,
+        });
+
+        Assert.True(EmptyCases1.Case2 switch
+        {
+            int[] ints => false,
+            Case1 => false,
+            Case2 => true,
+        });
+
+        Assert.True(EmptyCases2.Case0 switch
+        {
+            Case0 => true,
+            Case1 => false,
+            int[] ints => false,
+        });
+
+        Assert.True(EmptyCases2.Case1 switch
+        {
+            Case0 => false,
+            Case1 => true,
+            int[] ints => false,
+        });
+
+        Assert.True(EmptyCases2.Case2([1]) switch
+        {
+            Case0 => false,
+            Case1 => false,
+            int[] ints => ints.Single() == 1,
+        });
+    }
 }
