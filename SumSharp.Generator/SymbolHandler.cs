@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using static SumSharp.Generator.SymbolHandler;
@@ -260,6 +261,9 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
+    public CaseData[] EmptyCases { get; }
+
+
     // Cases grouped by type
     public IGrouping<string, CaseData>[] CaseGroups { get; }
 
@@ -443,6 +447,8 @@ internal class SymbolHandler
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
+
+        EmptyCases = [..Cases.Where(caseData => caseData.TypeInfo is null)];
 
         var enableJsonSerializationData =
             symbol!
@@ -770,9 +776,7 @@ internal class SymbolHandler
         }
 
         Builder.AppendLine($@"
-#if NET11_0_OR_GREATER
-[System.Runtime.CompilerServices.Union]");
-
+#if NET11_0_OR_GREATER");
         foreach (var caseData in Cases)
         {
             if (caseData.TypeInfo is not null)
@@ -781,10 +785,11 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
-public partial record struct {caseData.Name}");
+public partial record struct {caseData.Name};");
         }
 
         Builder.Append($@"
+[System.Runtime.CompilerServices.Union]
 #endif
 {Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{interfaces}
 {{");
@@ -1214,7 +1219,7 @@ public partial record struct {caseData.Name}");
             if (caseData.TypeInfo is null)
             {
                 Builder.Append($@"
-                {caseData.Index} => throw new System.NotImplementedException(),");
+                {caseData.Index} => new {caseData.Name}(),");
             }
             else
             {
@@ -1339,7 +1344,7 @@ public partial record struct {caseData.Name}");
             if (caseGroup.Count() == 1)
             {
                 Builder.AppendLine($@"
-        ///<summary>Creates a <see cref=""{Name}"" /> That holds a value of type <see cref=""{typeInfo.Name}"" /> by invoking the <see cref=""{firstCase.Name}"" /> case constructor</summary>
+        ///<summary>Creates a <see cref=""{XMLEscapedName}"" /> that holds a value of type <see cref=""{typeInfo.Name}"" /> by invoking the <see cref=""{firstCase.Name}"" /> case constructor</summary>
         public static {Name} Create({typeInfo.Name} value) => {Name}.{firstCase.Name}(value);");
             }
             else
@@ -1347,14 +1352,21 @@ public partial record struct {caseData.Name}");
                 var candidateCases = caseGroup.Select(caseData => $"\"{caseData.Name}\"");
 
                 Builder.AppendLine($@"
-        ///<summary>Always throws a <see cref=""global::SumSharp.AmbiguousCaseException"" />. This method exists to satisfy the compiler's requirements that a static Create method exist for
-        /// each type the union can hold. There are multiple cases ({string.Join(", ", candidateCases)}) that can hold a value of type <see cref=""{typeInfo.Name}"" />.
-        /// Use the appropriate case constructor directly rather than relying on a compiler provided conversion.</summary>
+        ///<summary>Always throws a <see cref=""global::SumSharp.AmbiguousCaseException"" />. This method exists to satisfy the compiler's requirements for .NET 11 union types. There are multiple 
+        ///cases ({string.Join(", ", candidateCases)}) that can hold a value of type <see cref=""{typeInfo.Name}"" />. Use the appropriate case constructor directly rather than relying on a compiler
+        ///provided conversion.</summary>
         public static {Name} Create({typeInfo.Name} value) => throw new global::SumSharp.AmbiguousCaseException(typeof({Name}), typeof({typeInfo.Name}), [{string.Join(", ", candidateCases)}]);");
             }
 
             Builder.AppendLine($@"
         public bool TryGetValue(out {typeInfo.NullableStrippedName} value);");
+        }
+
+        foreach (var caseData in EmptyCases)
+        {
+            Builder.AppendLine($@"
+        ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
+        public static {Name} Create({caseData.Name} _) => {Name}.{caseData.Name};");
         }
 
         Builder.AppendLine($@"

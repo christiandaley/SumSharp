@@ -90,8 +90,10 @@ public partial class Union
         Assert.False(Optional<string>.Some(null!).HasValue);
 
         Assert.True(Optional<int>.None.HasValue);
-        Assert.True(EmptyCases.Case1.HasValue);
-        Assert.True(EmptyCases.Case2.HasValue);
+        Assert.True(EmptyCases1.Case1.HasValue);
+        Assert.True(EmptyCases1.Case2.HasValue);
+        Assert.True(EmptyCases2.Case0.HasValue);
+        Assert.True(EmptyCases2.Case1.HasValue);
     }
 
 
