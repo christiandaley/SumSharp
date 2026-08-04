@@ -769,9 +769,22 @@ internal class SymbolHandler
 #endif";
         }
 
-        Builder.Append($@"
+        Builder.AppendLine($@"
 #if NET11_0_OR_GREATER
-[System.Runtime.CompilerServices.Union]
+[System.Runtime.CompilerServices.Union]");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is not null)
+            {
+                continue;
+            }
+
+            Builder.AppendLine($@"
+public partial record struct {caseData.Name}");
+        }
+
+        Builder.Append($@"
 #endif
 {Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{interfaces}
 {{");

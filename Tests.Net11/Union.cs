@@ -35,12 +35,21 @@ public partial class Union
 
     }
 
-    /*[UnionCase("Case0", typeof(string))]
-    [UnionCase("Case1", typeof(string))]
-    partial class RepeatedCases
+    [UnionCase("Case0", typeof(int[]))]
+    [UnionCase("Case1")]
+    [UnionCase("Case2")]
+    partial class EmptyCases1
     {
 
-    }*/
+    }
+
+    [UnionCase("Case0")]
+    [UnionCase("Case1")]
+    [UnionCase("Case2", typeof(int[]))]
+    partial class EmptyCases2
+    {
+
+    }
 
     [Fact]
     public void Value()
@@ -49,6 +58,11 @@ public partial class Union
         Assert.Equal("abc", IntOrStringOrOther<bool>.String("abc").Value);
         Assert.Equal(true, IntOrStringOrOther<bool>.Other(true).Value);
         Assert.Equal(4, IntOrStringOrOther<int>.Other(4).Value);
+        Assert.Equal(new None(), Optional<float>.None.Value);
+        Assert.Equal(new Case1(), EmptyCases1.Case1.Value);
+        Assert.Equal(new Case2(), EmptyCases1.Case2.Value);
+        Assert.Equal(new Case0(), EmptyCases2.Case0.Value);
+        Assert.Equal(new Case1(), EmptyCases2.Case1.Value);
     }
 
     [Fact]
@@ -76,6 +90,8 @@ public partial class Union
         Assert.False(Optional<string>.Some(null!).HasValue);
 
         Assert.True(Optional<int>.None.HasValue);
+        Assert.True(EmptyCases.Case1.HasValue);
+        Assert.True(EmptyCases.Case2.HasValue);
     }
 
 
