@@ -884,7 +884,7 @@ internal class SymbolHandler
                 {{
                     var temp = As{caseData.Name}Unsafe;
 
-                    value = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, TValue__>(ref System.Runtime.CompilerServices.Unsafe.AsRef(in temp));
+                    value = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, TValue__>(ref temp);
 
                     return true;
                 }}
