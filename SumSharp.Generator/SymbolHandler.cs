@@ -1206,7 +1206,6 @@ public partial record struct {caseData.Name};");
     {
         Builder.Append($@"
 #if NET11_0_OR_GREATER
-    ///<summary>Returns the underlying value of the union as an <see cref=""object"" />{Nullable}. Value types will be boxed</summary>
     public object{Nullable} Value
     {{
         get
@@ -1233,7 +1232,6 @@ public partial record struct {caseData.Name};");
         }}
     }}
 
-    ///<summary>True if the underlying value is not a null. False otherwise. If the active case is empty the value is considered to be not null</summary>
     public bool HasValue
     {{
         get
@@ -1270,9 +1268,6 @@ public partial record struct {caseData.Name};");
             var typeInfo = caseGroup.First().TypeInfo!;
 
             Builder.AppendLine($@"
-    ///<summary>Attempts to get a value of type <see cref=""{typeInfo.NullableStrippedName}"" /> from the union. Returns true if the union holds a non-null value of the type.
-    ///Returns false otherwise.</summary>
-    ///<param name=""value"">An out parameter that will be set to the underlying value, if present.</param>
     public bool TryGetValue(out {typeInfo.NullableStrippedName} value)
     {{
         value = default!;
@@ -1329,20 +1324,23 @@ public partial record struct {caseData.Name};");
 
         foreach (var caseData in EmptyCases)
         {
-            Builder.AppendLine($@"
-        ///<summary>Returns true if the union is <see cref=""{XMLEscapedName}.{caseData.Name}"" />. Returns false otherwise. The <paramref name=""value"" /> parameter is always set to default</summary>
-        public bool TryGetValue(out {caseData.Name} value)
-        {{
-            throw new System.NotImplementedException();
-        }}");
+            Builder.Append($@"
+    public bool TryGetValue(out {caseData.Name} value)
+    {{
+        value = default;
+
+        return Index == {caseData.Index};
+    }}");
         }
 
         Builder.AppendLine($@"
 
     public interface IUnionMembers
     {{
+        ///<summary>Returns the underlying value of the union as an <see cref=""object"" />{Nullable}. Value types will be boxed</summary>
         public object{Nullable} Value {{ get; }}
 
+        ///<summary>True if the underlying value is not a null. False otherwise. If the active case is empty the value is considered to be not null</summary>
         public bool HasValue {{ get; }}");
         
         foreach (var caseGroup in CaseGroups)
@@ -1369,6 +1367,9 @@ public partial record struct {caseData.Name};");
             }
 
             Builder.AppendLine($@"
+        ///<summary>Attempts to get a value of type <see cref=""{typeInfo.NullableStrippedName}"" /> from the union. Returns true if the union holds a non-null value of the type.
+        ///Returns false otherwise.</summary>
+        ///<param name=""value"">An out parameter that will be set to the underlying value, if present.</param>
         public bool TryGetValue(out {typeInfo.NullableStrippedName} value);");
         }
 
@@ -1378,6 +1379,7 @@ public partial record struct {caseData.Name};");
         ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
         public static {Name} Create({caseData.Name} _) => {Name}.{caseData.Name};
 
+        ///<summary>Returns true if the union is <see cref=""{XMLEscapedName}.{caseData.Name}"" />. Returns false otherwise. The <paramref name=""value"" /> parameter is always set to default</summary>
         public bool TryGetValue(out {caseData.Name} value);");
         }
 
