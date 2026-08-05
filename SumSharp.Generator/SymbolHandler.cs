@@ -30,8 +30,6 @@ internal class SymbolHandler
 
         public abstract bool IsGeneric { get; }
 
-        public abstract string[] TypeArguments { get; }
-
         public abstract bool IsAlwaysValueType { get; }
 
         public abstract bool IsAlwaysRefType { get; }
@@ -56,8 +54,6 @@ internal class SymbolHandler
 
             public override bool IsGeneric => false;
 
-            public override string[] TypeArguments => [];
-
             public override bool IsAlwaysValueType => symbol.IsValueType;
 
             public override bool IsAlwaysRefType => symbol.IsReferenceType;
@@ -81,8 +77,6 @@ internal class SymbolHandler
 
             public override bool IsGeneric => false;
 
-            public override string[] TypeArguments => [];
-
             public override bool IsAlwaysValueType => false;
 
             public override bool IsAlwaysRefType => true;
@@ -101,8 +95,6 @@ internal class SymbolHandler
             public override bool UseUnmanagedStorage => useUnmanagedStorage;
 
             public override bool IsGeneric => true;
-
-            public override string[] TypeArguments => [Name];
 
             public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint || symbol.HasUnmanagedTypeConstraint;
 
@@ -178,8 +170,6 @@ internal class SymbolHandler
             public override bool UseUnmanagedStorage => useUnmanagedStorage;
 
             public override bool IsGeneric => true;
-
-            public override string[] TypeArguments => [];
 
             public override bool IsAlwaysValueType => ((genericTypeInfo & 1) == 0 && !isInterface) || IsUnmanaged || IsTupleType;
 
@@ -461,14 +451,18 @@ internal class SymbolHandler
 
         Net11StructNameMap = Cases.ToDictionary(caseData => caseData, caseData =>
         {
-            if (caseData.TypeInfo is null)
+            if (caseData.TypeInfo is null || !caseData.TypeInfo.IsGeneric)
             {
                 return caseData.Name;
             }
+            else
+            {
+                string[] parsedTypeArguments = [caseData.TypeInfo.Name];
 
-            var typeArguments = string.Join(", ", caseData.TypeInfo.TypeArguments.Intersect(TypeArguments));
+                var typeArguments = string.Join(", ", parsedTypeArguments.Intersect(TypeArguments));
 
-            return $"{caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}";
+                return $"{caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}";
+            }
         });
 
         var enableJsonSerializationData =
