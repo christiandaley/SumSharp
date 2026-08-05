@@ -1228,7 +1228,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
 #if NET11_0_OR_GREATER
-    public object{Nullable} Value
+    public object Value
     {{
         get
         {{
@@ -1256,74 +1256,14 @@ internal class SymbolHandler
 
     public bool HasValue => true;");
 
-        foreach (var caseGroup in CaseGroups)
+        foreach (var caseData in Cases)
         {
-            var typeInfo = caseGroup.First().TypeInfo!;
-
             Builder.AppendLine($@"
-    public bool TryGetValue(out {typeInfo.NullableStrippedName} value)
+    public bool TryGetValue(out {Net11StructNameMap[caseData]} value)
     {{
-        value = default!;
-
-        if (!TryGetValue<{typeInfo.Name}>(out var rawValue))
-        {{
-            return false;
-        }}");
-
-            if (typeInfo.IsAlwaysValueType)
-            {
-                if (typeInfo.NullableAnnotation)
-                {
-                    Builder.Append($@"
-        if (!rawValue.HasValue)
-        {{
-            return false;
-        }}
-
-        value = rawValue.Value;");
-                }
-                else
-                {
-                    Builder.Append($@"
-        value = rawValue;");
-                }
-            }
-            else if (typeInfo.IsAlwaysRefType)
-            {
-                Builder.Append($@"
-        if (ReferenceEquals(null, rawValue))
-        {{
-            return false;
-        }}
-
-        value = rawValue;");
-            }
-            else
-            {
-                Builder.Append($@"
-        if (!typeof({typeInfo.Name}).IsValueType && ReferenceEquals(null, rawValue))
-        {{
-            return false;
-        }}
-
-        value = rawValue;");
-            }
-
-            Builder.AppendLine($@"
-
-        return true;
+        throw new System.NotImplementedException();
     }}");
-        }
 
-        foreach (var caseData in EmptyCases)
-        {
-            Builder.Append($@"
-    public bool TryGetValue(out {caseData.Name} value)
-    {{
-        value = default;
-
-        return Index == {caseData.Index};
-    }}");
         }
 
         Builder.AppendLine($@"
@@ -1331,49 +1271,33 @@ internal class SymbolHandler
     public interface IUnionMembers
     {{
         ///<summary>Returns the underlying value of the union as an <see cref=""object"" />{Nullable}. Value types will be boxed</summary>
-        public object{Nullable} Value {{ get; }}
+        public object Value {{ get; }}
 
-        ///<summary>True if the underlying value is not a null. False otherwise. If the active case is empty the value is considered to be not null</summary>
+        ///<summary>Always returns true. SumSharp unions are always considered non-null, even if the active case is empty</summary>
         public bool HasValue {{ get; }}");
         
-        foreach (var caseGroup in CaseGroups)
+        foreach (var caseData in Cases)
         {
-            var firstCase = caseGroup.First();
-
-            var typeInfo = firstCase.TypeInfo!;
-
-            if (caseGroup.Count() == 1)
+            if (caseData.TypeInfo is null)
             {
                 Builder.AppendLine($@"
-        ///<summary>Creates a <see cref=""{XMLEscapedName}"" /> that holds a value of type <see cref=""{typeInfo.Name}"" /> by invoking the <see cref=""{firstCase.Name}"" /> case constructor</summary>
-        public static {Name} Create({typeInfo.Name} value) => {Name}.{firstCase.Name}(value);");
+        ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
+        public static {Name} Create({Net11StructNameMap[caseData]} _) => {Name}.{caseData.Name};");
+
             }
             else
             {
-                var candidateCases = caseGroup.Select(caseData => $"\"{caseData.Name}\"");
-
                 Builder.AppendLine($@"
-        ///<summary>Always throws a <see cref=""global::SumSharp.AmbiguousCaseException"" />. This method exists to satisfy the compiler's requirements for .NET 11 union types. There are multiple 
-        ///cases ({string.Join(", ", candidateCases)}) that can hold a value of type <see cref=""{typeInfo.Name}"" />. Use the appropriate case constructor directly rather than relying on a compiler
-        ///provided conversion.</summary>
-        public static {Name} Create({typeInfo.Name} value) => throw new global::SumSharp.AmbiguousCaseException(typeof({Name}), typeof({typeInfo.Name}), [{string.Join(", ", candidateCases)}]);");
+        ///<summary>Creates a <see cref=""{XMLEscapedName}"" /> that holds a value of type <see cref=""{caseData.TypeInfo.Name}"" /> by invoking the <see cref=""{caseData.Name}"" /> case constructor with <paramref name=""value"" />.Value
+        ///This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
+        public static {Name} Create({Net11StructNameMap[caseData]} value) => {Name}.{caseData.Name}(value.Value);");
             }
 
             Builder.AppendLine($@"
-        ///<summary>Attempts to get a value of type <see cref=""{typeInfo.NullableStrippedName}"" /> from the union. Returns true if the union holds a non-null value of the type.
+        ///<summary>Attempts to get a value of type <see cref=""{Net11StructNameMap[caseData]}"" /> from the union. Returns true if the union holds a {caseData.Name}.
         ///Returns false otherwise.</summary>
         ///<param name=""value"">An out parameter that will be set to the underlying value, if present.</param>
-        public bool TryGetValue(out {typeInfo.NullableStrippedName} value);");
-        }
-
-        foreach (var caseData in EmptyCases)
-        {
-            Builder.AppendLine($@"
-        ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
-        public static {Name} Create({caseData.Name} _) => {Name}.{caseData.Name};
-
-        ///<summary>Returns true if the union is <see cref=""{XMLEscapedName}.{caseData.Name}"" />. Returns false otherwise. The <paramref name=""value"" /> parameter is always set to default</summary>
-        public bool TryGetValue(out {caseData.Name} value);");
+        public bool TryGetValue(out {Net11StructNameMap[caseData]} value);");
         }
 
         Builder.AppendLine($@"

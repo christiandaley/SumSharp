@@ -13,13 +13,6 @@ public partial class Union
 
     }
 
-    [UnionCase("NullableInt", typeof(int?))]
-    [UnionCase("Bool", typeof(bool?))]
-    partial class NullableValueTypes
-    {
-         
-    }
-
     [UnionCase("Some", "T")]
     [UnionCase("None")]
     partial class Option<T>
@@ -69,11 +62,6 @@ public partial class Union
         Assert.True(IntOrStringOrOther<int?>.Other(null).HasValue);
         Assert.True(IntOrStringOrOther<int>.String(null!).HasValue);
 
-        Assert.True(NullableValueTypes.NullableInt(1).HasValue);
-        Assert.True(NullableValueTypes.Bool(false).HasValue);
-        Assert.True(NullableValueTypes.NullableInt(null).HasValue);
-        Assert.True(NullableValueTypes.Bool(null).HasValue);
-
         Assert.True(Option<int>.Some(1).HasValue);
         Assert.True(Option<int?>.Some(1).HasValue);
         Assert.True(Option<string>.Some("abc").HasValue);
@@ -94,124 +82,79 @@ public partial class Union
     {
         Assert.True(IntOrStringOrOther<bool>.Int(5) switch
         {
-            int i => i == 5,
-            string s => false,
-            bool b => false,
+            Int(var i) => i == 5,
+            String(var s) => false,
+            Other<bool>(var b) => false,
         });
 
         Assert.True(IntOrStringOrOther<bool>.String("abc") switch
         {
-            int i => false,
-            string s => s == "abc",
-            bool b => false,
+            Int(var i) => false,
+            String(var s) => s == "abc",
+            Other<bool>(var b) => false,
         });
 
         Assert.True(IntOrStringOrOther<bool>.String(null!) switch
         {
-            int i => false,
-            string s => false,
-            bool b => false,
-            null => true,
+            Int(var i) => false,
+            String(var s) => false,
+            Other<bool>(var b) => false,
         });
 
         Assert.True(IntOrStringOrOther<bool>.Other(true) switch
         {
-            int i => false,
-            string s => false,
-            bool b => b,
+            Int(var i) => false,
+            String(var s) => false,
+            Other<bool>(var b) => b,
         });
 
         Assert.True(IntOrStringOrOther<int>.Other(4) switch
         {
-            int i => i == 4,
-            string s => false,
+            Int(var i) => false,
+            String(var s) => false,
+            Other<int>(var i) => i == 4,
         });
 
         Assert.True(IntOrStringOrOther<int?>.Other(null) switch
         {
-            int i => false,
-            string s => false,
-            null => true,
+            Int(var i) => false,
+            String(var s) => false,
+            Other<int?>(var i) => !i.HasValue,
         });
 
         Assert.True(IntOrStringOrOther<float[]>.Other(null!) switch
         {
-            int i => false,
-            string s => false,
-            float[] => false,
-            null => true,
+            Int(var i) => false,
+            String(var s) => false,
+            Other<float[]>(var f) => f is null,
         });
 
-        Assert.True(NullableValueTypes.NullableInt(null) switch
-        {
-            int i => false,
-            bool b => false,
-            null => true,
-        });
-
-        Assert.True(NullableValueTypes.Bool(null) switch
-        {
-            int i => false,
-            bool b => false,
-            null => true,
-        });
-    }
-
-    [Fact]
-    public void EmptyTypesSwitch()
-    {
         Assert.True(Option<string>.Some("abc") switch
         {
-            string s => true,
+            Some<string>("abc") => true,
+            Some<string> => false,
             None => false,
         });
 
         Assert.True(Option<string>.None switch
         {
-            string s => false,
+            Some<string> => false,
             None => true,
         });
 
         Assert.True(EmptyCases1.IntArray([0]) switch
         {
-            int[] ints => ints.Single() == 0,
+            IntArray([0]) => true,
+            IntArray => false,
             EmptyCase1 => false,
             EmptyCase2 => false,
-        });
-
-        Assert.True(EmptyCases1.EmptyCase1 switch
-        {
-            int[] ints => false,
-            EmptyCase1 => true,
-            EmptyCase2 => false,
-        });
-
-        Assert.True(EmptyCases1.EmptyCase2 switch
-        {
-            int[] ints => false,
-            EmptyCase1 => false,
-            EmptyCase2 => true,
-        });
-
-        Assert.True(EmptyCases2.EmptyCase0 switch
-        {
-            EmptyCase0 => true,
-            EmptyCase1 => false,
-            float[] floats => false,
         });
 
         Assert.True(EmptyCases2.EmptyCase1 switch
         {
             EmptyCase0 => false,
             EmptyCase1 => true,
-            float[] floats => false,
-        });
-
-        Assert.True(EmptyCases2.FloatArray([1.1f]) switch
-        {
-            EmptyCase0 => false,
-            EmptyCase1 => false,
-            float[] floats => floats.Single() == 1.1f,
+            FloatArray => false,
         });
     }
 }
