@@ -785,7 +785,7 @@ internal class SymbolHandler
             }
 
             Builder.AppendLine($@"
-///<summary>Used to implement .NET 11 union requirements for {XMLEscapedName}. Use this type when pattern matching using C#'s built-in switch statement</summary>
+///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
 public partial record struct {caseData.Name};");
         }
 
