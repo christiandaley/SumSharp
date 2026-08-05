@@ -46,10 +46,10 @@ public partial class Union
     [Fact]
     public void Value()
     {
-        Assert.Equal(5, IntOrStringOrOther<bool>.Int(5).Value);
-        Assert.Equal("abc", IntOrStringOrOther<bool>.String("abc").Value);
-        Assert.Equal(true, IntOrStringOrOther<bool>.Other(true).Value);
-        Assert.Equal(4, IntOrStringOrOther<int>.Other(4).Value);
+        Assert.Equal(new Int(5), IntOrStringOrOther<bool>.Int(5).Value);
+        Assert.Equal(new String("abc"), IntOrStringOrOther<bool>.String("abc").Value);
+        Assert.Equal(new Other<bool>(true), IntOrStringOrOther<bool>.Other(true).Value);
+        Assert.Equal(new Other<int>(4), IntOrStringOrOther<int>.Other(4).Value);
         Assert.Equal(new None(), Option<float>.None.Value);
         Assert.Equal(new EmptyCase1(), EmptyCases1.EmptyCase1.Value);
         Assert.Equal(new EmptyCase2(), EmptyCases1.EmptyCase2.Value);

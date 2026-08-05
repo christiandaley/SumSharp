@@ -3,10 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using static SumSharp.Generator.SymbolHandler;
 
 namespace SumSharp.Generator;
 
@@ -273,6 +271,7 @@ internal class SymbolHandler
 
     public CaseData[] EmptyCases { get; }
 
+    public Dictionary<CaseData, string> Net11StructNameMap { get; }
 
     // Cases grouped by type
     public IGrouping<string, CaseData>[] CaseGroups { get; }
@@ -459,6 +458,18 @@ internal class SymbolHandler
             .ToArray();
 
         EmptyCases = [..Cases.Where(caseData => caseData.TypeInfo is null)];
+
+        Net11StructNameMap = Cases.ToDictionary(caseData => caseData, caseData =>
+        {
+            if (caseData.TypeInfo is null)
+            {
+                return caseData.Name;
+            }
+
+            var typeArguments = string.Join(", ", caseData.TypeInfo.TypeArguments.Intersect(TypeArguments));
+
+            return $"{caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}";
+        });
 
         var enableJsonSerializationData =
             symbol!
@@ -797,11 +808,9 @@ internal class SymbolHandler
             }
             else
             {
-                var typeArguments = string.Join(", ", caseData.TypeInfo.TypeArguments.Intersect(TypeArguments));
-
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
-    public readonly record struct {caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}({caseData.TypeInfo.Name} Value);");
+    public readonly record struct {Net11StructNameMap[caseData]}({caseData.TypeInfo.Name} Value);");
             }
         }
 
@@ -1242,7 +1251,7 @@ internal class SymbolHandler
             else
             {
                 Builder.Append($@"
-                {caseData.Index} => As{caseData.Name}Unsafe,");
+                {caseData.Index} => new {Net11StructNameMap[caseData]}(As{caseData.Name}Unsafe),");
             }
         }
 
@@ -1251,36 +1260,7 @@ internal class SymbolHandler
         }}
     }}
 
-    public bool HasValue
-    {{
-        get
-        {{
-            return Index switch
-            {{");
-
-        foreach(var caseData in Cases)
-        {
-            if (caseData.TypeInfo is null)
-            {
-                Builder.Append($@"
-                {caseData.Index} => true,");
-            }
-            else
-            {
-                var expression =
-                    caseData.TypeInfo.IsAlwaysValueType && !caseData.TypeInfo.NullableAnnotation ?
-                    "true" :
-                    $"As{caseData.Name}Unsafe is not null";
-
-                Builder.Append($@"
-                {caseData.Index} => {expression},");
-            }
-        }
-
-        Builder.AppendLine($@"
-            }};
-        }}
-    }}");
+    public bool HasValue => true;");
 
         foreach (var caseGroup in CaseGroups)
         {
