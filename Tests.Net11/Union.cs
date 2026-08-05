@@ -22,7 +22,7 @@ public partial class Union
 
     [UnionCase("Some", "T")]
     [UnionCase("None")]
-    partial class Optional<T>
+    partial class Option<T>
     {
 
     }
@@ -58,7 +58,7 @@ public partial class Union
         Assert.Equal("abc", IntOrStringOrOther<bool>.String("abc").Value);
         Assert.Equal(true, IntOrStringOrOther<bool>.Other(true).Value);
         Assert.Equal(4, IntOrStringOrOther<int>.Other(4).Value);
-        Assert.Equal(new None(), Optional<float>.None.Value);
+        Assert.Equal(new None(), Option<float>.None.Value);
         Assert.Equal(new Case1(), EmptyCases1.Case1.Value);
         Assert.Equal(new Case2(), EmptyCases1.Case2.Value);
         Assert.Equal(new Case0(), EmptyCases2.Case0.Value);
@@ -82,14 +82,14 @@ public partial class Union
         Assert.False(NullableValueTypes.Int(null).HasValue);
         Assert.False(NullableValueTypes.Bool(null).HasValue);
 
-        Assert.True(Optional<int>.Some(1).HasValue);
-        Assert.True(Optional<int?>.Some(1).HasValue);
-        Assert.True(Optional<string>.Some("abc").HasValue);
+        Assert.True(Option<int>.Some(1).HasValue);
+        Assert.True(Option<int?>.Some(1).HasValue);
+        Assert.True(Option<string>.Some("abc").HasValue);
 
-        Assert.False(Optional<int?>.Some(null).HasValue);
-        Assert.False(Optional<string>.Some(null!).HasValue);
+        Assert.False(Option<int?>.Some(null).HasValue);
+        Assert.False(Option<string>.Some(null!).HasValue);
 
-        Assert.True(Optional<int>.None.HasValue);
+        Assert.True(Option<int>.None.HasValue);
         Assert.True(EmptyCases1.Case1.HasValue);
         Assert.True(EmptyCases1.Case2.HasValue);
         Assert.True(EmptyCases2.Case0.HasValue);
@@ -219,13 +219,13 @@ public partial class Union
     [Fact]
     public void EmptyTypesSwitch()
     {
-        Assert.True(Optional<string>.Some("abc") switch
+        Assert.True(Option<string>.Some("abc") switch
         {
             string s => true,
             None => false,
         });
 
-        Assert.True(Optional<string>.None switch
+        Assert.True(Option<string>.None switch
         {
             string s => false,
             None => true,
