@@ -1249,7 +1249,7 @@ internal class SymbolHandler
             }
         }
 
-        Builder.Append($@"
+        Builder.AppendLine($@"
             }};
         }}
     }}
@@ -1261,7 +1261,16 @@ internal class SymbolHandler
             Builder.AppendLine($@"
     public bool TryGetValue(out {Net11StructNameMap[caseData]} value)
     {{
-        throw new System.NotImplementedException();
+        value = default;
+
+        if (Index != {caseData.Index})
+        {{
+            return false;
+        }}
+        
+        {(caseData.TypeInfo is null ? "" : $"value = new(As{caseData.Name}Unsafe);")}
+
+        return true;
     }}");
 
         }

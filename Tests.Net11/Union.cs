@@ -97,7 +97,7 @@ public partial class Union
         Assert.True(IntOrStringOrOther<bool>.String(null!) switch
         {
             Int(var i) => false,
-            String(var s) => false,
+            String(var s) => s is null,
             Other<bool>(var b) => false,
         });
 
