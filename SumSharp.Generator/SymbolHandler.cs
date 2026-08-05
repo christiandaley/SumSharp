@@ -924,6 +924,7 @@ public partial record struct {caseData.Name};");
     public bool Equals({Name}{NullableIfRef} other)
     {{
         {(IsStruct ? "" : "if (other is null) return false;")}
+        {(IsStruct ? "" : "if (ReferenceEquals(this, other)) return true;")}
         if (Index != other.Index) return false;
 
         return Index switch
@@ -1025,8 +1026,9 @@ public partial record struct {caseData.Name};");
         return typeof({type.Name}).IsValueType ? value{NullForgiving}.Equals(right) : (ReferenceEquals(null, value) ? ReferenceEquals(null, right) : value.Equals(right));");
             }
 
-            Builder.Append($@"
+            Builder.AppendLine($@"
     }}
+
     ///<summary>Compares a <see cref=""{type.Name}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({type.Name} left, {Name} right) => right == left;
 
