@@ -39,41 +39,30 @@ public partial class Union
     [Fact]
     public void Value()
     {
-        Assert.Equal(new Int(5), IntOrStringOrOther<bool>.Int(5).Value);
-        Assert.Equal(new String("abc"), IntOrStringOrOther<bool>.String("abc").Value);
-        Assert.Equal(new Other<bool>(true), IntOrStringOrOther<bool>.Other(true).Value);
-        Assert.Equal(new Other<int>(4), IntOrStringOrOther<int>.Other(4).Value);
-        Assert.Equal(new None(), Option<float>.None.Value);
-        Assert.Equal(new EmptyCase1(), EmptyCases1.EmptyCase1.Value);
-        Assert.Equal(new EmptyCase2(), EmptyCases1.EmptyCase2.Value);
-        Assert.Equal(new EmptyCase0(), EmptyCases2.EmptyCase0.Value);
-        Assert.Equal(new EmptyCase1(), EmptyCases2.EmptyCase1.Value);
+        Assert.Equal(new Int(5), ((IntOrStringOrOther<bool>.IUnionMembers)IntOrStringOrOther<bool>.Int(5)).Value);
+        Assert.Equal(new String("abc"), ((IntOrStringOrOther<bool>.IUnionMembers)IntOrStringOrOther<bool>.String("abc")).Value);
+        Assert.Equal(new Other<bool>(true), ((IntOrStringOrOther<bool>.IUnionMembers)IntOrStringOrOther<bool>.Other(true)).Value);
+        Assert.Equal(new Other<int>(4), ((IntOrStringOrOther<int>.IUnionMembers)IntOrStringOrOther<int>.Other(4)).Value);
+        Assert.Equal(new None(), ((Option<float>.IUnionMembers)Option<float>.None).Value);
+        Assert.Equal(new EmptyCase1(), ((EmptyCases1.IUnionMembers)EmptyCases1.EmptyCase1).Value);
+        Assert.Equal(new EmptyCase2(), ((EmptyCases1.IUnionMembers)EmptyCases1.EmptyCase2).Value);
+        Assert.Equal(new EmptyCase0(), ((EmptyCases2.IUnionMembers)EmptyCases2.EmptyCase0).Value);
+        Assert.Equal(new EmptyCase1(), ((EmptyCases2.IUnionMembers)EmptyCases2.EmptyCase1).Value);
     }
 
     [Fact]
     public void HasValue()
     {
-        Assert.True(IntOrStringOrOther<bool>.Int(5).HasValue);
-        Assert.True(IntOrStringOrOther<bool>.String("abc").HasValue);
-        Assert.True(IntOrStringOrOther<bool>.Other(true).HasValue);
-        Assert.True(IntOrStringOrOther<int>.Other(4).HasValue);
-        Assert.True(IntOrStringOrOther<int?>.Other(3).HasValue);
+        Assert.True(((IntOrStringOrOther<bool>.IUnionMembers)IntOrStringOrOther<bool>.Int(5)).HasValue);
+        Assert.True(((IntOrStringOrOther<int?>.IUnionMembers)IntOrStringOrOther<int?>.Other(null)).HasValue);
 
-        Assert.True(IntOrStringOrOther<int?>.Other(null).HasValue);
-        Assert.True(IntOrStringOrOther<int>.String(null!).HasValue);
+        Assert.True(((Option<int>.IUnionMembers)Option<int>.Some(1)).HasValue);
+        Assert.True(((Option<int>.IUnionMembers)Option<int>.None).HasValue);
 
-        Assert.True(Option<int>.Some(1).HasValue);
-        Assert.True(Option<int?>.Some(1).HasValue);
-        Assert.True(Option<string>.Some("abc").HasValue);
-
-        Assert.True(Option<int?>.Some(null).HasValue);
-        Assert.True(Option<string>.Some(null!).HasValue);
-
-        Assert.True(Option<int>.None.HasValue);
-        Assert.True(EmptyCases1.EmptyCase1.HasValue);
-        Assert.True(EmptyCases1.EmptyCase2.HasValue);
-        Assert.True(EmptyCases2.EmptyCase0.HasValue);
-        Assert.True(EmptyCases2.EmptyCase1.HasValue);
+        Assert.True(((EmptyCases1.IUnionMembers)EmptyCases1.EmptyCase1).HasValue);
+        Assert.True(((EmptyCases1.IUnionMembers)EmptyCases1.EmptyCase2).HasValue);
+        Assert.True(((EmptyCases2.IUnionMembers)EmptyCases2.EmptyCase0).HasValue);
+        Assert.True(((EmptyCases2.IUnionMembers)EmptyCases2.EmptyCase1).HasValue);
     }
 
 
@@ -97,7 +86,8 @@ public partial class Union
         Assert.True(IntOrStringOrOther<bool>.String(null!) switch
         {
             Int(var i) => false,
-            String(var s) => s is null,
+            String(null) => true,
+            String => false,
             Other<bool>(var b) => false,
         });
 

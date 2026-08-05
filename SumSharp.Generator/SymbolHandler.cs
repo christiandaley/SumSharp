@@ -1228,7 +1228,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
 #if NET11_0_OR_GREATER
-    public object Value
+    object IUnionMembers.Value
     {{
         get
         {{
@@ -1254,12 +1254,12 @@ internal class SymbolHandler
         }}
     }}
 
-    public bool HasValue => true;");
+    bool IUnionMembers.HasValue => true;");
 
         foreach (var caseData in Cases)
         {
             Builder.AppendLine($@"
-    public bool TryGetValue(out {Net11StructNameMap[caseData]} value)
+    bool IUnionMembers.TryGetValue(out {Net11StructNameMap[caseData]} value)
     {{
         value = default;
 
