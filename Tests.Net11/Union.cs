@@ -13,7 +13,7 @@ public partial class Union
 
     }
 
-    [UnionCase("Int", typeof(int?))]
+    [UnionCase("NullableInt", typeof(int?))]
     [UnionCase("Bool", typeof(bool?))]
     partial class NullableValueTypes
     {
@@ -27,25 +27,17 @@ public partial class Union
 
     }
 
-    [UnionCase("Case0", typeof(string))]
-    [UnionCase("Case1", typeof(string))]
-    [UnionCase("Case2", typeof(int))]
-    partial class RepeatedTypes
-    {
-
-    }
-
-    [UnionCase("Case0", typeof(int[]))]
-    [UnionCase("Case1")]
-    [UnionCase("Case2")]
+    [UnionCase("IntArray", typeof(int[]))]
+    [UnionCase("EmptyCase1")]
+    [UnionCase("EmptyCase2")]
     partial class EmptyCases1
     {
 
     }
 
-    [UnionCase("Case0")]
-    [UnionCase("Case1")]
-    [UnionCase("Case2", typeof(int[]))]
+    [UnionCase("EmptyCase0")]
+    [UnionCase("EmptyCase1")]
+    [UnionCase("FloatArray", typeof(float[]))]
     partial class EmptyCases2
     {
 
@@ -59,10 +51,10 @@ public partial class Union
         Assert.Equal(true, IntOrStringOrOther<bool>.Other(true).Value);
         Assert.Equal(4, IntOrStringOrOther<int>.Other(4).Value);
         Assert.Equal(new None(), Option<float>.None.Value);
-        Assert.Equal(new Case1(), EmptyCases1.Case1.Value);
-        Assert.Equal(new Case2(), EmptyCases1.Case2.Value);
-        Assert.Equal(new Case0(), EmptyCases2.Case0.Value);
-        Assert.Equal(new Case1(), EmptyCases2.Case1.Value);
+        Assert.Equal(new EmptyCase1(), EmptyCases1.EmptyCase1.Value);
+        Assert.Equal(new EmptyCase2(), EmptyCases1.EmptyCase2.Value);
+        Assert.Equal(new EmptyCase0(), EmptyCases2.EmptyCase0.Value);
+        Assert.Equal(new EmptyCase1(), EmptyCases2.EmptyCase1.Value);
     }
 
     [Fact]
@@ -74,26 +66,26 @@ public partial class Union
         Assert.True(IntOrStringOrOther<int>.Other(4).HasValue);
         Assert.True(IntOrStringOrOther<int?>.Other(3).HasValue);
 
-        Assert.False(IntOrStringOrOther<int?>.Other(null).HasValue);
-        Assert.False(IntOrStringOrOther<int>.String(null!).HasValue);
+        Assert.True(IntOrStringOrOther<int?>.Other(null).HasValue);
+        Assert.True(IntOrStringOrOther<int>.String(null!).HasValue);
 
-        Assert.True(NullableValueTypes.Int(1).HasValue);
+        Assert.True(NullableValueTypes.NullableInt(1).HasValue);
         Assert.True(NullableValueTypes.Bool(false).HasValue);
-        Assert.False(NullableValueTypes.Int(null).HasValue);
-        Assert.False(NullableValueTypes.Bool(null).HasValue);
+        Assert.True(NullableValueTypes.NullableInt(null).HasValue);
+        Assert.True(NullableValueTypes.Bool(null).HasValue);
 
         Assert.True(Option<int>.Some(1).HasValue);
         Assert.True(Option<int?>.Some(1).HasValue);
         Assert.True(Option<string>.Some("abc").HasValue);
 
-        Assert.False(Option<int?>.Some(null).HasValue);
-        Assert.False(Option<string>.Some(null!).HasValue);
+        Assert.True(Option<int?>.Some(null).HasValue);
+        Assert.True(Option<string>.Some(null!).HasValue);
 
         Assert.True(Option<int>.None.HasValue);
-        Assert.True(EmptyCases1.Case1.HasValue);
-        Assert.True(EmptyCases1.Case2.HasValue);
-        Assert.True(EmptyCases2.Case0.HasValue);
-        Assert.True(EmptyCases2.Case1.HasValue);
+        Assert.True(EmptyCases1.EmptyCase1.HasValue);
+        Assert.True(EmptyCases1.EmptyCase2.HasValue);
+        Assert.True(EmptyCases2.EmptyCase0.HasValue);
+        Assert.True(EmptyCases2.EmptyCase1.HasValue);
     }
 
 
@@ -150,7 +142,7 @@ public partial class Union
             null => true,
         });
 
-        Assert.True(NullableValueTypes.Int(null) switch
+        Assert.True(NullableValueTypes.NullableInt(null) switch
         {
             int i => false,
             bool b => false,
@@ -163,57 +155,6 @@ public partial class Union
             bool b => false,
             null => true,
         });
-    }
-
-    [Fact]
-    public void RepeatedTypesSwitch()
-    {
-        Assert.True(RepeatedTypes.Case0("abc") switch
-        {
-            string s => s == "abc",
-            int i => false,
-            null => false,
-        });
-
-        Assert.True(RepeatedTypes.Case0(null!) switch
-        {
-            string s => false,
-            int i => false,
-            null => true,
-        });
-
-        Assert.True(RepeatedTypes.Case1("abc") switch
-        {
-            string s => s == "abc",
-            int i => false,
-            null => false,
-        });
-
-        Assert.True(RepeatedTypes.Case1(null!) switch
-        {
-            string s => false,
-            int i => false,
-            null => true,
-        });
-
-        Assert.True(RepeatedTypes.Case2(4) switch
-        {
-            string s => false,
-            int i => i == 4,
-        });
-    }
-
-    [Fact]
-    public void RepeatedTypesAmbiguousCaseException()
-    {
-        var ex = Assert.Throws<AmbiguousCaseException>(() =>
-        {
-            RepeatedTypes x = "abc";
-        });
-
-        Assert.Equal(typeof(RepeatedTypes), ex.UnionType);
-        Assert.Equal(typeof(string), ex.CaseType);
-        Assert.Equal(["Case0", "Case1"], ex.CandidateCaseNames);
     }
 
     [Fact]
@@ -231,46 +172,46 @@ public partial class Union
             None => true,
         });
 
-        Assert.True(EmptyCases1.Case0([0]) switch
+        Assert.True(EmptyCases1.IntArray([0]) switch
         {
             int[] ints => ints.Single() == 0,
-            Case1 => false,
-            Case2 => false,
+            EmptyCase1 => false,
+            EmptyCase2 => false,
         });
 
-        Assert.True(EmptyCases1.Case1 switch
+        Assert.True(EmptyCases1.EmptyCase1 switch
         {
             int[] ints => false,
-            Case1 => true,
-            Case2 => false,
+            EmptyCase1 => true,
+            EmptyCase2 => false,
         });
 
-        Assert.True(EmptyCases1.Case2 switch
+        Assert.True(EmptyCases1.EmptyCase2 switch
         {
             int[] ints => false,
-            Case1 => false,
-            Case2 => true,
+            EmptyCase1 => false,
+            EmptyCase2 => true,
         });
 
-        Assert.True(EmptyCases2.Case0 switch
+        Assert.True(EmptyCases2.EmptyCase0 switch
         {
-            Case0 => true,
-            Case1 => false,
-            int[] ints => false,
+            EmptyCase0 => true,
+            EmptyCase1 => false,
+            float[] floats => false,
         });
 
-        Assert.True(EmptyCases2.Case1 switch
+        Assert.True(EmptyCases2.EmptyCase1 switch
         {
-            Case0 => false,
-            Case1 => true,
-            int[] ints => false,
+            EmptyCase0 => false,
+            EmptyCase1 => true,
+            float[] floats => false,
         });
 
-        Assert.True(EmptyCases2.Case2([1]) switch
+        Assert.True(EmptyCases2.FloatArray([1.1f]) switch
         {
-            Case0 => false,
-            Case1 => false,
-            int[] ints => ints.Single() == 1,
+            EmptyCase0 => false,
+            EmptyCase1 => false,
+            float[] floats => floats.Single() == 1.1f,
         });
     }
 }

@@ -32,6 +32,8 @@ internal class SymbolHandler
 
         public abstract bool IsGeneric { get; }
 
+        public abstract string[] TypeArguments { get; }
+
         public abstract bool IsAlwaysValueType { get; }
 
         public abstract bool IsAlwaysRefType { get; }
@@ -56,6 +58,8 @@ internal class SymbolHandler
 
             public override bool IsGeneric => false;
 
+            public override string[] TypeArguments => [];
+
             public override bool IsAlwaysValueType => symbol.IsValueType;
 
             public override bool IsAlwaysRefType => symbol.IsReferenceType;
@@ -79,6 +83,8 @@ internal class SymbolHandler
 
             public override bool IsGeneric => false;
 
+            public override string[] TypeArguments => [];
+
             public override bool IsAlwaysValueType => false;
 
             public override bool IsAlwaysRefType => true;
@@ -97,6 +103,8 @@ internal class SymbolHandler
             public override bool UseUnmanagedStorage => useUnmanagedStorage;
 
             public override bool IsGeneric => true;
+
+            public override string[] TypeArguments => [Name];
 
             public override bool IsAlwaysValueType => symbol.HasValueTypeConstraint || symbol.HasUnmanagedTypeConstraint;
 
@@ -172,6 +180,8 @@ internal class SymbolHandler
             public override bool UseUnmanagedStorage => useUnmanagedStorage;
 
             public override bool IsGeneric => true;
+
+            public override string[] TypeArguments => [];
 
             public override bool IsAlwaysValueType => ((genericTypeInfo & 1) == 0 && !isInterface) || IsUnmanaged || IsTupleType;
 
@@ -779,14 +789,20 @@ internal class SymbolHandler
 #if NET11_0_OR_GREATER");
         foreach (var caseData in Cases)
         {
-            if (caseData.TypeInfo is not null)
+            if (caseData.TypeInfo is null)
             {
-                continue;
+                Builder.AppendLine($@"
+    ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
+    public readonly partial record struct {caseData.Name};");
             }
+            else
+            {
+                var typeArguments = string.Join(", ", caseData.TypeInfo.TypeArguments.Intersect(TypeArguments));
 
-            Builder.AppendLine($@"
-///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
-public partial record struct {caseData.Name};");
+                Builder.AppendLine($@"
+    ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
+    public readonly record struct {caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}({caseData.TypeInfo.Name} Value);");
+            }
         }
 
         Builder.Append($@"
