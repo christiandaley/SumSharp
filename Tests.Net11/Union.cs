@@ -38,14 +38,17 @@ public partial class Union
 
     public partial class  OuterGeneric<T>
     {
-        public partial class InnerGeneric<U, V>
+        public partial class InnerGeneric<U, V> 
+            where U : class
+            where V : unmanaged
         {
             [UnionCase("Case0", "T")]
             [UnionCase("Case1", "U[]")]
             [UnionCase("Case2", "Dictionary<X, (V[], W)>")]
             [UnionCase("Case3", "(W[] WArray, bool Boolean)")]
             [UnionCase("Case4", "X")]
-            public partial struct ComplexGeneric<W, X>
+            public partial struct ComplexGeneric<W, X> 
+                where X : struct
             {
 
             }
