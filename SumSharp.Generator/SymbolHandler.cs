@@ -630,8 +630,6 @@ internal class SymbolHandler
             EmitUnmanagedStorageSize();
         }
 
-        EmitTryGetValueGeneric();
-
         if (!DisableValueEquality)
         {
             EmitEquals();
@@ -897,45 +895,6 @@ internal class SymbolHandler
     public static int UnmanagedStorageSize => _unmanagedStorageSize;");
     }
 
-    public void EmitTryGetValueGeneric()
-    {
-        Builder.Append($@"
-    private bool TryGetValue<TValue__>(out TValue__ value)
-    {{
-        value = default!;
-
-        switch (Index)
-        {{");
-        
-        foreach (var caseData in Cases)
-        {
-            if (caseData.TypeInfo is null)
-            {
-                Builder.Append($@"
-            case {caseData.Index}: break;");
-            }
-            else
-            {
-                Builder.Append($@"
-            case {caseData.Index}:
-                if (typeof({caseData.TypeInfo.Name}) == typeof(TValue__))
-                {{
-                    var temp = As{caseData.Name}Unsafe;
-
-                    value = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, TValue__>(ref temp);
-
-                    return true;
-                }}
-                break;");
-            }
-        }
-
-        Builder.AppendLine($@"
-        }};
-
-        return false;
-    }}");
-    }
     public void EmitEquals()
     { 
         Builder.Append($@"
@@ -1020,32 +979,87 @@ internal class SymbolHandler
         {
             var type = caseGroup.First().TypeInfo!;
 
-            Builder.AppendLine($@"
+            Builder.Append($@"
     ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type.Name}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({Name} left, {type.Name} right)
     {{
-        if (!left.TryGetValue<{type.Name}>(out var value))
-        {{
-            return false;
-        }}");
+        switch (left.Index)
+        {{");
+            foreach (var caseData in Cases)
+            {
+                if (caseData.TypeInfo is null)
+                {
+                    continue;
+                }
+                
+                if (caseData.TypeInfo.IsGeneric || type.IsGeneric)
+                {
+                    if (caseData.TypeInfo.Name == type.Name)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}: return typeof({caseData.TypeInfo.Name}).IsValueType ? left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right) : (ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right));");
+                    }
+                    else if (caseData.TypeInfo.IsAlwaysValueType || type.IsAlwaysValueType)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}:
+            if (typeof({caseData.TypeInfo.Name}) == typeof({type.Name}))
+            {{
+                var leftValue = left.As{caseData.Name}Unsafe;
 
-            if (type.IsAlwaysValueType)
-            {
-                Builder.Append($@"
-        return value.Equals(right);");
-            }
-            else if (type.IsAlwaysRefType)
-            {
-                Builder.Append($@"
-        return ReferenceEquals(null, value) ? ReferenceEquals(null, right) : value.Equals(right);");
-            }
-            else
-            {
-                Builder.Append($@"
-        return typeof({type.Name}).IsValueType ? value{NullForgiving}.Equals(right) : (ReferenceEquals(null, value) ? ReferenceEquals(null, right) : value.Equals(right));");
+                return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, {type.Name}>(ref leftValue){NullForgiving}.Equals(right);
+            }}
+            break;");
+                    }
+                    else if (caseData.TypeInfo.IsAlwaysRefType || type.IsAlwaysRefType)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}:
+            if (typeof({caseData.TypeInfo.Name}) == typeof({type.Name}))
+            {{
+                var leftValue = left.As{caseData.Name}Unsafe;
+
+                var castedLeftValue = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, {type.Name}>(ref leftValue);
+
+                return ReferenceEquals(null, castedLeftValue) ? ReferenceEquals(null, right) : castedLeftValue.Equals(right);
+            }}
+            break;");
+                    }
+                    else
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}:
+            if (typeof({caseData.TypeInfo.Name}) == typeof({type.Name}))
+            {{
+                var leftValue = left.As{caseData.Name}Unsafe;
+
+                var castedLeftValue = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, {type.Name}>(ref leftValue);
+
+                return typeof({caseData.TypeInfo.Name}).IsValueType ? castedLeftValue{NullForgiving}.Equals(right) : (ReferenceEquals(null, castedLeftValue) ? ReferenceEquals(null, right) : castedLeftValue.Equals(right));
+            }}
+            break;");
+                    }
+                }
+                else if (caseData.TypeInfo.Name == type.Name)
+                {
+                    if (caseData.TypeInfo.IsAlwaysValueType)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}: return left.As{caseData.Name}Unsafe.Equals(right);");
+                    }
+                    else
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}: return ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right);");
+                    }
+                }
             }
 
             Builder.AppendLine($@"
+        default: break;
+        }}
+
+        return false;
     }}
 
     ///<summary>Compares a <see cref=""{type.Name}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
