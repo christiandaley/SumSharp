@@ -36,7 +36,7 @@ public partial class Union
 
     }
 
-    public partial class  OuterGeneric<T>
+    public partial class OuterGeneric<T>
     {
         public partial class InnerGeneric<U, V> 
             where U : class
@@ -184,13 +184,13 @@ public partial class Union
 
         Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case2(new() { [4.0] = ([1, 2], [3, 4]) }) switch
         {
-            OuterGeneric<string>.InnerGeneric<float[], byte>.Case2(var dict) => dict[4.0] is ([1, 2], [3, 4]),
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case2<List<int>, double>(var dict) => dict[4.0] is ([1, 2], [3, 4]),
             _ => false
         });
 
         Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case3(([[1], [2, 3]], false)) switch
         {
-            OuterGeneric<string>.InnerGeneric<float[], byte>.Case3<int[]>(([[1], [2, 3]], false)) => true,
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case3<List<int>>(([[1], [2, 3]], false)) => true,
             _ => false
         });
 

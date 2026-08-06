@@ -457,7 +457,7 @@ internal class SymbolHandler
             }
             else
             {
-                var parsedTypeArguments = TypeNameParser.ParseTypeArguments(caseData.TypeInfo.Name);
+                var parsedTypeArguments = TypeNameParser.ExtractLeafTypes(caseData.TypeInfo.Name);
 
                 var typeArguments = string.Join(", ", TypeArguments.Intersect(parsedTypeArguments));
 
