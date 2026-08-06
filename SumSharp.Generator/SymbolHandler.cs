@@ -809,7 +809,7 @@ internal class SymbolHandler
         Builder.Append($@"
 [System.Runtime.CompilerServices.Union]
 #endif
-{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{interfaces}
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name} {interfaces}
 {{");
 
         foreach (var field in fieldNameTypeMap)

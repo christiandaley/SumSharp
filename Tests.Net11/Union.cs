@@ -36,6 +36,22 @@ public partial class Union
 
     }
 
+    public partial class  OuterGeneric<T>
+    {
+        public partial class InnerGeneric<U, V>
+        {
+            [UnionCase("Case0", "T")]
+            [UnionCase("Case1", "U[]")]
+            [UnionCase("Case2", "Dictionary<V, X>")]
+            [UnionCase("Case3", "W[]")]
+            [UnionCase("Case4", "X")]
+            public partial struct ComplexGeneric<W, X>
+            {
+
+            }
+        }
+    }
+
     [Fact]
     public void Value()
     {
@@ -145,6 +161,40 @@ public partial class Union
             EmptyCase0 => false,
             EmptyCase1 => true,
             FloatArray => false,
+        });
+    }
+
+    [Fact]
+    public void ComplexGeneric()
+    {
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case0("abc") switch
+        {
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case0("abc") => true,
+            _ => false
+        });
+
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case1([[1.0f], [2.0f, 3.0f]]) switch
+        {
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case1([[1.0f], [2.0f, 3.0f]]) => true,
+            _ => false
+        });
+
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case2(new() { [4] = [1, 2] }) switch
+        {
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case2(var dict) => dict[4] is [1, 2],
+            _ => false
+        });
+
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case3([5.5, 5.6]) switch
+        {
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case3<double>([5.5, 5.6]) => true,
+            _ => false
+        });
+
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case4([1, 2, 3]) switch
+        {
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case4<List<int>>([1, 2, 3]) => true,
+            _ => false
         });
     }
 }
