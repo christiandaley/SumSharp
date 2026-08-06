@@ -20,10 +20,6 @@ internal class SymbolHandler
     {
         public abstract string Name { get; }
 
-        public bool NullableAnnotation => Name.EndsWith("?");
-
-        public string NullableStrippedName => Name.TrimEnd('?');
-
         public abstract bool IsUnmanaged { get; }
 
         public abstract bool UseUnmanagedStorage { get; }
@@ -259,8 +255,6 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
-    public CaseData[] EmptyCases { get; }
-
     public Dictionary<CaseData, string> Net11StructNameMap { get; }
 
     // Cases grouped by type
@@ -446,8 +440,6 @@ internal class SymbolHandler
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
-
-        EmptyCases = [..Cases.Where(caseData => caseData.TypeInfo is null)];
 
         Net11StructNameMap = Cases.ToDictionary(caseData => caseData, caseData =>
         {
