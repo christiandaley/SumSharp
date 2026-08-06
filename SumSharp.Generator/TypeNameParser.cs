@@ -5,9 +5,9 @@ using System.Linq;
 namespace SumSharp.Generator;
 public static class TypeNameParser
 {
-    public static List<string> ExtractLeafTypes(string text)
+    public static List<string> ExtractLeafTypes(string typeName)
     {
-        var parser = new Parser(text);
+        var parser = new Parser(typeName);
         var result = new List<string>();
 
         parser.ParseType(result);
@@ -15,15 +15,9 @@ public static class TypeNameParser
         return result;
     }
 
-    private sealed class Parser
+    private sealed class Parser(string typeName)
     {
-        private readonly string _text;
-        private int _pos;
-
-        public Parser(string text)
-        {
-            _text = text;
-        }
+        private int _pos = 0;
 
         public void ParseType(List<string> output)
         {
@@ -121,9 +115,9 @@ public static class TypeNameParser
 
             int start = _pos;
 
-            while (_pos < _text.Length)
+            while (_pos < typeName.Length)
             {
-                char c = _text[_pos];
+                char c = typeName[_pos];
 
                 if (char.IsLetterOrDigit(c) || c == '_' || c == '.')
                 {
@@ -135,18 +129,18 @@ public static class TypeNameParser
                 }
             }
 
-            return _text.Substring(start, _pos - start);
+            return typeName.Substring(start, _pos - start);
         }
 
         private void SkipWhitespace()
         {
-            while (_pos < _text.Length && char.IsWhiteSpace(_text[_pos]))
+            while (_pos < typeName.Length && char.IsWhiteSpace(typeName[_pos]))
                 _pos++;
         }
 
         private char Peek()
         {
-            return _pos < _text.Length ? _text[_pos] : '\0';
+            return _pos < typeName.Length ? typeName[_pos] : '\0';
         }
 
         private void Consume(char c)
