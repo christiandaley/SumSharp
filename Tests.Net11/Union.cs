@@ -42,8 +42,8 @@ public partial class Union
         {
             [UnionCase("Case0", "T")]
             [UnionCase("Case1", "U[]")]
-            [UnionCase("Case2", "Dictionary<V, X>")]
-            [UnionCase("Case3", "W[]")]
+            [UnionCase("Case2", "Dictionary<X, (V[], W)>")]
+            [UnionCase("Case3", "(W[] WArray, bool Boolean)")]
             [UnionCase("Case4", "X")]
             public partial struct ComplexGeneric<W, X>
             {
@@ -167,33 +167,33 @@ public partial class Union
     [Fact]
     public void ComplexGeneric()
     {
-        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case0("abc") switch
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case0("abc") switch
         {
             OuterGeneric<string>.InnerGeneric<float[], byte>.Case0("abc") => true,
             _ => false
         });
 
-        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case1([[1.0f], [2.0f, 3.0f]]) switch
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case1([[1.0f], [2.0f, 3.0f]]) switch
         {
             OuterGeneric<string>.InnerGeneric<float[], byte>.Case1([[1.0f], [2.0f, 3.0f]]) => true,
             _ => false
         });
 
-        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case2(new() { [4] = [1, 2] }) switch
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case2(new() { [4.0] = ([1, 2], [3, 4]) }) switch
         {
-            OuterGeneric<string>.InnerGeneric<float[], byte>.Case2(var dict) => dict[4] is [1, 2],
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case2(var dict) => dict[4.0] is ([1, 2], [3, 4]),
             _ => false
         });
 
-        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case3([5.5, 5.6]) switch
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case3(([[1], [2, 3]], false)) switch
         {
-            OuterGeneric<string>.InnerGeneric<float[], byte>.Case3<double>([5.5, 5.6]) => true,
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case3<int[]>(([[1], [2, 3]], false)) => true,
             _ => false
         });
 
-        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<double, List<int>>.Case4([1, 2, 3]) switch
+        Assert.True(OuterGeneric<string>.InnerGeneric<float[], byte>.ComplexGeneric<List<int>, double>.Case4(3.0) switch
         {
-            OuterGeneric<string>.InnerGeneric<float[], byte>.Case4<List<int>>([1, 2, 3]) => true,
+            OuterGeneric<string>.InnerGeneric<float[], byte>.Case4<double>(3.0) => true,
             _ => false
         });
     }

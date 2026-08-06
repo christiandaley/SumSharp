@@ -459,7 +459,7 @@ internal class SymbolHandler
             {
                 string[] parsedTypeArguments = [caseData.TypeInfo.Name];
 
-                var typeArguments = string.Join(", ", parsedTypeArguments.Intersect(TypeArguments));
+                var typeArguments = string.Join(", ", TypeArguments.Intersect(parsedTypeArguments));
 
                 return $"{caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}";
             }
