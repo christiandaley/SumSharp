@@ -791,7 +791,6 @@ internal class SymbolHandler
             {
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
-    {GeneratedCodeAttribute}
     public readonly partial record struct {caseData.Name};");
             }
             else
@@ -854,8 +853,7 @@ internal class SymbolHandler
         {
             var unmanagedTypes =
                 Cases.Where(caseData => caseData.UseUnmanagedStorage)
-                .Select(caseData => caseData.TypeInfo!.Name)
-                .ToImmutableHashSet();
+                .Select(caseData => caseData.TypeInfo!.Name);
 
             foreach (var type in unmanagedTypes)
             {
@@ -881,7 +879,7 @@ internal class SymbolHandler
         var _ = new StandardJsonConverter();");
         }
 
-            Builder.AppendLine(@"
+        Builder.AppendLine(@"
     }");
     }
 
