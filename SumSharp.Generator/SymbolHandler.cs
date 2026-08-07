@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -15,6 +16,8 @@ internal class SymbolHandler
 
     private const string IL2026SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026:RequiresUnreferencedCode\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
     private const string IL3050SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"AOT\", \"IL3050:AotAnalysisWarning\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
+
+    private static readonly string GeneratedCodeAttribute = $"[System.CodeDom.Compiler.GeneratedCode(\"SumSharp\", \"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion}\")]";
 
     public abstract class TypeInfo
     {
@@ -788,12 +791,14 @@ internal class SymbolHandler
             {
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
+    {GeneratedCodeAttribute}
     public readonly partial record struct {caseData.Name};");
             }
             else
             {
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
+    {GeneratedCodeAttribute}
     public readonly record struct {Net11StructNameMap[caseData]}({caseData.TypeInfo.Name} Value);");
             }
         }
@@ -801,6 +806,7 @@ internal class SymbolHandler
         Builder.Append($@"
 [System.Runtime.CompilerServices.Union]
 #endif
+{GeneratedCodeAttribute}
 {Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name} {interfaces}
 {{");
 
@@ -1760,6 +1766,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
     ///<summary>System.Text.Json converter capable of serializing and deserializing a {XMLEscapedName}</summary>
+    {GeneratedCodeAttribute}
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
         {(UsingAOTCompilation ? IL2026SupressAttribute : "")}
@@ -1874,6 +1881,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
     ///<summary>Newtonsoft converter capable of serializing and deserializing a {XMLEscapedName}</summary>
+    {GeneratedCodeAttribute}
     public partial class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter<{Name}>
     {{
         public override {Name}{NullableIfRef} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, {Name}{NullableIfRef} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
@@ -1989,6 +1997,7 @@ internal class SymbolHandler
     private void EmitStaticClass()
     {
         Builder.Append($@"
+{GeneratedCodeAttribute}
 {Accessibility} static partial class {NameWithoutTypeArguments}
 {{");
     }
@@ -2000,6 +2009,7 @@ internal class SymbolHandler
         Builder.Append($@"
     ///<summary>System.Text.Json converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
     {(UsingAOTCompilation ? IL3050SupressAttribute : "")}
+    {GeneratedCodeAttribute}
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
     {{
         public override bool CanConvert(System.Type typeToConvert)
@@ -2022,45 +2032,45 @@ internal class SymbolHandler
         var genericTypeDefinition = $"{NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>";
 
         Builder.AppendLine($@"
-///<summary>Newtonsoft converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
-public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
-{{
-    static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
-
-    private static Newtonsoft.Json.JsonConverter GetConverter(System.Type objectType)
+    ///<summary>Newtonsoft converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
+    {GeneratedCodeAttribute}
+    public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
     {{
-        return _converters.GetOrAdd(objectType, static objectType => 
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
+
+        private static Newtonsoft.Json.JsonConverter GetConverter(System.Type objectType)
         {{
-            var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
+            return _converters.GetOrAdd(objectType, static objectType => 
+            {{
+                var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
 
-            return (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType);
-        }});
-    }}
-
-    public override bool CanConvert(System.Type objectType)
-    {{
-        return objectType.IsGenericType &&
-               objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
-    }}
-
-    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object{Nullable} value, Newtonsoft.Json.JsonSerializer serializer)
-    {{
-        if (value is null)
-        {{
-            writer.WriteNull();
-
-            return;
+                return (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType);
+            }});
         }}
 
-        GetConverter(value.GetType()).WriteJson(writer, value, serializer);
-    }}
+        public override bool CanConvert(System.Type objectType)
+        {{
+            return objectType.IsGenericType &&
+                   objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
+        }}
 
-    public override object{Nullable} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object{Nullable} existingValue, Newtonsoft.Json.JsonSerializer serializer)
-    {{
-        return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
-    }}
-}}
-");
+        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object{Nullable} value, Newtonsoft.Json.JsonSerializer serializer)
+        {{
+            if (value is null)
+            {{
+                writer.WriteNull();
+
+                return;
+            }}
+
+            GetConverter(value.GetType()).WriteJson(writer, value, serializer);
+        }}
+
+        public override object{Nullable} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object{Nullable} existingValue, Newtonsoft.Json.JsonSerializer serializer)
+        {{
+            return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
+        }}
+    }}");
     }
 
     private void EmitEndStaticClass()
