@@ -468,18 +468,20 @@ internal class SymbolHandler
                         {
                             constraints.Add("notnull");
                         }
-                        if (typeSymbol.HasReferenceTypeConstraint)
+                        else if (typeSymbol.HasReferenceTypeConstraint)
                         {
                             constraints.Add("class");
                         }
+
                         if (typeSymbol.HasUnmanagedTypeConstraint)
                         {
                             constraints.Add("unmanaged");
                         }
-                        if (typeSymbol.HasValueTypeConstraint)
+                        else if (typeSymbol.HasValueTypeConstraint)
                         {
                             constraints.Add("struct");
                         }
+
                         if (typeSymbol.HasConstructorConstraint)
                         {
                             constraints.Add("new()");
