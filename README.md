@@ -9,14 +9,16 @@ A highly configurable C\# discriminated union library
 
 ---
 
-1. [Why use `SumSharp`?](#why-use-sumsharp)
+1. [Why use SumSharp?](#why-use-sumsharp)
 2. [Installation](#installation)
 3. [Quick start](#quick-start)
    - [Creating a DU type](#creating-a-du-type)
    - [Empty cases](#empty-cases)
    - [Generic cases](#generic-cases)
    - [The `Match` function](#the-match-function)
+   - [.NET 11 union types and pattern matching](#net-11-union-types-and-pattern-matching)
 4. [Motivation](#motivation)
+   -  [SumSharp vs .NET 11 union types](#sumsharp-vs-net-11-union-types)
    - [What about `OneOf`?](#what-about-oneof)
    - [Typical DU implementation approaches](#typical-du-implementation-approaches)
    - [SumSharp's approach](#sumsharps-approach)
@@ -39,12 +41,13 @@ A highly configurable C\# discriminated union library
 
 Discriminated unions, also known as sum types, are an invaluable tool for working with heterogenous data types in code. They help ensure safe data access patterns and can [make illegal states unrepresentable.](https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/)
 
-There are many discriminated union libraries available for C\#, such as [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features commonly offered by discriminated union types in other languages.
+There are many discriminated union libraries available for C\#, such as [`OneOf`](https://github.com/mcintyre321/OneOf) which has received tens of millions of downloads. In my experience, all of them lack features commonly offered by discriminated union types in other languages. Union types are being added to C# with the [.NET 11 release](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/union), but these are not true DUs because they lack case names and thus cannot support multiple cases of the same type.
 
 `SumSharp` aims to be **the most powerful, expressive, and configurable C\# discriminated union library available**. Its goal is to provide features and syntax comparable to the discriminated union types natively offered by languages such as F\#, Rust, and Haskell. Although it's impossible to exactly replicate the functionality these other languages offer, `SumSharp` strives to get as close as possible.
 
 ### Features
 
+- **Integration with .NET 11 union types, allowing use of C#'s built-in pattern matching syntax**
 - Unlimited number of cases
 - Support for class, struct, record, and record struct unions
 - Support for generic unions
@@ -88,6 +91,7 @@ partial class StringOrDouble
 
 That's it! `SumSharp` will generate members for the `StringOrDouble` class that allow it to be used as a discriminated union type. These members include:
 
+- `Value` and `HasValue` properties, and `TryGetValue` methods to satisfy requirements for a non-boxing .NET 11 union type
 - `String` and `Double` static functions that construct instances of `StringOrDouble`
 - `AsString` and `AsDouble` properties that return either the underlying string/double value or throw an `InvalidOperationException`
 - `IsString` and `IsDouble` boolean properties
@@ -141,7 +145,7 @@ Case types can be generic. To define a generic case you must supply the **name**
 ```csharp
 [UnionCase("Some", "T")]
 [UnionCase("None")]
-partial class Optional<T>
+partial class Option<T>
 {
 
 }
@@ -151,12 +155,14 @@ Note that generic types in general *must be fully qualified names unless you hav
 
 ### The `Match` function
 
-`SumSharp` unions have a `Match` member function that provides functionality similar to the match statement in F\# (with the limitation that `SumSharp` does not offer partial matching). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Optional<T>` type defined in the last section to equivalent F\# code.
+**If you are using .NET 11 or higher, `SumSharp` unions satisfy the compiler's requirements for a union type. In most cases using built-in C# pattern matching will be easier than using the `Match` function. See [.NET 11 union types and pattern matching](#net-11-union-types-and-pattern-matching)**
+
+`SumSharp` unions have a `Match` member function that provides functionality similar to the match statement in F\# (with the limitation that `SumSharp` does not offer partial matching). The parameters to `Match` are the handler functions for each case, in order. Each parameter has the same name as its corresponding case, allowing the use of named parameters to improve code readability and for the handlers to be specified out of order. To illustrate this, compare the syntax of performing a match on the `Option<T>` type defined in the last section to equivalent F\# code.
 
 ```csharp
-// Here myOptionalValue is an Optional<string>
+// Here myOptionValue is an Option<string>
 // The "None" handler can come before the "Some" handler as long as they're both named
-var result = myOptionalValue.Match(
+var result = myOptionValue.Match(
              None: () => "",
              Some: x => x);
 ```
@@ -164,7 +170,7 @@ var result = myOptionalValue.Match(
 Corresponding F\# code would look like:
 
 ```fsharp
-let result = match myOptionalValue with
+let result = match myOptionValue with
              | None -> ""
              | Some x -> x
 ```
@@ -174,7 +180,7 @@ Handling each case is not required, but a warning will be emitted by the `SumSha
 If you only want to handle some subset of cases, you can provide a default handler to prevent a warning from being emitted.
 
 ```csharp
-var result = myOptionalValue.Match(
+var result = myOptionValue.Match(
              Some: x => x,
              _: () => "");
 ```
@@ -182,18 +188,60 @@ var result = myOptionalValue.Match(
 Again, the corresponding F\# code would look like:
 
 ```fsharp
-let result = match myOptionalValue with
+let result = match myOptionValue with
              | Some x -> x
              | _ -> ""
 ```
 
 The `SumSharp` analyzer will emit a warning if a default handler is provided for a `Match` that is already exhaustive. It will also emit a warning if any case handlers are specified by position rather than name. Specifying by name is preferred because it makes the code clearer and prevents bugs/compilation errors if the case ordering changes.
 
+### .NET 11 union types and pattern matching
+
+If you are using .NET 11 or higher, `SumSharp` unions satisfy the compiler's requirements for a union type. All `SumSharp` unions implement [the non-boxing access pattern](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/union#non-boxing-access-pattern) and [union member providers](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/union#union-member-providers).
+
+Because C# union types do not support case names, `SumSharp` generates wrapper structs for each case in the union and places them as the same namespace/nested type level as the union itself. Empty cases get empty `partial` structs. This means that two `SumSharp` unions that share the same namespace/type heirarchy **cannot share identical non-empty case names**. These structs are used when pattern matching using built-in C# syntax such as `switch` or `is`. An example using the `Option<T>` type that was defined above:
+
+```csharp
+var x = Option<int>.Some(4);
+
+var value = x switch
+{
+  Some<int>(var i) => i,
+  None => 0,
+};
+
+// prints "value is 4"
+Console.WriteLine($"value is {value}");
+
+// prints "x is 4"
+if (x is Some<int>(4))
+{
+  Console.WriteLine("x is 4");
+}
+else if (x is None)
+{
+  Console.WriteLine("x is none");
+}
+
+```
+
+#### Type union implementation details
+
+* `SumSharp` unions are *never null*. A non-null `SumSharp` union will never match with the `null` pattern, even if the underlying data it stores is null.
+* The `IUnionMembers.Value` property is never null and will always return a boxed instance of one of the case structs.
+* The `IUnionMembers.HasValue` property always returns true.
+* The various `TryGetValue` overloads will wrap the underlying data in one of the case structs.
+* `SumSharp` unions implement their corresponding `IUnionMembers` interface explicitly. This means that the `Value` and `HasValue` properties and the `TryGetValue` methods cannot be used unless you explicitly cast it to an `IUnionMembers`. In general you should not need to use any of these: they exist to satisfy the compiler's requirements for custom union types.
+
 ---
 
 ## Motivation
 
-C\# unfortunately does not offer discriminated unions as a language feature. Although [a proposal](https://github.com/dotnet/csharplang/blob/18a527bcc1f0bdaf542d8b9a189c50068615b439/proposals/TypeUnions.md) has existed for a while, this feature doesn't seem to be coming in the near future.
+### `SumSharp` vs .NET 11 union types
+
+The union types introduced by .NET 11 are not true disrciminated unions because they lack the ability to define case names, thus not allowing for multiple cases of the same type. They also always box value types by default, which is unnecessary and often undesireable. They do, however, provide highly convenient pattern matching syntax using C\#'s built-in pattern matching operations such as `switch` and `is`.
+
+As mentioned in the quick start guide, `SumSharp` unions satisfy the requirements for .NET 11 union types. Wrapper structs are defined for each case, allowing for pattern matching behavior that is similar to languages with first class DUs such as F\#. Thus, `SumSharp` works synergistically with C\#'s unions types. You don't need to choose between the two: using `SumSharp` gives you the best of both.
 
 ### What about `OneOf`?
 
