@@ -9,7 +9,7 @@ A highly configurable C\# discriminated union library
 
 ---
 
-1. [Why use `SumSharp`?](#why-use-sumsharp)
+1. [Why use SumSharp?](#why-use-sumsharp)
 2. [Installation](#installation)
 3. [Quick start](#quick-start)
    - [Creating a DU type](#creating-a-du-type)
@@ -47,7 +47,7 @@ There are many discriminated union libraries available for C\#, such as [`OneOf`
 
 ### Features
 
-- **Integration with .NET 11 union types, allowing pattern matching using C#'s built-in pattern matching syntax**
+- **Integration with .NET 11 union types, allowing use of C#'s built-in pattern matching syntax**
 - Unlimited number of cases
 - Support for class, struct, record, and record struct unions
 - Support for generic unions
@@ -227,11 +227,11 @@ else if (x is None)
 
 #### Type union implementation details
 
-1. `SumSharp` unions are *never null*. A non-null `SumSharp` union will never match with the `null` pattern, even if the underlying data it stores is null.
-2. The `IUnionMembers.Value` property is never null and will always return a boxed instance of one of the case structs.
-3. The `IUnionMembers.HasValue` property always returns true.
-4. The various `TryGetValue` overloads will wrap the underlying data in one of the case structs.
-5. `SumSharp` unions implement their corresponding `IUnionMembers` interface explicitly. This means that the `Value` and `HasValue` properties and the `TryGetValue` methods cannot be used unless you explicitly cast it to an `IUnionMembers`. In general you should not need to use any of these: they exist to satisfy the compiler's requirements for custom union types.
+* `SumSharp` unions are *never null*. A non-null `SumSharp` union will never match with the `null` pattern, even if the underlying data it stores is null.
+* The `IUnionMembers.Value` property is never null and will always return a boxed instance of one of the case structs.
+* The `IUnionMembers.HasValue` property always returns true.
+* The various `TryGetValue` overloads will wrap the underlying data in one of the case structs.
+* `SumSharp` unions implement their corresponding `IUnionMembers` interface explicitly. This means that the `Value` and `HasValue` properties and the `TryGetValue` methods cannot be used unless you explicitly cast it to an `IUnionMembers`. In general you should not need to use any of these: they exist to satisfy the compiler's requirements for custom union types.
 
 ---
 
