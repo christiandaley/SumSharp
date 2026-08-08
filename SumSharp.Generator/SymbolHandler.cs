@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -15,6 +16,8 @@ internal class SymbolHandler
 
     private const string IL2026SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026:RequiresUnreferencedCode\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
     private const string IL3050SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"AOT\", \"IL3050:AotAnalysisWarning\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
+
+    private static readonly string GeneratedCodeAttribute = $"[System.CodeDom.Compiler.GeneratedCode(\"SumSharp\", \"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion}\")]";
 
     public abstract class TypeInfo
     {
@@ -255,7 +258,10 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
-    public TypeInfo[] DistinctTypes { get; }
+    public Dictionary<CaseData, (string NameWithTypeArgs, string Constraints)> Net11StructNameMap { get; }
+
+    // Cases grouped by type
+    public IGrouping<string, CaseData>[] CaseGroups { get; }
 
     public INamedTypeSymbol[] ContainingTypes;
 
@@ -419,35 +425,85 @@ internal class SymbolHandler
             })
             .ToArray();
 
-        var typeMap = new Dictionary<string, TypeInfo>();
+        CaseGroups =
+            [..Cases
+            .Where(caseData => caseData.TypeInfo is not null)
+            .GroupBy(caseData =>
+                caseData.TypeInfo!.IsTupleType ?
+                $"({string.Join(", ", caseData.TypeInfo.TupleTypeArgs)})" : // Removes custom field names
+                caseData.TypeInfo.Name)];
 
-        foreach (var caseData in Cases)
-        {
-            if (caseData.TypeInfo is null)
-            {
-                continue;
-            }
-
-            typeMap[caseData.TypeInfo.Name] = caseData.TypeInfo;
-        }
-
-        DistinctTypes = [..typeMap.Values];
-
-        if (storageStrategy == 0 && DistinctTypes.Length == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
+        if (storageStrategy == 0 && CaseGroups.Length == 1 && !Cases.Any(caseData => caseData.StorageMode == 1))
         {
             Cases = [.. Cases.Select(caseData => new CaseData(caseData.Index, caseData.Name, caseData.TypeInfo, false, caseData.StorageMode, FullUnmanagedStorageTypeName))];
         }
 
         UniqueCases =
-            Cases
-            .Where(caseData => caseData.TypeInfo is not null)
-            .GroupBy(caseData =>
-                caseData.TypeInfo!.IsTupleType ?
-                $"({string.Join(", ", caseData.TypeInfo.TupleTypeArgs)})" : // Removes custom field names
-                caseData.TypeInfo.Name)
+            CaseGroups
             .Where(group => group.Count() == 1)
             .SelectMany(group => group)
             .ToArray();
+
+        Net11StructNameMap = Cases.ToDictionary(caseData => caseData, caseData =>
+        {
+            if (caseData.TypeInfo is null || !caseData.TypeInfo.IsGeneric)
+            {
+                return (caseData.Name, "");
+            }
+            else
+            {
+                var parsedTypeArguments = TypeNameParser.ExtractLeafTypes(caseData.TypeInfo.Name);
+
+                var caseStructTypeArguments = TypeArguments.Intersect(parsedTypeArguments).ToArray();
+
+                var caseStructTypeConstraints =
+                    caseStructTypeArguments
+                    .Select(typeArg =>
+                    {
+                        var typeSymbol = (ITypeParameterSymbol)allGenericTypeArguments.Single(symbol => symbol.Name == typeArg);
+
+                        var constraints = new List<string>();
+
+                        if (typeSymbol.HasNotNullConstraint)
+                        {
+                            constraints.Add("notnull");
+                        }
+                        else if (typeSymbol.HasReferenceTypeConstraint)
+                        {
+                            constraints.Add("class");
+                        }
+
+                        if (typeSymbol.HasUnmanagedTypeConstraint)
+                        {
+                            constraints.Add("unmanaged");
+                        }
+                        else if (typeSymbol.HasValueTypeConstraint)
+                        {
+                            constraints.Add("struct");
+                        }
+
+                        if (typeSymbol.HasConstructorConstraint)
+                        {
+                            constraints.Add("new()");
+                        }
+
+                        if (constraints.Count == 0)
+                        {
+                            return "";
+                        }
+
+                        return $"where {typeArg} : {string.Join(", ", constraints)}";
+                    })
+                    .Where(contraints => contraints.Length > 0)
+                    .ToArray();
+
+                var nameWithTypeArgs = $"{caseData.Name}{(caseStructTypeArguments.Length == 0 ? "" : $"<{string.Join(", ", caseStructTypeArguments)}>")}";
+
+                var constraints = string.Join(" ", caseStructTypeConstraints);
+
+                return (nameWithTypeArgs, constraints);
+            }
+        });
 
         var enableJsonSerializationData =
             symbol!
@@ -621,6 +677,8 @@ internal class SymbolHandler
 
         EmitCaseConstructors();
 
+        EmitNativeUnion();
+
         EmitAs();
 
         EmitIs();
@@ -737,23 +795,63 @@ internal class SymbolHandler
             fieldNameTypeMap[caseData.FieldType!] = caseData.FieldName!;
         }
 
-        List<string> interfaces = [];
+        string interfaces = ": ";
 
         if (!DisableValueEquality)
         {
-            interfaces.Add($"System.IEquatable<{Name}>");
+            interfaces += $@"
+    System.IEquatable<{Name}>";
         }
         if (IsDisposable)
         {
-            interfaces.Add("System.IDisposable");
+            interfaces += @",
+    System.IDisposable";
         }
         if (IsAsyncDisposable)
         {
-            interfaces.Add("System.IAsyncDisposable");
+            interfaces += @",
+    System.IAsyncDisposable";
+        }
+
+        if (interfaces == ": ")
+        {
+            interfaces = $@"
+#if NET11_0_OR_GREATER
+    : {Name}.IUnionMembers
+#endif";
+        }
+        else
+        {
+            interfaces += $@"
+#if NET11_0_OR_GREATER
+    , {Name}.IUnionMembers
+#endif";
+        }
+
+        Builder.AppendLine($@"
+#if NET11_0_OR_GREATER");
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                Builder.AppendLine($@"
+    ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
+    public readonly partial record struct {caseData.Name};");
+            }
+            else
+            {
+                Builder.AppendLine($@"
+    ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
+    {GeneratedCodeAttribute}
+    public readonly record struct {Net11StructNameMap[caseData].NameWithTypeArgs}({caseData.TypeInfo.Name} Value) {Net11StructNameMap[caseData].Constraints};");
+            }
         }
 
         Builder.Append($@"
-{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name}{(interfaces.Count == 0 ? "" : $" : {string.Join(", ", interfaces)}")}
+[System.Runtime.CompilerServices.Union]
+#endif
+{GeneratedCodeAttribute}
+{Accessibility} partial {GetDeclarationKind(IsStruct, IsRecord)} {Name} {interfaces}
 {{");
 
         foreach (var field in fieldNameTypeMap)
@@ -800,8 +898,7 @@ internal class SymbolHandler
         {
             var unmanagedTypes =
                 Cases.Where(caseData => caseData.UseUnmanagedStorage)
-                .Select(caseData => caseData.TypeInfo!.Name)
-                .ToImmutableHashSet();
+                .Select(caseData => caseData.TypeInfo!.Name);
 
             foreach (var type in unmanagedTypes)
             {
@@ -827,7 +924,7 @@ internal class SymbolHandler
         var _ = new StandardJsonConverter();");
         }
 
-            Builder.AppendLine(@"
+        Builder.AppendLine(@"
     }");
     }
 
@@ -838,6 +935,7 @@ internal class SymbolHandler
 
     public static int UnmanagedStorageSize => _unmanagedStorageSize;");
     }
+
     public void EmitEquals()
     { 
         Builder.Append($@"
@@ -845,6 +943,7 @@ internal class SymbolHandler
     public bool Equals({Name}{NullableIfRef} other)
     {{
         {(IsStruct ? "" : "if (other is null) return false;")}
+        {(IsStruct ? "" : "if (ReferenceEquals(this, other)) return true;")}
         if (Index != other.Index) return false;
 
         return Index switch
@@ -917,89 +1016,93 @@ internal class SymbolHandler
 #if NET9_0_OR_GREATER");
         }
 
-        foreach (var type in DistinctTypes)
+        foreach (var caseGroup in CaseGroups)
         {
+            var type = caseGroup.First().TypeInfo!;
+
             Builder.Append($@"
     ///<summary>Compares a {XMLEscapedName} with a <see cref=""{type.Name}"" /> for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({Name} left, {type.Name} right)
     {{
-        return left.Index switch
+        switch (left.Index)
         {{");
             foreach (var caseData in Cases)
             {
                 if (caseData.TypeInfo is null)
                 {
-                    Builder.Append($@"
-            {caseData.Index} => false,");
-
                     continue;
                 }
-
-                switch (type.IsGeneric, caseData.TypeInfo.IsGeneric)
+                
+                if (caseData.TypeInfo.IsGeneric || type.IsGeneric)
                 {
-                    case (false, false):
-
-                        if (caseData.TypeInfo.IsAlwaysValueType)
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => {(caseData.TypeInfo.Name == type.Name ? $"left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
-                        }
-                        else
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => {(caseData.TypeInfo.Name == type.Name ? $"left.As{caseData.Name}Unsafe is null ? right is null : left.As{caseData.Name}Unsafe.Equals(right)" : "false")},");
-                        }
-
-                        break;
-                    case (false, true):
-
-                        if (type.IsAlwaysValueType)
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right),");
-                        }
-                        else
-                        {
-                            Builder.Append($@"
-            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && (ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right)),");
-                        }
-
-                        break;
-                    case (true, false):
-
+                    if (caseData.TypeInfo.Name == type.Name)
+                    {
                         Builder.Append($@"
-            {caseData.Index} => typeof({caseData.TypeInfo.Name}) == typeof({type.Name}) && left.As{caseData.Name}Unsafe.Equals(right),");
+        case {caseData.Index}: return typeof({caseData.TypeInfo.Name}).IsValueType ? left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right) : (ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right));");
+                    }
+                    else if (caseData.TypeInfo.IsAlwaysValueType || type.IsAlwaysValueType)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}:
+            if (typeof({caseData.TypeInfo.Name}) == typeof({type.Name}))
+            {{
+                var leftValue = left.As{caseData.Name}Unsafe;
 
-                        break;
+                return System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, {type.Name}>(ref leftValue){NullForgiving}.Equals(right);
+            }}
+            break;");
+                    }
+                    else if (caseData.TypeInfo.IsAlwaysRefType || type.IsAlwaysRefType)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}:
+            if (typeof({caseData.TypeInfo.Name}) == typeof({type.Name}))
+            {{
+                var leftValue = left.As{caseData.Name}Unsafe;
 
-                    case (true, true):
-                        {
-                            var expression = new List<string>();
+                var castedLeftValue = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, {type.Name}>(ref leftValue);
 
-                            if (caseData.TypeInfo.Name != type.Name)
-                            {
-                                expression.Add($"typeof({caseData.TypeInfo.Name}) == typeof({type.Name})");
-                            }
-                            if (caseData.TypeInfo.IsAlwaysValueType || type.IsAlwaysValueType)
-                            {
-                                expression.Add($"left.As{caseData.Name}Unsafe{NullForgiving}.Equals(right)");
-                            }
-                            else
-                            {
-                                expression.Add($"(ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right))");
-                            }
+                return ReferenceEquals(null, castedLeftValue) ? ReferenceEquals(null, right) : castedLeftValue.Equals(right);
+            }}
+            break;");
+                    }
+                    else
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}:
+            if (typeof({caseData.TypeInfo.Name}) == typeof({type.Name}))
+            {{
+                var leftValue = left.As{caseData.Name}Unsafe;
 
-                            Builder.Append($@"
-            {caseData.Index} => {string.Join(" && ", expression)},");
+                var castedLeftValue = System.Runtime.CompilerServices.Unsafe.As<{caseData.TypeInfo.Name}, {type.Name}>(ref leftValue);
 
-                        }
-                        break;
+                return typeof({caseData.TypeInfo.Name}).IsValueType ? castedLeftValue{NullForgiving}.Equals(right) : (ReferenceEquals(null, castedLeftValue) ? ReferenceEquals(null, right) : castedLeftValue.Equals(right));
+            }}
+            break;");
+                    }
+                }
+                else if (caseData.TypeInfo.Name == type.Name)
+                {
+                    if (caseData.TypeInfo.IsAlwaysValueType)
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}: return left.As{caseData.Name}Unsafe.Equals(right);");
+                    }
+                    else
+                    {
+                        Builder.Append($@"
+        case {caseData.Index}: return ReferenceEquals(null, left.As{caseData.Name}Unsafe) ? ReferenceEquals(null, right) : left.As{caseData.Name}Unsafe.Equals(right);");
+                    }
                 }
             }
 
             Builder.AppendLine($@"
-        }};
+        default: break;
+        }}
+
+        return false;
     }}
+
     ///<summary>Compares a <see cref=""{type.Name}"" /> with a {XMLEscapedName} for equality using <see cref=""object.Equals"" /> on the underlying value</summary>
     public static bool operator==({type.Name} left, {Name} right) => right == left;
 
@@ -1092,6 +1195,97 @@ internal class SymbolHandler
         }
     }
 
+    public void EmitNativeUnion()
+    {
+        Builder.AppendLine($@"
+#if NET11_0_OR_GREATER
+    public interface IUnionMembers
+    {{
+        ///<summary>Returns the underlying value of the union as an <see cref=""object"" />{Nullable}. Value types will be boxed</summary>
+        public object Value {{ get; }}
+
+        ///<summary>Always returns true. SumSharp unions are always considered non-null, even if the active case is empty</summary>
+        public bool HasValue {{ get; }}");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                Builder.AppendLine($@"
+        ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
+        public static {Name} Create({Net11StructNameMap[caseData].NameWithTypeArgs} _) => {Name}.{caseData.Name};");
+
+            }
+            else
+            {
+                Builder.AppendLine($@"
+        ///<summary>Creates a <see cref=""{XMLEscapedName}"" /> that holds a value of type <see cref=""{caseData.TypeInfo.Name}"" /> by invoking the <see cref=""{caseData.Name}"" /> case constructor with <paramref name=""value"" />.Value
+        ///This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
+        public static {Name} Create({Net11StructNameMap[caseData].NameWithTypeArgs} value) => {Name}.{caseData.Name}(value.Value);");
+            }
+
+            Builder.AppendLine($@"
+        ///<summary>Attempts to get a value of type <see cref=""{Net11StructNameMap[caseData]}"" /> from the union. Returns true if the union holds a {caseData.Name}.
+        ///Returns false otherwise.</summary>
+        ///<param name=""value"">An out parameter that will be set to the underlying value, if present.</param>
+        public bool TryGetValue(out {Net11StructNameMap[caseData].NameWithTypeArgs} value);");
+        }
+
+        Builder.AppendLine($@"
+    }}");
+
+        Builder.Append($@"
+    object IUnionMembers.Value
+    {{
+        get
+        {{
+            return Index switch
+            {{");
+
+        foreach (var caseData in Cases)
+        {
+            if (caseData.TypeInfo is null)
+            {
+                Builder.Append($@"
+                {caseData.Index} => new {Net11StructNameMap[caseData].NameWithTypeArgs}(),");
+            }
+            else
+            {
+                Builder.Append($@"
+                {caseData.Index} => new {Net11StructNameMap[caseData].NameWithTypeArgs}(As{caseData.Name}Unsafe),");
+            }
+        }
+
+        Builder.AppendLine($@"
+            }};
+        }}
+    }}
+
+    bool IUnionMembers.HasValue => true;");
+
+        foreach (var caseData in Cases)
+        {
+            Builder.AppendLine($@"
+    bool IUnionMembers.TryGetValue(out {Net11StructNameMap[caseData].NameWithTypeArgs} value)
+    {{
+        value = default;
+
+        if (Index != {caseData.Index})
+        {{
+            return false;
+        }}
+        
+        {(caseData.TypeInfo is null ? "" : $"value = new(As{caseData.Name}Unsafe);")}
+
+        return true;
+    }}");
+
+        }
+
+        Builder.AppendLine(@"
+#endif");
+    }
+
     public void EmitAs()
     {
         foreach (var caseData in Cases)
@@ -1175,6 +1369,7 @@ internal class SymbolHandler
     public ValueTask<{caseData.TypeInfo.Name}> As{caseData.Name}Or(System.Func<Task<{caseData.TypeInfo.Name}>> defaultValueFactory) => Index == {caseData.Index} ? ValueTask.FromResult(As{caseData.Name}Unsafe) : new ValueTask<{caseData.TypeInfo.Name}>(defaultValueFactory());");
         }
     }
+
     public void EmitIs()
     {
         foreach (var caseData in Cases)
@@ -1615,6 +1810,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
     ///<summary>System.Text.Json converter capable of serializing and deserializing a {XMLEscapedName}</summary>
+    {GeneratedCodeAttribute}
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverter<{Name}>
     {{
         {(UsingAOTCompilation ? IL2026SupressAttribute : "")}
@@ -1729,6 +1925,7 @@ internal class SymbolHandler
     {
         Builder.Append($@"
     ///<summary>Newtonsoft converter capable of serializing and deserializing a {XMLEscapedName}</summary>
+    {GeneratedCodeAttribute}
     public partial class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter<{Name}>
     {{
         public override {Name}{NullableIfRef} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, {Name}{NullableIfRef} existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
@@ -1844,6 +2041,7 @@ internal class SymbolHandler
     private void EmitStaticClass()
     {
         Builder.Append($@"
+{GeneratedCodeAttribute}
 {Accessibility} static partial class {NameWithoutTypeArguments}
 {{");
     }
@@ -1855,6 +2053,7 @@ internal class SymbolHandler
         Builder.Append($@"
     ///<summary>System.Text.Json converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
     {(UsingAOTCompilation ? IL3050SupressAttribute : "")}
+    {GeneratedCodeAttribute}
     public partial class StandardJsonConverter : System.Text.Json.Serialization.JsonConverterFactory
     {{
         public override bool CanConvert(System.Type typeToConvert)
@@ -1877,45 +2076,45 @@ internal class SymbolHandler
         var genericTypeDefinition = $"{NameWithoutTypeArguments}<{new string(',', TypeArguments.Length - 1)}>";
 
         Builder.AppendLine($@"
-///<summary>Newtonsoft converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
-public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
-{{
-    static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
-
-    private static Newtonsoft.Json.JsonConverter GetConverter(System.Type objectType)
+    ///<summary>Newtonsoft converter capable of serializing and deserializing any {NameWithoutTypeArguments}</summary>
+    {GeneratedCodeAttribute}
+    public class NewtonsoftJsonConverter : Newtonsoft.Json.JsonConverter
     {{
-        return _converters.GetOrAdd(objectType, static objectType => 
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Newtonsoft.Json.JsonConverter> _converters = new();
+
+        private static Newtonsoft.Json.JsonConverter GetConverter(System.Type objectType)
         {{
-            var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
+            return _converters.GetOrAdd(objectType, static objectType => 
+            {{
+                var converterType = typeof({genericTypeDefinition}.NewtonsoftJsonConverter).MakeGenericType(objectType.GetGenericArguments());
 
-            return (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType);
-        }});
-    }}
-
-    public override bool CanConvert(System.Type objectType)
-    {{
-        return objectType.IsGenericType &&
-               objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
-    }}
-
-    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object{Nullable} value, Newtonsoft.Json.JsonSerializer serializer)
-    {{
-        if (value is null)
-        {{
-            writer.WriteNull();
-
-            return;
+                return (Newtonsoft.Json.JsonConverter)System.Activator.CreateInstance(converterType);
+            }});
         }}
 
-        GetConverter(value.GetType()).WriteJson(writer, value, serializer);
-    }}
+        public override bool CanConvert(System.Type objectType)
+        {{
+            return objectType.IsGenericType &&
+                   objectType.GetGenericTypeDefinition() == typeof({genericTypeDefinition});
+        }}
 
-    public override object{Nullable} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object{Nullable} existingValue, Newtonsoft.Json.JsonSerializer serializer)
-    {{
-        return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
-    }}
-}}
-");
+        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object{Nullable} value, Newtonsoft.Json.JsonSerializer serializer)
+        {{
+            if (value is null)
+            {{
+                writer.WriteNull();
+
+                return;
+            }}
+
+            GetConverter(value.GetType()).WriteJson(writer, value, serializer);
+        }}
+
+        public override object{Nullable} ReadJson(Newtonsoft.Json.JsonReader reader, System.Type objectType, object{Nullable} existingValue, Newtonsoft.Json.JsonSerializer serializer)
+        {{
+            return GetConverter(objectType).ReadJson(reader, objectType, existingValue, serializer);
+        }}
+    }}");
     }
 
     private void EmitEndStaticClass()
