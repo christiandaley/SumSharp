@@ -18,6 +18,7 @@ A highly configurable C\# discriminated union library
    - [The `Match` function](#the-match-function)
    - [.NET 11 union types and pattern matching](#net-11-union-types-and-pattern-matching)
 4. [Motivation](#motivation)
+   -  [SumSharp vs .NET 11 union types](#sumsharp-vs-net-11-union-types)
    - [What about `OneOf`?](#what-about-oneof)
    - [Typical DU implementation approaches](#typical-du-implementation-approaches)
    - [SumSharp's approach](#sumsharps-approach)
