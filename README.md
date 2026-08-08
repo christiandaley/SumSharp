@@ -214,7 +214,7 @@ Console.WriteLine($"value is {value}");
 // prints "x is 4"
 if (x is Some<int>(4))
 {
-  Console.WriteLine($"x is 4");
+  Console.WriteLine("x is 4");
 }
 else if (x is None)
 {
