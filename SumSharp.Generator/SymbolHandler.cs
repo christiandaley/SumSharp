@@ -258,7 +258,7 @@ internal class SymbolHandler
 
     public CaseData[] UniqueCases { get; }
 
-    public Dictionary<CaseData, string> Net11StructNameMap { get; }
+    public Dictionary<CaseData, (string NameWithTypeArgs, string Constraints)> Net11StructNameMap { get; }
 
     // Cases grouped by type
     public IGrouping<string, CaseData>[] CaseGroups { get; }
@@ -448,15 +448,58 @@ internal class SymbolHandler
         {
             if (caseData.TypeInfo is null || !caseData.TypeInfo.IsGeneric)
             {
-                return caseData.Name;
+                return (caseData.Name, "");
             }
             else
             {
                 var parsedTypeArguments = TypeNameParser.ExtractLeafTypes(caseData.TypeInfo.Name);
 
-                var typeArguments = string.Join(", ", TypeArguments.Intersect(parsedTypeArguments));
+                var caseStructTypeArguments = TypeArguments.Intersect(parsedTypeArguments).ToArray();
 
-                return $"{caseData.Name}{(typeArguments == "" ? "" : $"<{typeArguments}>")}";
+                var caseStructTypeConstraints =
+                    caseStructTypeArguments
+                    .Select(typeArg =>
+                    {
+                        var typeSymbol = (ITypeParameterSymbol)allGenericTypeArguments.Single(symbol => symbol.Name == typeArg);
+
+                        var constraints = new List<string>();
+
+                        if (typeSymbol.HasNotNullConstraint)
+                        {
+                            constraints.Add("notnull");
+                        }
+                        if (typeSymbol.HasReferenceTypeConstraint)
+                        {
+                            constraints.Add("class");
+                        }
+                        if (typeSymbol.HasUnmanagedTypeConstraint)
+                        {
+                            constraints.Add("unmanaged");
+                        }
+                        if (typeSymbol.HasValueTypeConstraint)
+                        {
+                            constraints.Add("struct");
+                        }
+                        if (typeSymbol.HasConstructorConstraint)
+                        {
+                            constraints.Add("new()");
+                        }
+
+                        if (constraints.Count == 0)
+                        {
+                            return "";
+                        }
+
+                        return $"where {typeArg} : {string.Join(", ", constraints)}";
+                    })
+                    .Where(contraints => contraints.Length > 0)
+                    .ToArray();
+
+                var nameWithTypeArgs = $"{caseData.Name}{(caseStructTypeArguments.Length == 0 ? "" : $"<{string.Join(", ", caseStructTypeArguments)}>")}";
+
+                var constraints = string.Join(" ", caseStructTypeConstraints);
+
+                return (nameWithTypeArgs, constraints);
             }
         });
 
@@ -798,7 +841,7 @@ internal class SymbolHandler
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
     {GeneratedCodeAttribute}
-    public readonly record struct {Net11StructNameMap[caseData]}({caseData.TypeInfo.Name} Value);");
+    public readonly record struct {Net11StructNameMap[caseData].NameWithTypeArgs}({caseData.TypeInfo.Name} Value) {Net11StructNameMap[caseData].Constraints};");
             }
         }
 
@@ -1255,7 +1298,7 @@ internal class SymbolHandler
             else
             {
                 Builder.Append($@"
-                {caseData.Index} => new {Net11StructNameMap[caseData]}(As{caseData.Name}Unsafe),");
+                {caseData.Index} => new {Net11StructNameMap[caseData].NameWithTypeArgs}(As{caseData.Name}Unsafe),");
             }
         }
 
@@ -1269,7 +1312,7 @@ internal class SymbolHandler
         foreach (var caseData in Cases)
         {
             Builder.AppendLine($@"
-    bool IUnionMembers.TryGetValue(out {Net11StructNameMap[caseData]} value)
+    bool IUnionMembers.TryGetValue(out {Net11StructNameMap[caseData].NameWithTypeArgs} value)
     {{
         value = default;
 
@@ -1301,7 +1344,7 @@ internal class SymbolHandler
             {
                 Builder.AppendLine($@"
         ///<summary>Returns the singleton <see cref=""{XMLEscapedName}.{caseData.Name}"" />. The input value is ignored. This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
-        public static {Name} Create({Net11StructNameMap[caseData]} _) => {Name}.{caseData.Name};");
+        public static {Name} Create({Net11StructNameMap[caseData].NameWithTypeArgs} _) => {Name}.{caseData.Name};");
 
             }
             else
@@ -1309,14 +1352,14 @@ internal class SymbolHandler
                 Builder.AppendLine($@"
         ///<summary>Creates a <see cref=""{XMLEscapedName}"" /> that holds a value of type <see cref=""{caseData.TypeInfo.Name}"" /> by invoking the <see cref=""{caseData.Name}"" /> case constructor with <paramref name=""value"" />.Value
         ///This function exists to satisfy the compiler's requirements for .NET 11 union types</summary>
-        public static {Name} Create({Net11StructNameMap[caseData]} value) => {Name}.{caseData.Name}(value.Value);");
+        public static {Name} Create({Net11StructNameMap[caseData].NameWithTypeArgs} value) => {Name}.{caseData.Name}(value.Value);");
             }
 
             Builder.AppendLine($@"
         ///<summary>Attempts to get a value of type <see cref=""{Net11StructNameMap[caseData]}"" /> from the union. Returns true if the union holds a {caseData.Name}.
         ///Returns false otherwise.</summary>
         ///<param name=""value"">An out parameter that will be set to the underlying value, if present.</param>
-        public bool TryGetValue(out {Net11StructNameMap[caseData]} value);");
+        public bool TryGetValue(out {Net11StructNameMap[caseData].NameWithTypeArgs} value);");
         }
 
         Builder.AppendLine($@"

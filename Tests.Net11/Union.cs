@@ -47,7 +47,8 @@ public partial class Union
             [UnionCase("Case2", "Dictionary<X, (V[], W)>")]
             [UnionCase("Case3", "(W[] WArray, bool Boolean)")]
             [UnionCase("Case4", "X")]
-            public partial struct ComplexGeneric<W, X> 
+            public partial struct ComplexGeneric<W, X>
+                where W : class, new()
                 where X : struct
             {
 
