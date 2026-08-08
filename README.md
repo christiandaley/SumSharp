@@ -91,6 +91,7 @@ partial class StringOrDouble
 
 That's it! `SumSharp` will generate members for the `StringOrDouble` class that allow it to be used as a discriminated union type. These members include:
 
+- `Value` and `HasValue` properties, and `TryGetValue` methods to satisfy requirements for a non-boxing .NET 11 union type
 - `String` and `Double` static functions that construct instances of `StringOrDouble`
 - `AsString` and `AsDouble` properties that return either the underlying string/double value or throw an `InvalidOperationException`
 - `IsString` and `IsDouble` boolean properties
