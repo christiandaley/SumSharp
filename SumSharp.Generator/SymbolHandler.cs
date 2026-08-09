@@ -836,14 +836,14 @@ internal class SymbolHandler
             {
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
-    public readonly partial record struct {caseData.Name};");
+    {Accessibility} readonly partial record struct {caseData.Name};");
             }
             else
             {
                 Builder.AppendLine($@"
     ///<summary>Used to implement .NET 11 union requirements. Use this type when pattern matching using C#'s built-in switch statement</summary>
     {GeneratedCodeAttribute}
-    public readonly record struct {Net11StructNameMap[caseData].NameWithTypeArgs}({caseData.TypeInfo.Name} Value) {Net11StructNameMap[caseData].Constraints};");
+    {Accessibility} readonly record struct {Net11StructNameMap[caseData].NameWithTypeArgs}({caseData.TypeInfo.Name} Value) {Net11StructNameMap[caseData].Constraints};");
             }
         }
 
