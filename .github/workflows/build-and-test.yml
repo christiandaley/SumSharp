@@ -14,7 +14,7 @@ jobs:
       matrix:
         # Build is broken on ubuntu-latest
         os: [windows-latest, macos-latest]
-        dotnet: ["8.0.x", "9.0.x"]
+        dotnet: ["10.0.x"]
 
     steps:
       - name: Checkout
@@ -26,10 +26,16 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Restore dependencies
-        run: dotnet restore
+#        run: dotnet restore
+        run: |
+          dotnet restore ./Tests/Tests.csproj
+          dotnet restore ./Tests.AOT/Tests.AOT.csproj
 
       - name: Build solution
-        run: dotnet build --configuration Release --no-restore
+#        run: dotnet build --configuration Release --no-restore
+        run: |
+          dotnet build ./Tests/Tests.csproj --configuration Release --no-restore
+          dotnet build ./Tests.AOT/Tests.AOT.csproj --configuration Release --no-restore
 
       - name: Run unit tests
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --verbosity normal
