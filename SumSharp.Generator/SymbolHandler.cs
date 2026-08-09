@@ -452,9 +452,7 @@ internal class SymbolHandler
             }
             else
             {
-                var parsedTypeArguments = TypeNameParser.ExtractLeafTypes(caseData.TypeInfo.Name);
-
-                var caseStructTypeArguments = TypeArguments.Intersect(parsedTypeArguments).ToArray();
+                var caseStructTypeArguments = TypeArguments.Intersect(TypeNameParser.ExtractLeafTypes(caseData.TypeInfo.Name)).ToArray();
 
                 var caseStructTypeConstraints =
                     caseStructTypeArguments
