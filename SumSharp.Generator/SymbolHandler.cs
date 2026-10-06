@@ -854,6 +854,8 @@ internal class SymbolHandler
 
         foreach (var field in fieldNameTypeMap)
         {
+            // Make the fields readonly so the whole union can be a readonly struct if desired. Also emit properties to allow initialization of the
+            // field and casting it to a mutable ref. The mutable ref is never used to actually mutate the value, but is needed to use Unsafe.As.
             Builder.AppendLine($@"
     private readonly {field.Key} {field.Value} = default;
     private ref {field.Key} {field.Value}AsRef => ref System.Runtime.CompilerServices.Unsafe.AsRef<{field.Key}>(in {field.Value});
