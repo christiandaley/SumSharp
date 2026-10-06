@@ -11,7 +11,7 @@ namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
-    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s\(\)]+|\[\]", RegexOptions.Compiled);
+    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s\(\)]+|\[\]|global::", RegexOptions.Compiled);
     private static readonly Regex _tupleRegex = new(@"^(?:System\.)?ValueTuple<(?<types>.+)>$|^\((?<types>.+)\)$", RegexOptions.Compiled);
 
     private const string IL2026SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026:RequiresUnreferencedCode\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
@@ -854,8 +854,15 @@ internal class SymbolHandler
 
         foreach (var field in fieldNameTypeMap)
         {
-            Builder.Append($@"
-    private {field.Key} {field.Value} = default;");
+            // Make the fields readonly so the whole union can be a readonly struct if desired. Also emit properties to allow initialization of the
+            // field and casting it to a mutable ref. The mutable ref is never used to actually mutate the value, but is needed to use Unsafe.As.
+            Builder.AppendLine($@"
+    private readonly {field.Key} {field.Value} = default;
+    private ref {field.Key} {field.Value}AsRef => ref System.Runtime.CompilerServices.Unsafe.AsRef<{field.Key}>(in {field.Value});
+    private {field.Key} {field.Value}Initializer
+    {{
+        init => {field.Value} = value;
+    }}");
         }
 
         if (IsDisposable)
@@ -1131,52 +1138,57 @@ internal class SymbolHandler
                 continue;
             }
 
-            Builder.AppendLine($@"
+            Builder.Append($@"
     ///<summary>A static function that creates a {XMLEscapedName} that holds a {caseData.Name}</summary>
     public static {Name} {caseData.Name}({caseData.TypeInfo.Name} value)
-    {{
-        var ret = new {Name}({caseData.Index});");
+    {{");
+
+            if (caseData.UseUnmanagedStorage)
+            {
+                Builder.AppendLine($@"
+        {caseData.FieldType} unmanagedStorage = default;
+
+        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref unmanagedStorage) = value;");
+            }
+
+
+            Builder.Append($@"
+        return new {Name}({caseData.Index})
+        {{");
 
             if (caseData.StoreAsObject)
             {
                 if (caseData.TypeInfo.IsAlwaysValueType)
                 {
-                    Builder.AppendLine($@"
-        ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
+                    Builder.Append($@"
+            {caseData.FieldName}Initializer = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value)");
                 }
                 else if (caseData.TypeInfo.IsAlwaysRefType)
                 {
-                    Builder.AppendLine($@"
-        ret.{caseData.FieldName} = value;");
+                    Builder.Append($@"
+            {caseData.FieldName}Initializer = value");
                 }
                 else
                 {
                     // https://github.com/dotnet/runtime/issues/48605
-                    Builder.AppendLine($@"
-        // The JIT is able to optimize away this branch at runtime
-        if (typeof({caseData.TypeInfo.Name}).IsValueType)
-        {{
-            ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);  
-        }}
-        else
-        {{
-            ret.{caseData.FieldName} = value;
-        }}");
+                    Builder.Append($@"
+                // The JIT is able to optimize away this branch at runtime
+                {caseData.FieldName}Initializer = typeof({caseData.TypeInfo.Name}).IsValueType ? new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value) : value");
                 }
             }
             else if (caseData.UseUnmanagedStorage)
             {
-                Builder.AppendLine($@"
-        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{caseData.FieldName}) = value;");
+                Builder.Append($@"
+            {caseData.FieldName}Initializer = unmanagedStorage");
             }
             else
             {
-                Builder.AppendLine($@"
-        ret.{caseData.FieldName} = value;");
+                Builder.Append($@"
+            {caseData.FieldName}Initializer = value");
             }
 
             Builder.AppendLine(@"
-        return ret;
+        };
     }");
 
             if (caseData.TypeInfo.IsTupleType)
@@ -1322,14 +1334,14 @@ internal class SymbolHandler
             }}
             else
             {{
-                return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});
+                return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName}AsRef);
             }}");
                 }
             }
             else if (caseData.UseUnmanagedStorage)
             {
                 Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});");
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName}AsRef);");
 
             }
             else
