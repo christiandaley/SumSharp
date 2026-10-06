@@ -855,7 +855,10 @@ internal class SymbolHandler
         foreach (var field in fieldNameTypeMap)
         {
             Builder.Append($@"
-    private {field.Key} {field.Value} = default;");
+    private readonly {field.Key} {field.Value} = default;
+
+    private ref {field.Key} {field.Value}AsRef => ref System.Runtime.CompilerServices.Unsafe.AsRef<{field.Key}>(in {field.Value});
+");
         }
 
         if (IsDisposable)
@@ -1142,12 +1145,12 @@ internal class SymbolHandler
                 if (caseData.TypeInfo.IsAlwaysValueType)
                 {
                     Builder.AppendLine($@"
-        ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
+        ret.{caseData.FieldName}AsRef = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);");
                 }
                 else if (caseData.TypeInfo.IsAlwaysRefType)
                 {
                     Builder.AppendLine($@"
-        ret.{caseData.FieldName} = value;");
+        ret.{caseData.FieldName}AsRef = value;");
                 }
                 else
                 {
@@ -1156,23 +1159,23 @@ internal class SymbolHandler
         // The JIT is able to optimize away this branch at runtime
         if (typeof({caseData.TypeInfo.Name}).IsValueType)
         {{
-            ret.{caseData.FieldName} = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);  
+            ret.{caseData.FieldName}AsRef = new global::SumSharp.Internal.Box<{caseData.TypeInfo.Name}>(value);  
         }}
         else
         {{
-            ret.{caseData.FieldName} = value;
+            ret.{caseData.FieldName}AsRef = value;
         }}");
                 }
             }
             else if (caseData.UseUnmanagedStorage)
             {
                 Builder.AppendLine($@"
-        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{caseData.FieldName}) = value;");
+        System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref ret.{caseData.FieldName}AsRef) = value;");
             }
             else
             {
                 Builder.AppendLine($@"
-        ret.{caseData.FieldName} = value;");
+        ret.{caseData.FieldName}AsRef = value;");
             }
 
             Builder.AppendLine(@"
@@ -1322,14 +1325,14 @@ internal class SymbolHandler
             }}
             else
             {{
-                return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});
+                return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName}AsRef);
             }}");
                 }
             }
             else if (caseData.UseUnmanagedStorage)
             {
                 Builder.Append($@"
-            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName});");
+            return System.Runtime.CompilerServices.Unsafe.As<{caseData.FieldType}, {caseData.TypeInfo.Name}>(ref {caseData.FieldName}AsRef);");
 
             }
             else

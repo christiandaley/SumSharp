@@ -8,6 +8,8 @@ using SumSharp;
 
 public partial class RecordStructs
 {
+    // Verify that readonly structs will compile
+
     [UnionCase("A", typeof(CustomType1))]
     [UnionCase("B", typeof(CustomType2))]
     [UnionCase("Int", typeof(int))]
