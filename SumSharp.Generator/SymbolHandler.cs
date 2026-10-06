@@ -1153,7 +1153,7 @@ internal class SymbolHandler
 
 
             Builder.Append($@"
-        var ret = new {Name}({caseData.Index})
+        return new {Name}({caseData.Index})
         {{");
 
             if (caseData.StoreAsObject)
@@ -1189,8 +1189,6 @@ internal class SymbolHandler
 
             Builder.AppendLine(@"
         };
-
-        return ret;
     }");
 
             if (caseData.TypeInfo.IsTupleType)
