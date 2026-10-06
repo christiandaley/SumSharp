@@ -11,7 +11,7 @@ namespace SumSharp.Generator;
 
 internal class SymbolHandler
 {
-    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s\(\)]+|\[\]", RegexOptions.Compiled);
+    private static readonly Regex _fieldNameRegex = new(@"[.<>,\s\(\)]+|\[\]|global::", RegexOptions.Compiled);
     private static readonly Regex _tupleRegex = new(@"^(?:System\.)?ValueTuple<(?<types>.+)>$|^\((?<types>.+)\)$", RegexOptions.Compiled);
 
     private const string IL2026SupressAttribute = "[System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026:RequiresUnreferencedCode\", Justification = \"It is the library consumer's responsibility to ensure the required types are preserved.\")]";
